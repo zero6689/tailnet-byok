@@ -18,7 +18,7 @@ class RedactTest {
 
     @Test
     fun `scrubs a tailscale auth key by shape`() {
-        val line = "connecting with tskey-auth-kQ9wZpLm4vRt7xYb2nH8sD3fG6jK1cV5 as credential"
+        val line = "connecting with tskey-auth-kQ9wZpLm4vRt7xYb2nH8sD3fG6jK1cV5 as credential" // not-a-secret: fixture
 
         val scrubbed = Redact.scrub(line)
 
@@ -31,7 +31,7 @@ class RedactTest {
 
     @Test
     fun `scrubs a headscale pre-auth key`() {
-        val scrubbed = Redact.scrub("registering node with hskey-auth-9f8e7d6c5b4a3210")
+        val scrubbed = Redact.scrub("registering node with hskey-auth-9f8e7d6c5b4a3210") // not-a-secret: fixture
 
         assertFalse(scrubbed.contains("9f8e7d6c5b4a3210"))
         assertTrue(scrubbed.contains("hskey-"))
@@ -74,7 +74,7 @@ class RedactTest {
 
     @Test
     fun `scrubKnown removes a value the caller knows`() {
-        val key = "tskey-auth-notshape-checked-here"
+        val key = "tskey-auth-notshape-checked-here" // not-a-secret: fixture
         val scrubbed = Redact.scrubKnown("control plane rejected $key", key)
 
         assertFalse(scrubbed.contains(key))
@@ -87,7 +87,7 @@ class RedactTest {
 
     @Test
     fun `fingerprint is stable and does not reveal the input`() {
-        val key = "tskey-auth-kQ9wZpLm4vRt7xYb2nH8sD3fG6jK1cV5"
+        val key = "tskey-auth-kQ9wZpLm4vRt7xYb2nH8sD3fG6jK1cV5" // not-a-secret: fixture
 
         val first = Redact.fingerprint(key)
         val second = Redact.fingerprint(key)

@@ -100,6 +100,10 @@ The sizes quoted throughout the docs were re-measured for it.
 - **`go get -tool golang.org/x/mobile/cmd/gobind`, without a revision**, asked the module proxy for
   the latest version: a second floating pin, and a hard failure in a warm, offline checkout
   (`module lookup disabled by GOPROXY=off`) even when the module was already cached.
+- **A real tailnet device address was in the docs site's sample transcript.** `site/index.html`
+  showed one in the "sample run" block; it now uses the documented placeholder, like every other
+  example in the repository. It was found by running the tailnet-address guardrail by hand — the
+  guardrail had been reporting it, and that check excluding markdown is why nothing else did.
 
 ### Security
 
@@ -118,6 +122,15 @@ The sizes quoted throughout the docs were re-measured for it.
   `@latest`. That is what `gomobile init` would otherwise do behind the build's back, installing a
   tool whose generated bindings describe an ABI the runtime does not implement — a mismatch that
   surfaces at the first call rather than at build time.
+- **The credential guardrail was skipping the files most likely to contain a pasted key.** It
+  filtered hits with `grep -viE '…|test|\.md:'`, and because `git grep -n` prints
+  `path:line:text`, `test` matched the **path**: every file under a `test/` directory was skipped,
+  which is exactly where someone pastes a key while debugging, along with every markdown file.
+  Measured against the tree it was written for, it discarded all seven credential-shaped strings
+  in the repository — and would have discarded a real one just as quietly. It now has no
+  path-based exclusions, and lets a line through only when it carries an explicit `not-a-secret`
+  marker or an obvious placeholder word. The tailnet-address check scans documentation too now,
+  for the same reason.
 
 ### Notes
 
