@@ -74,6 +74,37 @@ const FACADE_CLASS = `${JAVAPKG}.${GO_PACKAGE}.Mobile`;
 const ANDROID_API = 26; // must equal minSdk in gradle/libs.versions.toml
 
 /**
+ * Where Go's per-user config and telemetry writes are redirected.
+ *
+ * `go` resolves its config directory from `%APPDATA%` (or
+ * `$XDG_CONFIG_HOME`/`$HOME` elsewhere) and, where that directory is read-only,
+ * prints on *every* invocation:
+ *
+ *   error acquiring upload token: creating token file: ... Access is denied.
+ *
+ * Nothing is wrong with the build, but the line lands in captured command output
+ * and in build logs where it reads like a failure — it has already been mistaken
+ * for one, and it corrupts the *first* line of anything captured from `go` early
+ * in this script. `GOTELEMETRY=off` does not stop it: this toolchain ignores the
+ * variable (measured — `go env GOTELEMETRY` still answers "local" while the
+ * warning keeps coming). Redirecting the directory does, and as a side effect a
+ * build writes nothing outside the checkout.
+ */
+const LOCAL_APPDATA = join(REPO_ROOT, '.toolchain', 'appdata');
+const LOCAL_XDG_CONFIG = join(REPO_ROOT, '.toolchain', 'xdg-config');
+
+/** The environment every `go`/`javac` probe runs with, including the very first. */
+function toolEnv() {
+  mkdirSync(LOCAL_APPDATA, { recursive: true });
+  mkdirSync(LOCAL_XDG_CONFIG, { recursive: true });
+  return {
+    ...process.env,
+    APPDATA: LOCAL_APPDATA,
+    XDG_CONFIG_HOME: LOCAL_XDG_CONFIG,
+  };
+}
+
+/**
  * Go module proxies to try, in order, when GOPROXY is not already set.
  *
  * The official proxy first, then two mirrors that are reachable from networks
@@ -91,8 +122,44 @@ const GOPROXY_CANDIDATES = [
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes('--check');
+
+/**
+ * Whether this run is allowed to move the dependency pin.
+ *
+ * Default is no: `go mod tidy` runs on every build (it has to, so a cold
+ * checkout and the `tool` directive agree), and if it changes `go.mod` or
+ * `go.sum` this script restores them and fails. A build whose dependency graph
+ * is not the committed one produces an AAR that corresponds to no revision
+ * anybody can check out, which is the opposite of reproducible. Pass
+ * `--write-mod` to accept the change deliberately, review the diff, and commit
+ * it — the pin then moves in a commit, where it can be seen.
+ */
+const WRITE_MOD = args.includes('--write-mod');
+
 const versionFlag = args.indexOf('--gomobile-version');
-const GOMOBILE_VERSION = versionFlag >= 0 && args[versionFlag + 1] ? args[versionFlag + 1] : 'latest';
+
+/**
+ * The `golang.org/x/mobile` revision to install gomobile and gobind from.
+ *
+ * Read from `tailnet/go.mod` rather than defaulting to `latest`. The header
+ * already gives the reason: gomobile and gobind must come from the same
+ * `x/mobile` revision as the binding runtime, and the module file is where that
+ * revision is pinned. `latest` would make the tool depend on the day the build
+ * ran, while the AAR it produces claims a version that never changes.
+ */
+function pinnedGomobileVersion() {
+  try {
+    const gomod = readFileSync(join(GO_MODULE, 'go.mod'), 'utf8');
+    return gomod.match(/^\s*golang\.org\/x\/mobile\s+(v\S+)/m)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const GOMOBILE_VERSION =
+  versionFlag >= 0 && args[versionFlag + 1]
+    ? args[versionFlag + 1]
+    : (pinnedGomobileVersion() ?? 'latest');
 
 const isWindows = process.platform === 'win32';
 
@@ -105,11 +172,27 @@ function fail(msg) {
   process.exit(1);
 }
 
+/**
+ * Whether a command has to go through a shell.
+ *
+ * Only for a bare name that carries no extension, where Windows needs the shell
+ * to apply `PATHEXT` (the `go` fallback when no toolchain is checked out). A
+ * command named `javac.exe`, or a path, is resolved by `CreateProcess` itself —
+ * and a shell re-parses the arguments, which mangles anything containing `|`,
+ * quotes or a `go list -f` template. Node warns about that combination too
+ * (`DEP0190`), for the same reason.
+ */
+function needsShell(command) {
+  if (!isWindows) return false;
+  if (/[\\/]/.test(command)) return false;
+  return !/\.(exe|cmd|bat|com)$/i.test(command);
+}
+
 function run(command, commandArgs, options = {}) {
   log(`\n$ ${command} ${commandArgs.join(' ')}`);
   const result = spawnSync(command, commandArgs, {
     stdio: 'inherit',
-    shell: isWindows,
+    shell: needsShell(command),
     ...options,
   });
   return result.status === 0;
@@ -148,7 +231,7 @@ function captureToFile(command, commandArgs, options = {}) {
   try {
     const result = spawnSync(command, commandArgs, {
       stdio: ['ignore', fd, fd],
-      shell: isWindows,
+      shell: needsShell(command),
       ...options,
     });
     if (result.status !== 0) return null;
@@ -232,6 +315,60 @@ function findJdk() {
   return null;
 }
 
+/**
+ * Runs `go mod tidy`, and refuses to let it move the dependency pin silently.
+ *
+ * The committed `go.mod`/`go.sum` *are* the pin: they are what a release is built
+ * from, what the third-party notices are generated from, and what someone else
+ * checks out to reproduce the AAR. `go mod tidy` runs on every build path (a cold
+ * checkout needs it, and so does the `tool` directive), so without this check a
+ * dependency could move inside a build without anything saying so.
+ *
+ * When the pin changes, the files are put back exactly as they were and the build
+ * stops. `--write-mod` is the deliberate way through: it keeps the new pin, and
+ * the change then shows up as a diff somebody reviews and commits.
+ */
+function tidyAndAssertPin(goPath, env, failureMessage) {
+  const files = ['go.mod', 'go.sum'];
+  const before = new Map(
+    files.map((name) => {
+      const path = join(GO_MODULE, name);
+      return [name, existsSync(path) ? readFileSync(path) : null];
+    }),
+  );
+
+  if (!run(goPath, ['mod', 'tidy'], { cwd: GO_MODULE, env })) fail(failureMessage);
+
+  const changed = files.filter((name) => {
+    const original = before.get(name);
+    const path = join(GO_MODULE, name);
+    if (!original) return existsSync(path);
+    return !existsSync(path) || !readFileSync(path).equals(original);
+  });
+  if (changed.length === 0) return;
+
+  log(`\n  note: go mod tidy changed ${changed.join(', ')}`);
+  if (WRITE_MOD) {
+    log('  --write-mod: keeping the new pin. Review the diff and commit it — a');
+    log('  release built from an uncommitted pin cannot be reproduced by anyone else.');
+    return;
+  }
+
+  for (const name of changed) {
+    const original = before.get(name);
+    const path = join(GO_MODULE, name);
+    if (original) writeFileSync(path, original);
+    else rmSync(path, { force: true });
+  }
+  fail(
+    `the dependency pin moved (${changed.join(', ')}), so this build would not\n` +
+      '    correspond to any committed revision. The files have been restored.\n' +
+      '    To accept the new pin deliberately:\n' +
+      '      node scripts/build-bridge.mjs --write-mod\n' +
+      '    then review the diff and commit it.',
+  );
+}
+
 function main() {
   const dev = platformPaths();
 
@@ -239,7 +376,7 @@ function main() {
 
   log('== toolchain ==');
   const goPath = dev.goBin ? join(dev.goBin, isWindows ? 'go.exe' : 'go') : 'go';
-  const goVersion = captureToFile(goPath, ['version']);
+  const goVersion = captureToFile(goPath, ['version'], { env: toolEnv() });
   if (!goVersion) {
     fail(
       'Go not found.\n' +
@@ -274,7 +411,9 @@ function main() {
   // been compiled. Report it here, at the top, so a missing JDK is a one-line
   // problem instead of a five-minute one.
   const jdkHome = findJdk();
-  const javacOnPath = captureToFile(isWindows ? 'javac.exe' : 'javac', ['-version']);
+  const javacOnPath = captureToFile(isWindows ? 'javac.exe' : 'javac', ['-version'], {
+    env: toolEnv(),
+  });
   if (!jdkHome && !javacOnPath) {
     fail(
       'no JDK found.\n' +
@@ -284,6 +423,9 @@ function main() {
     );
   }
   log(`  JDK:       ${jdkHome ?? '(javac found on PATH)'}`);
+  // Printed here as well as at install time: the revision is a pin, and a pin
+  // nobody can read off the report is a pin nobody will notice moving.
+  log(`  gomobile:  golang.org/x/mobile@${GOMOBILE_VERSION}`);
 
   const env = {
     ...process.env,
@@ -301,22 +443,10 @@ function main() {
     CGO_ENABLED: '0',
     GOTOOLCHAIN: 'local',
 
-    // Keep Go's own config and telemetry writes inside the checkout.
-    //
-    // `go` resolves its per-user config directory from %APPDATA% (or
-    // $XDG_CONFIG_HOME/$HOME elsewhere), and where that directory is read-only it
-    // prints, on *every* invocation:
-    //
-    //   error acquiring upload token: creating token file: ... Access is denied.
-    //
-    // Nothing is wrong with the build, but the line lands in captured command
-    // output and in build logs where it reads like a failure -- it has already
-    // been mistaken for one. `GOTELEMETRY=off` does not stop it: this toolchain
-    // ignores that variable (measured -- `go env GOTELEMETRY` still answers
-    // "local" while the warning keeps coming). Redirecting the directory does, and
-    // as a side effect a build no longer writes outside the workspace.
-    APPDATA: join(REPO_ROOT, '.toolchain', 'appdata'),
-    XDG_CONFIG_HOME: join(REPO_ROOT, '.toolchain', 'xdg-config'),
+    // Keep Go's own config and telemetry writes inside the checkout. See the
+    // comment on LOCAL_APPDATA at the top for why.
+    APPDATA: LOCAL_APPDATA,
+    XDG_CONFIG_HOME: LOCAL_XDG_CONFIG,
 
     // Force javac to read gomobile's generated Java as UTF-8.
     //
@@ -344,8 +474,6 @@ function main() {
   // using it, because populating a fresh one means re-downloading the entire
   // tsnet dependency graph.
   const localState = join(REPO_ROOT, '.toolchain');
-  mkdirSync(env.APPDATA, { recursive: true });
-  mkdirSync(env.XDG_CONFIG_HOME, { recursive: true });
   if (existsSync(localState)) {
     for (const [name, subdir] of [
       ['GOPATH', 'gopath'],
@@ -450,7 +578,7 @@ function main() {
   // --- Dependencies ---------------------------------------------------------
 
   log('\n== resolving Go modules ==');
-  if (!run(goPath, ['mod', 'tidy'], { cwd: GO_MODULE, env })) fail('go mod tidy failed');
+  tidyAndAssertPin(goPath, env, 'go mod tidy failed');
   if (!run(goPath, ['mod', 'download'], { cwd: GO_MODULE, env })) fail('go mod download failed');
 
   // gomobile must be recorded as a *tool* dependency of the module being bound.
@@ -470,7 +598,7 @@ function main() {
     fail('could not record golang.org/x/mobile as a tool dependency');
   }
   // Re-tidy so go.mod and go.sum reflect the tool directive as well.
-  if (!run(goPath, ['mod', 'tidy'], { cwd: GO_MODULE, env })) fail('go mod tidy failed after go get -tool');
+  tidyAndAssertPin(goPath, env, 'go mod tidy failed after go get -tool');
 
   const tsnetVersion = captureToFile(goPath, ['list', '-m', 'tailscale.com'], { cwd: GO_MODULE, env });
   log(`  resolved: ${tsnetVersion ?? 'unknown'}`);
