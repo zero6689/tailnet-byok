@@ -17,6 +17,7 @@ import io.github.zero6689.tailnetbyok.domain.UpdateChecker
 import io.github.zero6689.tailnetbyok.domain.UpdateFailure
 import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
+import io.github.zero6689.tailnetbyok.domain.UpdateProtocol
 import io.github.zero6689.tailnetbyok.net.ConnectivityProvider
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
@@ -527,7 +528,18 @@ class SetupViewModel(
                 return@launch
             }
 
-            val checker = UpdateChecker(fetch = { spec -> provider.fetch(spec) })
+            val checker = UpdateChecker(
+                fetch = { spec -> provider.fetch(spec) },
+                // The embedded route carries the body as base64 inside a JSON
+                // string, so it can only stage a fraction of what the system
+                // network route can. Asking for the wrong ceiling here would mean
+                // an out-of-memory kill instead of a sentence.
+                maxPackageBytes = if (current.config.provider == ProviderId.EMBEDDED_TSNET) {
+                    UpdateProtocol.MAX_EMBEDDED_APK_BYTES
+                } else {
+                    UpdateProtocol.MAX_APK_BYTES
+                },
+            )
             val result = withContext(Dispatchers.IO) {
                 checker.check(current.config.updateBase, BuildConfig.VERSION_NAME)
             }

@@ -30,6 +30,15 @@ import io.github.zero6689.tailnetbyok.net.HttpRequestSpec
 class UpdateChecker(
     private val fetch: suspend (HttpRequestSpec) -> FetchResult,
     private val timeoutMs: Int = DEFAULT_TIMEOUT_MS,
+    /**
+     * What this transport can stage, in bytes.
+     *
+     * Passed in rather than assumed because the two routes differ by a lot: the
+     * embedded node carries bodies through a base64 JSON field and can only hold a
+     * fraction of what the system network route can. See
+     * [UpdateProtocol.MAX_EMBEDDED_APK_BYTES] for the arithmetic.
+     */
+    private val maxPackageBytes: Int = UpdateProtocol.MAX_APK_BYTES,
 ) {
 
     /** What the source said, and — when it said something newer — the bytes. */
@@ -68,8 +77,16 @@ class UpdateChecker(
         val base = baseUrl.trim().trimEnd('/')
         if (base.isEmpty()) return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
 
-        val versionText = readText(UpdateProtocol.endpoint(base, UpdateProtocol.VERSION_PATH))
-            ?: return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+        val versionUrl = UpdateProtocol.endpoint(base, UpdateProtocol.VERSION_PATH)
+        val apkUrl = UpdateProtocol.endpoint(base, UpdateProtocol.APK_PATH)
+        val sidecarUrl = UpdateProtocol.endpoint(base, UpdateProtocol.SIDECAR_PATH)
+
+        val versionText = when (val fetched = fetchChecked(versionUrl, UpdateProtocol.MAX_TEXT_BYTES)) {
+            is Fetched.Ok -> fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
+            // A cut-off version file is not a shorter version, and an oversized one
+            // is not a version at all; both are "nothing usable was served".
+            Fetched.TooLarge, Fetched.Failed -> return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+        }
 
         val advertised = UpdateProtocol.parseAdvertisedVersion(versionText)
             ?: return UpdateCheck.Failed(UpdateFailure.VERSION_UNPARSABLE)
@@ -81,8 +98,15 @@ class UpdateChecker(
         // Only now is anything large fetched: a source that is not offering a
         // newer build costs one small text request, which is also what makes the
         // check cheap enough to run on demand rather than on a timer.
-        val body = readBytes(UpdateProtocol.endpoint(base, UpdateProtocol.APK_PATH), UpdateProtocol.MAX_APK_BYTES)
-            ?: return UpdateCheck.Failed(UpdateFailure.DOWNLOAD_FAILED)
+        val body = when (val fetched = fetchChecked(apkUrl, maxPackageBytes)) {
+            is Fetched.Ok -> fetched.result.body
+            // The transport hit its own ceiling. That is a specific, actionable
+            // outcome — "this package is bigger than this route can stage" — and
+            // reporting it as a generic download failure would send the user
+            // looking for a network problem that is not there.
+            Fetched.TooLarge -> return UpdateCheck.Failed(UpdateFailure.PACKAGE_TOO_LARGE)
+            Fetched.Failed -> return UpdateCheck.Failed(UpdateFailure.DOWNLOAD_FAILED)
+        }
 
         val apk = try {
             UpdateProtocol.gunzipIfNeeded(body)
@@ -94,8 +118,10 @@ class UpdateChecker(
         }
         if (!UpdateProtocol.looksLikeZip(apk)) return UpdateCheck.Failed(UpdateFailure.NOT_AN_APK)
 
-        val sidecarText = readText(UpdateProtocol.endpoint(base, UpdateProtocol.SIDECAR_PATH))
-            ?: return UpdateCheck.Failed(UpdateFailure.NO_SIDECAR)
+        val sidecarText = when (val fetched = fetchChecked(sidecarUrl, UpdateProtocol.MAX_TEXT_BYTES)) {
+            is Fetched.Ok -> fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
+            Fetched.TooLarge, Fetched.Failed -> return UpdateCheck.Failed(UpdateFailure.NO_SIDECAR)
+        }
         val expected = UpdateProtocol.parseSidecar(sidecarText)
             ?: return UpdateCheck.Failed(UpdateFailure.NO_SIDECAR)
 
@@ -109,33 +135,41 @@ class UpdateChecker(
         return UpdateCheck.Downloaded(current = currentVersion, available = advertised, bytes = apk)
     }
 
-    private suspend fun readText(url: String): String? {
-        val result = fetchChecked(url, UpdateProtocol.MAX_TEXT_BYTES) ?: return null
-        return result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
+    /**
+     * Why a fetch cannot be used, kept apart from "the body".
+     *
+     * The three cases lead to different sentences on screen, so they must not be
+     * collapsed into one null on the way out.
+     */
+    private sealed interface Fetched {
+        class Ok(val result: FetchResult) : Fetched
+
+        /** The body hit the cap this call asked for. */
+        data object TooLarge : Fetched
+
+        /** The transport failed, the status was not a success, or it threw. */
+        data object Failed : Fetched
     }
 
-    private suspend fun readBytes(url: String, limit: Int): ByteArray? =
-        fetchChecked(url, limit)?.body
-
     /**
-     * One GET, with the three ways it can be unusable folded into null: the
-     * transport failed, the status was not a success, or the body hit the cap.
+     * One GET, classified.
      *
-     * Truncation counts as failure rather than as data. A cut-off text body would
-     * be parsed as a shorter version, and a cut-off APK would fail the hash check
-     * anyway — but with a misleading reason, and only after the user has waited
-     * for the whole transfer.
+     * Truncation counts as its own outcome rather than as data: a cut-off text body
+     * would be parsed as a shorter version, and a cut-off APK would be hashed and
+     * rejected — with a misleading reason, and only after the user waited for the
+     * whole transfer.
      */
-    private suspend fun fetchChecked(url: String, limit: Int): FetchResult? {
+    private suspend fun fetchChecked(url: String, limit: Int): Fetched {
         val result = try {
             fetch(HttpRequestSpec(url = url, method = "GET", timeoutMs = timeoutMs, maxBodyBytes = limit))
         } catch (e: Exception) {
             // The providers report transport errors inside the result rather than
             // throwing, but a fetch that throws must not take the screen with it.
-            return null
+            return Fetched.Failed
         }
-        if (result.error != null || result.statusCode !in 200..299 || result.truncated) return null
-        return result
+        if (result.truncated) return Fetched.TooLarge
+        if (result.error != null || result.statusCode !in 200..299) return Fetched.Failed
+        return Fetched.Ok(result)
     }
 
     companion object {

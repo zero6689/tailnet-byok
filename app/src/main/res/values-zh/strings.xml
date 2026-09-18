@@ -222,6 +222,7 @@
     <string name="update_fail_version_unreadable">读不到更新源上的 dsh.apk.version。</string>
     <string name="update_fail_version_unparsable">dsh.apk.version 里没有版本号。</string>
     <string name="update_fail_download_failed">dsh.apk 下载失败，或者收到的内容被截断了。</string>
+    <string name="update_fail_package_too_large">这个包比内嵌节点能安全暂存的上限还大。请把连接方式切到系统网络，或者换一个更小的构建来更新。</string>
     <string name="update_fail_no_sidecar">dsh.apk.sha256 缺失，或者里面没有 SHA-256 —— 校验不了的东西一律不装。</string>
     <string name="update_fail_sidecar_mismatch">SHA-256 不一致：收到的字节不是更新源发布的那些。没有安装任何东西。</string>
     <string name="update_fail_not_an_apk">更新源给的这东西不是 APK。</string>

@@ -42,7 +42,7 @@ object UpdateProtocol {
     const val SIDECAR_PATH = "dsh.apk.sha256"
 
     /**
-     * Ceiling for the download.
+     * Ceiling for the download on the system-network route.
      *
      * The bundled-node builds are large — a four-ABI debug APK is ~180 MB, and the
      * one-ABI build ~60 MB — so this is generous on purpose. It is not unbounded:
@@ -50,6 +50,26 @@ object UpdateProtocol {
      * exhaust the process before we ever get to look at it.
      */
     const val MAX_APK_BYTES: Int = 200 * 1024 * 1024
+
+    /**
+     * Ceiling for the embedded-node route, and the reason it is lower.
+     *
+     * That route crosses the gomobile boundary as a **base64 body inside a JSON
+     * string** (`Mobile.fetch` → `bodyB64`, decoded in Kotlin), so a body of N
+     * bytes costs roughly N on the Go side, ~1.34N of base64 text, another copy of
+     * that as a Java string, and N again once it is decoded — several hundred
+     * megabytes of transient heap for a package this app would itself produce.
+     * Android would not fail politely; it would kill the process.
+     *
+     * So the embedded route gets a ceiling it can actually hold, and a package
+     * above it is refused with a message that names the limit instead of an
+     * out-of-memory crash. The real fix is to stream the body to a file across the
+     * bridge instead of carrying it through JSON (see `docs/TSNET.md`), which needs
+     * a new binding and therefore a re-bound AAR; until then this is the honest
+     * bound. The system-network route has no such doubling and uses
+     * [MAX_APK_BYTES].
+     */
+    const val MAX_EMBEDDED_APK_BYTES: Int = 32 * 1024 * 1024
 
     /** Ceiling for the two text sidecars. */
     const val MAX_TEXT_BYTES: Int = 64 * 1024
@@ -199,6 +219,14 @@ enum class UpdateFailure {
 
     /** The package could not be fetched, or arrived truncated. */
     DOWNLOAD_FAILED,
+
+    /**
+     * The package is larger than the route carrying it can stage.
+     *
+     * Not a network failure: the transport has a size it can hold safely (see
+     * [UpdateProtocol.MAX_EMBEDDED_APK_BYTES]), and this package is over it.
+     */
+    PACKAGE_TOO_LARGE,
 
     /** The hash sidecar is missing, empty, or contains no SHA-256. */
     NO_SIDECAR,

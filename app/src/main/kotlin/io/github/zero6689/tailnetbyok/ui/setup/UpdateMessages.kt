@@ -21,6 +21,7 @@ fun UpdateFailure.messageRes(): Int = when (this) {
     UpdateFailure.VERSION_UNREADABLE -> R.string.update_fail_version_unreadable
     UpdateFailure.VERSION_UNPARSABLE -> R.string.update_fail_version_unparsable
     UpdateFailure.DOWNLOAD_FAILED -> R.string.update_fail_download_failed
+    UpdateFailure.PACKAGE_TOO_LARGE -> R.string.update_fail_package_too_large
     UpdateFailure.NO_SIDECAR -> R.string.update_fail_no_sidecar
     UpdateFailure.SIDECAR_MISMATCH -> R.string.update_fail_sidecar_mismatch
     UpdateFailure.NOT_AN_APK -> R.string.update_fail_not_an_apk
