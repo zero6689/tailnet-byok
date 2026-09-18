@@ -1,0 +1,202 @@
+name: Sync personal site
+
+# Copies the built docs site to a personally hosted mirror.
+#
+# This workflow is MANUAL ONLY and is off until you configure it. It is here
+# because "deploy to Pages" and "deploy to my own box" are different jobs with
+# different risk: Pages is append-only and reversible by a redeploy, whereas
+# this one writes to a directory that may also hold other things.
+#
+# Required repository secrets:
+#   PERSONAL_SITE_HOST        e.g. 203.0.113.10
+#   PERSONAL_SITE_USER        e.g. deploy
+#   PERSONAL_SITE_SSH_KEY     the private key, base64-encoded
+#   PERSONAL_SITE_KNOWN_HOSTS output of `ssh-keyscan -H <host>`
+#   PERSONAL_SITE_PATH        target directory, e.g. /var/www/tailnet-byok
+#
+# The deploy is additive and timestamped, and it renames rather than deletes:
+# the previous release is moved aside as `<path>-old-<timestamp>` and is never
+# removed by this workflow. Disk cleanup is a decision for a human, because the
+# one time you need the old directory is the one time an automated cleanup has
+# already deleted it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_path:
+        description: 'Absolute path on the server to deploy into (blank = PERSONAL_SITE_PATH secret)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run: build and prepare, but do not touch the server'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-site-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Build and sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build the site
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node site/build.mjs
+
+      - name: Resolve the target and check configuration
+        id: target
+        env:
+          # Prefer the input so a one-off deploy does not require editing secrets.
+          INPUT_PATH: ${{ inputs.target_path }}
+          SECRET_PATH: ${{ secrets.PERSONAL_SITE_PATH }}
+          HOST: ${{ secrets.PERSONAL_SITE_HOST }}
+          USER: ${{ secrets.PERSONAL_SITE_USER }}
+        run: |
+          set -euo pipefail
+          target="${INPUT_PATH:-$SECRET_PATH}"
+          if [ -z "$HOST" ] || [ -z "$USER" ] || [ -z "$target" ]; then
+            echo "::error::not configured. Set PERSONAL_SITE_HOST, PERSONAL_SITE_USER and PERSONAL_SITE_PATH (or pass target_path)."
+            exit 1
+          fi
+          case "$target" in
+            /*) ;;
+            *) echo "::error::target_path must be absolute, got '$target'"; exit 1 ;;
+          esac
+          # Refuse to aim at something that is obviously not an app directory.
+          case "$target" in
+            /|/var|/var/www|/usr|/etc|/home|/opt|/root)
+              echo "::error::refusing to deploy into '$target' — that is a system location, not an app directory"
+              exit 1 ;;
+          esac
+          echo "path=$target" >> "$GITHUB_OUTPUT"
+          echo "host=$HOST" >> "$GITHUB_OUTPUT"
+          echo "user=$USER" >> "$GITHUB_OUTPUT"
+          echo "deploying to ${USER}@${HOST}:${target}"
+
+      - name: Prepare the SSH key
+        if: ${{ !inputs.dry_run }}
+        env:
+          KEY_B64: ${{ secrets.PERSONAL_SITE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PERSONAL_SITE_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          # Outside the checkout, mode 600, removed on every exit path below.
+          mkdir -p "$RUNNER_TEMP/.ssh"
+          printf '%s' "$KEY_B64" | base64 -d > "$RUNNER_TEMP/.ssh/id_deploy"
+          chmod 600 "$RUNNER_TEMP/.ssh/id_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/.ssh/known_hosts"
+          chmod 644 "$RUNNER_TEMP/.ssh/known_hosts"
+          {
+            echo "SSH_KEY=$RUNNER_TEMP/.ssh/id_deploy"
+            echo "SSH_KNOWN_HOSTS=$RUNNER_TEMP/.ssh/known_hosts"
+          } >> "$GITHUB_ENV"
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          echo "DRY RUN — nothing was sent to the server."
+          echo "Would deploy $(find site/dist -type f | wc -l) files to ${{ steps.target.outputs.user }}@${{ steps.target.outputs.host }}:${{ steps.target.outputs.path }}"
+          echo
+          echo "The live sequence would be:"
+          echo "  1. rsync new files into <path>.new-<timestamp>"
+          echo "  2. mv <path>            -> <path>-old-<timestamp>   (only if <path> exists)"
+          echo "  3. mv <path>.new-<ts>   -> <path>"
+          echo "  4. curl the public URL and require HTTP 200"
+          echo "  5. on failure, roll back by moving the -old- directory back"
+
+      - name: Deploy
+        if: ${{ !inputs.dry_run }}
+        env:
+          HOST: ${{ steps.target.outputs.host }}
+          USER: ${{ steps.target.outputs.user }}
+          TARGET: ${{ steps.target.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          SSH="ssh -i $SSH_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS -o StrictHostKeyChecking=yes"
+          TS=$(date -u +%Y%m%d-%H%M%S)
+
+          # 1. Stage the new release beside the live one. Nothing the public sees
+          #    is touched yet, so an interrupted upload changes nothing.
+          rsync -az --delete \
+            -e "$SSH" \
+            site/dist/ "${USER}@${HOST}:${TARGET}.new-${TS}/"
+
+          # 2. Swap. The old directory is renamed, never deleted; recovering
+          #    means moving it back, which is a single command.
+          $SSH "${USER}@${HOST}" bash -s <<REMOTE
+          set -euo pipefail
+          target='${TARGET}'
+          ts='${TS}'
+
+          if [ -e "\$target" ]; then
+            mv "\$target" "\${target}-old-\${ts}"
+            echo "previous release preserved at \${target}-old-\${ts}"
+          fi
+          mv "\${target}.new-\${ts}" "\$target"
+          find "\$target" -type f -exec chmod 644 {} +
+          find "\$target" -type d -exec chmod 755 {} +
+          echo "deployed \$(find "\$target" -type f | wc -l) files to \$target"
+          REMOTE
+
+          echo "deploy complete at $TS"
+
+      - name: Verify the live site responds
+        if: ${{ !inputs.dry_run }}
+        env:
+          HOST: ${{ steps.target.outputs.host }}
+          SITE_URL: ${{ secrets.PERSONAL_SITE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SITE_URL:-}" ]; then
+            echo "::warning::PERSONAL_SITE_URL is not set, so the deploy cannot be verified from here. Check it manually."
+            exit 0
+          fi
+          # Poll: a reverse proxy or CDN in front of the directory may need a
+          # moment, and a single immediate check produces false alarms.
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$SITE_URL" || echo 000)
+            echo "attempt $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "ok: $SITE_URL is live"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$SITE_URL did not return 200. The previous release is still on disk as <path>-old-<timestamp>; move it back to roll back."
+          exit 1
+
+      - name: Report rollback instructions on failure
+        if: failure() && !inputs.dry_run
+        run: |
+          cat <<'EOF'
+          ::warning::The deploy reported a failure.
+
+          To roll back, on the server:
+
+            mv <path> <path>-failed-$(date -u +%Y%m%d-%H%M%S)
+            mv <path>-old-<the-timestamp-from-the-log> <path>
+
+          Nothing was deleted: the previous release is still on disk under a
+          `-old-<timestamp>` name.
+          EOF
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/.ssh"

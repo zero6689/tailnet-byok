@@ -1,0 +1,547 @@
+/*
+ * tailnet-byok docs site.
+ *
+ * One stylesheet, no framework. The design brief was "a network tool read on a
+ * phone": high contrast, generous line height, a monospace face for anything
+ * the user might type, and a single accent colour reserved for states that mean
+ * something (verified, warning, failure) rather than for decoration.
+ *
+ * Tokens are CSS custom properties so a fork can rebrand by editing the block
+ * below and nothing else.
+ */
+
+:root {
+  --bg: #0e1420;
+  --bg-raised: #161d2c;
+  --bg-code: #101725;
+  --fg: #e6eaf1;
+  --fg-muted: #97a3b8;
+  --fg-faint: #64708a;
+  --line: #26314a;
+  --accent: #3ddc97;
+  --accent-dim: #1fa271;
+  --warn: #e8b339;
+  --danger: #e0655f;
+  --link: #8fb4d9;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --measure: 46rem;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f8fb;
+    --bg-raised: #ffffff;
+    --bg-code: #eef2f7;
+    --fg: #101725;
+    --fg-muted: #4c5a72;
+    --fg-faint: #7a8699;
+    --line: #dbe2ec;
+    --accent: #1fa271;
+    --accent-dim: #17805a;
+    --warn: #9a6b00;
+    --danger: #b3261e;
+    --link: #2f5d8a;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Layout ------------------------------------------------------------- */
+
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 1.25rem 6rem;
+}
+
+header.site {
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+header.site .wrap {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand .dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+nav.site {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  margin-left: auto;
+}
+
+nav.site a {
+  color: var(--fg-muted);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+}
+
+nav.site a:hover,
+nav.site a:focus-visible {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
+nav.site a[aria-current="page"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* --- Typography --------------------------------------------------------- */
+
+h1 {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 2.5rem 0 0.75rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  margin: 2.75rem 0 0.75rem;
+  padding-top: 0.5rem;
+}
+
+h3 {
+  font-size: 1.06rem;
+  margin: 1.75rem 0 0.5rem;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 1rem;
+}
+
+ul,
+ol {
+  padding-left: 1.4rem;
+}
+
+li {
+  margin-bottom: 0.35rem;
+}
+
+li > ul,
+li > ol {
+  margin-top: 0.35rem;
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+strong {
+  font-weight: 650;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 2.5rem 0;
+}
+
+.lead {
+  font-size: 1.12rem;
+  color: var(--fg-muted);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.small {
+  font-size: 0.9rem;
+}
+
+/* --- Code --------------------------------------------------------------- */
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+code {
+  background: var(--bg-code);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+  word-break: break-word;
+}
+
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  line-height: 1.55;
+  margin: 0 0 1.25rem;
+}
+
+pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.83rem;
+  white-space: pre;
+  word-break: normal;
+}
+
+kbd {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0.1em 0.4em;
+}
+
+/* --- Cards and callouts ------------------------------------------------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.25rem;
+  margin: 0 0 1.25rem;
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.grid .card {
+  margin: 0;
+}
+
+.callout {
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg-raised));
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 1.25rem;
+}
+
+.callout.warn {
+  border-left-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg-raised));
+}
+
+.callout.danger {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-raised));
+}
+
+.callout > :last-child {
+  margin-bottom: 0;
+}
+
+.callout .label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  margin-bottom: 0.35rem;
+}
+
+/* --- Status markers ----------------------------------------------------- */
+
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  vertical-align: middle;
+}
+
+.tag.ok {
+  color: var(--accent);
+}
+.tag.warn {
+  color: var(--warn);
+}
+.tag.bad {
+  color: var(--danger);
+}
+.tag.neutral {
+  color: var(--fg-muted);
+}
+
+/* A terminal transcript, for the connection-test output. */
+.transcript {
+  background: var(--bg-code);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  overflow-x: auto;
+  margin: 0 0 1.25rem;
+}
+
+.transcript .ok {
+  color: var(--accent);
+}
+.transcript .warn {
+  color: var(--warn);
+}
+.transcript .bad {
+  color: var(--danger);
+}
+.transcript .dim {
+  color: var(--fg-faint);
+}
+.transcript .step {
+  display: inline-block;
+  min-width: 15rem;
+}
+
+/* --- Tables ------------------------------------------------------------- */
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0 0 1.5rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th {
+  font-weight: 650;
+  color: var(--fg-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* --- Diagram ------------------------------------------------------------ */
+
+.diagram {
+  background: var(--bg-code);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre;
+  color: var(--fg-muted);
+  margin: 0 0 1.25rem;
+}
+
+/* --- Header block ------------------------------------------------------- */
+
+.hero {
+  padding-top: 1rem;
+}
+
+.hero .badges {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+}
+
+.hero .badges img {
+  height: 20px;
+}
+
+.cta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0 2rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  background: var(--bg-raised);
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #07231a;
+}
+
+.btn.primary:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: #04170f;
+}
+
+/* --- Footer ------------------------------------------------------------- */
+
+footer.site {
+  border-top: 1px solid var(--line);
+  margin-top: 4rem;
+  padding: 2rem 0 3rem;
+  color: var(--fg-muted);
+  font-size: 0.88rem;
+}
+
+footer.site .wrap {
+  padding-bottom: 0;
+}
+
+footer.site a {
+  color: var(--fg-muted);
+}
+
+/* --- Anchor links ------------------------------------------------------- */
+
+h2 .anchor,
+h3 .anchor {
+  color: var(--fg-faint);
+  text-decoration: none;
+  margin-left: 0.4rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+h2:hover .anchor,
+h3:hover .anchor,
+h2 .anchor:focus-visible,
+h3 .anchor:focus-visible {
+  opacity: 1;
+}
+
+/* --- Print -------------------------------------------------------------- */
+
+@media print {
+  header.site,
+  footer.site,
+  .cta {
+    display: none;
+  }
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+  pre,
+  .card,
+  .transcript,
+  .diagram {
+    border-color: #bbb;
+    background: #f6f6f6;
+  }
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+}

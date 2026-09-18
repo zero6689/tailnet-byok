@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build &amp; use — tailnet-byok</title>
+<meta name="description" content="How to build tailnet-byok, including the gomobile native bridge, and how to configure it.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html">Overview</a>
+      <a href="guide.html" aria-current="page">Build &amp; use</a>
+      <a href="security.html">Security</a>
+      <a href="architecture.html">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Build &amp; use</h1>
+
+  <p class="lead">
+    Two build modes. One needs JDK 17 and an Android SDK; the other additionally needs Go,
+    gomobile and the NDK, and gives you the embedded node.
+  </p>
+
+  <div class="callout">
+    <span class="label">The honest summary</span>
+    <p>
+      A fresh clone builds and runs <strong>without Go</strong>. It will tell you the embedded
+      provider is not compiled in and offer the system-network fallback. If the whole point
+      for you is the auth-key field, you need the second mode — and about two gigabytes of
+      toolchain, which one script will fetch.
+    </p>
+  </div>
+
+  <h2 id="fast-path">Fast path<a class="anchor" href="#fast-path">#</a></h2>
+
+  <pre><code>git clone {{REPO_URL}}.git
+cd {{REPO_NAME}}
+
+node scripts/fetch-toolchain.mjs gradle sdk   # Gradle + Android SDK, if you lack them
+node scripts/make-wrapper.mjs                 # generates gradlew / gradlew.bat
+
+./gradlew assembleDebug                        # macOS / Linux
+.\gradlew.bat assembleDebug                    # Windows</code></pre>
+
+  <p>
+    That produces an APK in <code>app/build/outputs/apk/debug/</code>. It runs, and the
+    embedded provider will be reported as unavailable — with the reason shown in the UI
+    rather than as a crash.
+  </p>
+
+  <h2 id="full-build">Full build, with the embedded node<a class="anchor" href="#full-build">#</a></h2>
+
+  <pre><code>node scripts/fetch-toolchain.mjs go ndk   # Go + Android NDK
+node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aar
+
+./gradlew assembleDebug -PwithTsnet=true</code></pre>
+
+  <p>
+    <code>scripts/build-bridge.mjs --check</code> reports the toolchain it can see without
+    building anything, which is the fastest way to find out what is missing.
+  </p>
+
+  <h3 id="why-the-bridge-is-not-committed">Why the AAR is not committed<a class="anchor" href="#why-the-bridge-is-not-committed">#</a></h3>
+
+  <p>
+    Because there is no prebuilt one to commit. Neither
+    <a href="https://github.com/tailscale/libtailscale">tailscale/libtailscale</a> (which is
+    a C library, and produces no Android artifact at all) nor
+    <a href="https://github.com/tailscale/tailscale-android">tailscale/tailscale-android</a>
+    (whose GitHub releases ship only APKs) publishes one on Maven Central or JitPack. The
+    AAR has to be built from source, which is what the script does.
+  </p>
+
+  <h3 id="why-not-the-official-aar">Why not just reuse Tailscale's AAR?<a class="anchor" href="#why-not-the-official-aar">#</a></h3>
+
+  <p>
+    Two reasons, and the second is the important one.
+  </p>
+
+  <ol>
+    <li>
+      <strong>It does not expose what this app needs.</strong> The binding has no typed
+      <code>Dial</code> and no <code>GetIP</code>; all control flows through a local HTTP API
+      over JNI.
+    </li>
+    <li>
+      <strong>Using it commits you to the system VPN slot.</strong> Its Kotlin side
+      implements <code>IPNService</code> (a <code>VpnService</code>) and an
+      <code>AppContext</code>; the Go side calls back into them. You would be building the
+      official app's architecture — device-wide routing, split-tunnel policy, a foreground
+      service — to open one socket.
+    </li>
+  </ol>
+
+  <p>
+    So this project binds <code>tsnet</code> directly, with a deliberately tiny surface:
+    every exported Go function takes and returns only <code>String</code>,
+    <code>Int</code>, <code>Bool</code> or <code>error</code>. Structured data crosses as
+    JSON. That avoids both the interface-binding problem (a Go <code>net.Conn</code> has no
+    Java representation) and the version sensitivity of multi-value returns.
+  </p>
+
+  <h2 id="toolchain-versions">Toolchain versions<a class="anchor" href="#toolchain-versions">#</a></h2>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Version</th><th>Needed for</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>JDK</td><td>17</td><td>everything</td></tr>
+      <tr><td>Gradle</td><td>8.11.1</td><td>the wrapper</td></tr>
+      <tr><td>Android SDK</td><td>platform 35, build-tools 35.0.0</td><td>the app</td></tr>
+      <tr><td>Go</td><td>resolved from <code>go.dev</code> (1.23+ required)</td><td>the bridge</td></tr>
+      <tr><td>Android NDK</td><td>r26d (26.3.11579264)</td><td>the bridge</td></tr>
+      <tr><td>gomobile / gobind</td><td>same <code>x/mobile</code> revision</td><td>the bridge</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">gomobile and gobind must match</span>
+    <p>
+      Install them from the same <code>golang.org/x/mobile</code> revision. Different
+      revisions produce bindings that describe an ABI the runtime library does not implement,
+      and the failure appears at the first call rather than at build time — which is a
+      genuinely miserable thing to debug. <code>build-bridge.mjs</code> installs both from
+      one <code>--gomobile-version</code>, and prints the resolved versions so you can pin
+      them.
+    </p>
+  </div>
+
+  <h2 id="build-modes">SDK level overrides<a class="anchor" href="#build-modes">#</a></h2>
+
+  <p>
+    The default is <code>compileSdk 35</code> / <code>targetSdk 35</code>, which is what a
+    Play submission needs. If your local SDK is older, override both:
+  </p>
+
+  <pre><code>./gradlew assembleDebug -PcompileSdk=34 -PtargetSdk=34</code></pre>
+
+  <p class="small muted">
+    Note that AndroidX 1.15+ requires <code>compileSdk 35</code>, so this override is only
+    useful if you also lower the dependency versions in
+    <code>gradle/libs.versions.toml</code>.
+  </p>
+
+  <h2 id="using-it">Using it<a class="anchor" href="#using-it">#</a></h2>
+
+  <h3 id="step-1-key">1. Create a pre-auth key<a class="anchor" href="#step-1-key">#</a></h3>
+
+  <p>
+    In your tailnet's admin console: <strong>Settings → Keys → Generate auth key</strong>.
+  </p>
+
+  <ul>
+    <li>Prefer <strong>single-use</strong>: one device, one key.</li>
+    <li>Prefer a <strong>tag</strong> (for example <code>tag:phone</code>) so your ACLs can
+        grant that tag access to exactly the service you intend.</li>
+    <li>Set an <strong>expiry</strong> you will actually notice.</li>
+  </ul>
+
+  <p class="small muted">
+    The app cannot enforce any of that for you. It is the difference between a key that is a
+    credential and a key that is a capability.
+  </p>
+
+  <h3 id="step-2-host">2. Enter the target host<a class="anchor" href="#step-2-host">#</a></h3>
+
+  <p>Accepted forms, in order of how likely they are to just work:</p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Input</th><th>Verdict</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>100.101.102.103:3080</code></td>
+        <td><span class="tag ok">best</span></td>
+        <td>No DNS in the path. If this fails, the network is wrong, not the resolver.</td>
+      </tr>
+      <tr>
+        <td><code>host.tailnet.ts.net:3080</code></td>
+        <td><span class="tag ok">good</span></td>
+        <td>MagicDNS FQDN. Resolved by the node's own network stack.</td>
+      </tr>
+      <tr>
+        <td><code>100.101.102.103</code></td>
+        <td><span class="tag warn">warns</span></td>
+        <td>Port defaults to 3080, and the app says so.</td>
+      </tr>
+      <tr>
+        <td><code>myhost</code></td>
+        <td><span class="tag warn">warns</span></td>
+        <td>
+          A bare short name needs the tailnet search domain. An embedded node is not
+          guaranteed to have it. Use the FQDN or the IP if this fails.
+        </td>
+      </tr>
+      <tr>
+        <td><code>http://100.101.102.103:3080</code></td>
+        <td><span class="tag bad">refused</span></td>
+        <td>Drop the scheme; there is a separate selector for it.</td>
+      </tr>
+      <tr>
+        <td><code>93.184.216.34</code></td>
+        <td><span class="tag bad">refused</span></td>
+        <td>
+          A public address is not reachable through a tailnet. This is a security boundary,
+          not a UX preference.
+        </td>
+      </tr>
+      <tr>
+        <td><code>127.0.0.1</code></td>
+        <td><span class="tag bad">refused</span></td>
+        <td>That is the phone, not your server.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="step-3-test">3. Test<a class="anchor" href="#step-3-test">#</a></h3>
+
+  <p>
+    The button runs six checks and stops at the first hard failure. Read the first
+    <span class="tag bad">✗</span> — that is the thing to fix. Everything below it is marked
+    skipped rather than failed, because a skipped step tells you nothing.
+  </p>
+
+  <h3 id="self-hosted">Using headscale instead of Tailscale<a class="anchor" href="#self-hosted">#</a></h3>
+
+  <p>
+    Fill in the <strong>Control server</strong> field with your headscale base URL, for
+    example <code>https://headscale.example.com</code>, and create the pre-auth key with
+    headscale rather than Tailscale:
+  </p>
+
+  <pre><code>headscale preauthkeys create --user &lt;USER_ID&gt;
+headscale preauthkeys create --tags tag:phone --expiration 1h</code></pre>
+
+  <p>
+    Leaving the field empty means Tailscale's hosted control plane. Note that passing that
+    hosted URL <em>explicitly</em> is not the same as leaving it empty — <code>tsnet</code>
+    treats a non-empty value as a custom server. The app normalises this for you.
+  </p>
+
+  <div class="callout danger">
+    <span class="label">Trap</span>
+    <p>
+      <code>tsnet</code> ignores the auth key you supply when usable node state already exists
+      on disk, <em>unless</em> <code>TSNET_FORCE_LOGIN=1</code> is set. This produces the
+      single most confusing symptom in the whole project: "I pasted a new key and nothing
+      changed."
+    </p>
+    <p class="small">
+      The app handles it: <strong>Forget key and reset node</strong> clears both the stored
+      ciphertext and the node's state directory, and the Go bridge exposes an explicit
+      <code>forceLogin</code> parameter.
+    </p>
+  </div>
+
+  <h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting">#</a></h2>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Symptom</th><th>Cause and fix</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>"not compiled into this build"</td>
+        <td>You built without the bridge. Run <code>scripts/build-bridge.mjs</code>, then
+            rebuild with <code>-PwithTsnet=true</code>.</td>
+      </tr>
+      <tr>
+        <td>"no native library for this device ABI"</td>
+        <td>The AAR is present but lacks your ABI — usually an x86_64 emulator with an
+            arm64-only build. Rebind without trimming ABIs.</td>
+      </tr>
+      <tr>
+        <td>Node starts, TCP times out</td>
+        <td>Usually the port, or a service that is not listening. "Connection refused" means
+            the host answered; "timed out" means it did not.</td>
+      </tr>
+      <tr>
+        <td>MagicDNS name does not resolve</td>
+        <td>Use the <code>100.x</code> address. Bare short names are the least reliable form;
+            even full FQDNs depend on the control plane having published the suffix.</td>
+      </tr>
+      <tr>
+        <td>"the encryption key was invalidated"</td>
+        <td>The device's lock screen or credentials changed, which destroys Keystore keys.
+            Re-enter the auth key. This is expected behaviour, not a bug.</td>
+      </tr>
+      <tr>
+        <td>Auth key rejected</td>
+        <td>Check the key's tags against your ACLs, and that it has not expired. A key from
+            Tailscale will not work against headscale, or the reverse.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <span class="label">Diagnostics</span>
+    <p>
+      The <em>Diagnostics</em> button shows the provider, whether the Keystore key is
+      hardware-backed, the node's state and address, the target with the host partially
+      masked, and the tailnet node's own recent log lines — all redacted before display.
+    </p>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>
+      <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
+      <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+    </p>
+        <p class="small">
+      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      client; the name and the whale artwork are used descriptively, to say what the app
+      connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
+      owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
+      "Tailscale" is their trademark, and this is an independent client for their protocol
+      and for headscale.
+    </p>
+<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+  </div>
+</footer>
+
+</body>
+</html>

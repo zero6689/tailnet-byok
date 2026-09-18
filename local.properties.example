@@ -1,0 +1,16 @@
+# ---------------------------------------------------------------------------
+# Copy to `local.properties` (git-ignored). Machine-local paths only — no
+# secrets belong in this file, because local.properties is read by Gradle and
+# can leak into build scans and CI logs.
+# ---------------------------------------------------------------------------
+
+# Android SDK location.
+#   Windows  : sdk.dir=C\:\\Android\\Sdk
+#   macOS    : sdk.dir=/Users/you/Library/Android/sdk
+#   Linux    : sdk.dir=/home/you/Android/Sdk
+sdk.dir=C\:\\Android\\Sdk
+
+# Optional: pin the build toolchain instead of relying on the defaults in
+# gradle/libs.versions.toml. Accepts paths relative to the repo root.
+#   external.jdk17=../.tools/jdk-17
+#   external.androidsdk=../.tools/android-sdk

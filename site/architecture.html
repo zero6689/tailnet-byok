@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — tailnet-byok</title>
+<meta name="description" content="How tailnet-byok is put together, and the reasoning behind each structural decision — including the dependencies it deliberately does not use.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html">Overview</a>
+      <a href="guide.html">Build &amp; use</a>
+      <a href="security.html">Security</a>
+      <a href="architecture.html" aria-current="page">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Architecture</h1>
+
+  <p class="lead">
+    Four layers, one seam that matters, and a short list of popular libraries that are
+    deliberately absent.
+  </p>
+
+  <h2 id="shape">The shape<a class="anchor" href="#shape">#</a></h2>
+
+  <div class="diagram">                 ui/setup            Compose screen + view model
+                     │
+              domain/ConnectionTester      the six-step test
+              domain/TailnetAddressPolicy  what may be dialled, and why not
+                     │
+              net/ConnectivityProvider     ← the seam
+                   ╱        ╲
+   net/SystemNetworkProvider   net/tsnet/TsnetConnectivityProvider
+        (plain sockets)          (embedded node, gomobile bridge)
+                                        │
+                                tailnet/tailnet.go   (Go, tsnet)</div>
+
+  <p>
+    The one seam that matters is <code>ConnectivityProvider</code>. The UI never branches on
+    which implementation is active; it reads a status flow and calls
+    <code>start</code>/<code>probe</code>/<code>fetch</code>. That is what makes the embedded
+    node genuinely optional — the default build simply has no implementation registered for
+    it, and the UI says so instead of crashing — and what would make a third provider (a
+    different mesh, a relay, a mock for tests) a local change.
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Package</th><th>Responsibility</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>UI</td>
+        <td><code>ui/setup</code>, <code>ui/theme</code></td>
+        <td>Compose screen, one <code>UiState</code>, one view model. No business rules.</td>
+      </tr>
+      <tr>
+        <td>Domain</td>
+        <td><code>domain</code></td>
+        <td>What may be dialled, and the ordered test. Pure Kotlin: no Android types, so it
+            is testable on the JVM without Robolectric.</td>
+      </tr>
+      <tr>
+        <td>Network</td>
+        <td><code>net</code>, <code>net/tsnet</code></td>
+        <td>Two ways to reach the target, behind one interface.</td>
+      </tr>
+      <tr>
+        <td>Data</td>
+        <td><code>data/config</code>, <code>data/crypto</code></td>
+        <td>Persistence, and the Keystore-backed vault.</td>
+      </tr>
+      <tr>
+        <td>Native</td>
+        <td><code>tailnet/</code> (Go)</td>
+        <td>The embedded node, and the only code that talks to the control plane.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2 id="why-http-in-go">Why the HTTP happens in Go<a class="anchor" href="#why-http-in-go">#</a></h2>
+
+  <p>
+    This is the least obvious decision in the codebase, so it is worth stating.
+  </p>
+
+  <p>
+    The socket has to be created by the tailnet's own network stack — that is what makes the
+    traffic go through the tunnel. But a Go <code>net.Conn</code> has no Java representation,
+    so no JNI binding can hand it back. The options were:
+  </p>
+
+  <ol>
+    <li>run a SOCKS5 proxy on loopback and have OkHttp dial through it;</li>
+    <li>give the Go side a request-shaped API and return the response bytes.</li>
+  </ol>
+
+  <p>
+    Option 2 was chosen. It removes a listening socket from the process, removes a credential
+    for that proxy, and keeps the whole path in one place. The cost is that HTTP lives in two
+    implementations rather than one — which is a real cost, and the reason
+    <code>ConnectivityProvider.fetch()</code> takes a request object rather than exposing a
+    client.
+  </p>
+
+  <h3 id="binding-rules">The binding rules<a class="anchor" href="#binding-rules">#</a></h3>
+
+  <p>
+    <code>tailnet/tailnet.go</code> follows one rule: <strong>every exported function takes
+    and returns only <code>String</code>, <code>Int</code>, <code>Bool</code> or
+    <code>error</code></strong>. Structured data crosses as JSON; byte payloads are base64
+    inside that JSON.
+  </p>
+
+  <p>
+    That is not stylistic. gomobile cannot express a Go interface or a
+    <code>net.Conn</code>, and multi-value returns bind differently across gomobile
+    revisions. Keeping the surface primitive means the generated Java is stable, reviewable,
+    and independent of the binding generator's mood.
+  </p>
+
+  <h2 id="why-reflection">Why one provider is loaded reflectively<a class="anchor" href="#why-reflection">#</a></h2>
+
+  <p>
+    <code>TsnetConnectivityProvider</code> compiles against classes that only exist after
+    <code>gomobile bind</code>. The default build — a fresh clone, and CI without a Go
+    toolchain — has no such classes. A direct reference from shared code would break the
+    build for everyone who is not shipping the native bridge.
+  </p>
+
+  <p>
+    <code>ProviderRegistry</code> therefore resolves the installer with
+    <code>Class.forName</code> and a single <code>install</code> method, only when
+    <code>BuildConfig.TSNET_ENABLED</code> is true. A separate Gradle module per provider does
+    not remove the problem — the consumer still has to name the class — it only moves the
+    failure.
+  </p>
+
+  <div class="callout warn">
+    <span class="label">Consequence</span>
+    <p>
+      R8 cannot see the reference, so <code>app/proguard-rules.pro</code> keeps
+      <code>**.net.tsnet.**</code> explicitly. Without that rule the failure is release-only
+      and presents as "the embedded node feature silently disappeared" — the worst kind of
+      bug to chase. If you add a provider, add its keep rule too.
+    </p>
+  </div>
+
+  <h2 id="what-is-not-there">What is deliberately not there<a class="anchor" href="#what-is-not-there">#</a></h2>
+
+  <div class="grid">
+    <div class="card">
+      <h3>No Hilt</h3>
+      <p class="small">
+        Four objects, one scope. A framework would add an annotation processor, a plugin, a
+        generated component, and a second way to construct every object — to remove four
+        lines of wiring in <code>AppContainer.kt</code> that a reader can follow at a glance.
+      </p>
+      <p class="small muted">
+        This is a judgement, not a principle. Add a background component or a second graph
+        and the trade flips; the wiring is in one file precisely so the swap is one file.
+      </p>
+    </div>
+    <div class="card">
+      <h3>No Retrofit</h3>
+      <p class="small">
+        The app makes one kind of request to exactly one host, and it has to go through the
+        provider seam anyway. Retrofit's value is managing a large typed API surface; there
+        is no such surface here.
+      </p>
+    </div>
+    <div class="card">
+      <h3>No Room</h3>
+      <p class="small">
+        Eleven scalar preferences in DataStore. A relational store would be ceremony around
+        a key-value workload.
+      </p>
+    </div>
+    <div class="card">
+      <h3>No navigation library</h3>
+      <p class="small">
+        One screen. Adding a back stack to a single destination is a graph with one node.
+      </p>
+    </div>
+    <div class="card">
+      <h3>No Timber</h3>
+      <p class="small">
+        One fewer dependency to audit in the code path that handles the credential.
+        <code>SafeLog</code> is forty lines and does the redaction Timber would not.
+      </p>
+    </div>
+    <div class="card">
+      <h3>No analytics, no crash reporter</h3>
+      <p class="small">
+        Not a cost decision. A crash reporter is a network destination that sees your
+        configuration, and this app's whole claim is that it has no such destination.
+      </p>
+    </div>
+  </div>
+
+  <h2 id="state">State and lifetime<a class="anchor" href="#state">#</a></h2>
+
+  <p>
+    Three rules, each with a reason:
+  </p>
+
+  <ul>
+    <li>
+      <strong>The plaintext key is never part of <code>UiState</code>.</strong> It lives in
+      <code>keyDraft</code> only while being typed, is written to the vault on save, and is
+      read back only for the duration of a connection test. So a state dump, a test
+      assertion, or a screenshot cannot contain it — the state object holds a boolean,
+      <code>hasStoredKey</code>.
+    </li>
+    <li>
+      <strong>The object graph is owned by <code>Application</code>.</strong> The root
+      composable reads it from the application context rather than receiving it, which makes
+      a configuration change structurally unable to produce a second graph — and therefore a
+      second embedded node fighting over one state directory.
+    </li>
+    <li>
+      <strong>One provider instance per <code>ProviderId</code>, created on first
+      request.</strong> Nothing eagerly loads the native library, so a build with the bridge
+      in which the user never enables it pays nothing at cold start.
+    </li>
+  </ul>
+
+  <h2 id="repository-layout">Repository layout<a class="anchor" href="#repository-layout">#</a></h2>
+
+  <div class="diagram">app/
+  src/main/kotlin/…/           the app: ui, domain, net, data, di
+  src/main/res/                theme, icons, network security config, backup rules
+  src/tsnet/kotlin/…/          the embedded provider — compiled only with -PwithTsnet=true
+  src/test/kotlin/…/           unit tests (JVM, no device)
+  libs/                        where gomobile bind drops tailnet.aar (git-ignored)
+tailnet/                       the Go module: tsnet wrapped for gomobile
+scripts/                       fetch-toolchain · make-wrapper · build-bridge
+site/                          the docs site published to GitHub Pages
+docs/                          the same material as Markdown, for GitHub browsing
+.github/workflows/             ci · tailnet-bridge · release · docs-pages · sync-personal-site</div>
+
+  <h2 id="why-two-source-sets">Why <code>src/tsnet</code> is a separate source set<a class="anchor" href="#why-two-source-sets"></a></h2>
+
+  <p>
+    <code>app/build.gradle.kts</code> adds <code>src/tsnet/kotlin</code> to the main source
+    set only when <code>-PwithTsnet=true</code> and <code>app/libs/tailnet.aar</code> exists.
+    If the property is set and the AAR is missing, the build fails immediately with the
+    command to produce it — rather than with the ten thousand lines of "unresolved reference:
+    mobile" that a naive configuration produces.
+  </p>
+
+  <h2 id="known-gaps">Known gaps<a class="anchor" href="#known-gaps"></a></h2>
+
+  <p>Listed so that they are not discovered by you:</p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Gap</th><th>Impact</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>No instrumented tests</td>
+        <td>Anything needing a real device — Keystore behaviour, the native bridge — is
+            verified by hand, not by CI.</td>
+      </tr>
+      <tr>
+        <td>UI strings are not extracted</td>
+        <td>The app cannot be translated without moving copy out of the Compose sources into
+            resources. This is a deliberate trade: each warning currently sits next to the
+            condition that triggers it.</td>
+      </tr>
+      <tr>
+        <td>Per-ABI AAR size is unmeasured</td>
+        <td>An embedded <code>tsnet</code> node adds a Go runtime. It is not small, and
+            <code>abiFilters</code> is not configured.</td>
+      </tr>
+      <tr>
+        <td>No reproducible-build guarantee</td>
+        <td>Release APKs are signed in CI but not verified bit-for-bit reproducible.</td>
+      </tr>
+      <tr>
+        <td>The bridge is compiled, not audited</td>
+        <td><code>tsnet</code> is a large dependency. This project neither vendors nor reviews
+            it.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2 id="extending">Extending it<a class="anchor" href="#extending"></a></h2>
+
+  <p>A third provider, in four steps:</p>
+
+  <ol>
+    <li>Add a value to <code>ProviderId</code>.</li>
+    <li>Implement <code>ConnectivityProvider</code>.</li>
+    <li>Register it in <code>ProviderRegistry.initialise()</code>.</li>
+    <li>If it needs a heavy dependency, put it in its own source set and add a
+        <code>Class.forName</code> hook plus a ProGuard keep rule — the pattern
+        <code>tsnet</code> uses.</li>
+  </ol>
+
+  <p>
+    No UI change is required. The provider selector is driven by
+    <code>ProviderId.entries</code> and the registry's availability list.
+  </p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>
+      <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
+      <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+    </p>
+        <p class="small">
+      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      client; the name and the whale artwork are used descriptively, to say what the app
+      connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
+      owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
+      "Tailscale" is their trademark, and this is an independent client for their protocol
+      and for headscale.
+    </p>
+<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+  </div>
+</footer>
+
+</body>
+</html>
