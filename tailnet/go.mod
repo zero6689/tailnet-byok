@@ -1,19 +1,25 @@
-// Module path note.
+// Module pin.
 //
-// Dependencies are intentionally NOT pinned in this file. They are resolved by
-// `go mod tidy`, which every build path runs first:
+// The require blocks below, together with `go.sum`, ARE the pin: this is the
+// dependency graph the AAR is built from and the graph the third-party notices
+// are generated from. It is the output of `go mod tidy` — do not hand-edit it.
+//
+// `go mod tidy` still runs on every build path:
 //
 //	scripts/build-tailnet-aar.sh      (macOS / Linux, and CI)
 //	scripts/build-tailnet-aar.ps1     (Windows)
+//	scripts/build-bridge.mjs          (all platforms; the real entry point)
 //
-// Why: `tailscale.com/tsnet` pins its own dependency graph tightly and moves
-// fast. A hand-written `require` line in a generated skeleton is a stale pin
-// waiting to break someone's first build — and the version that matters is
-// whatever `tsnet` itself selects, not whatever we guessed.
+// because a cold checkout needs it, and the `tool` directive at the bottom only
+// survives it. If tidy changes this file or `go.sum`, `build-bridge.mjs` puts
+// them back and fails instead of building something that matches no commit;
+// `--write-mod` is the deliberate way to move the pin. That is what keeps
+// `tailscale.com` from drifting under a release: the version that matters is
+// whatever `tsnet` itself selects, and moving it is a commit somebody reviews.
 //
-// To make a build reproducible, run `go mod tidy` once and commit the resulting
-// `go.mod` + `go.sum`; CI then builds against exactly what you tested. The
-// release workflow does this and records the resolved version in the build log.
+// The two load-bearing lines are `tailscale.com` (the node) and
+// `golang.org/x/mobile` (both the binding tool and the runtime it generates the
+// Java surface for — see scripts/build-bridge.mjs for why they travel together).
 module github.com/zero6689/tailnet-byok/tailnet
 
 go 1.26.6

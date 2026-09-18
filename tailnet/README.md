@@ -114,8 +114,10 @@ confusing symptom in the project ("I pasted a new key and nothing changed"), so 
 wired to an explicit argument and the Kotlin side clears node state when the credential
 changes.
 
-**No dependency pin in `go.mod`.** Dependencies are resolved by `go mod tidy`, which every build
-path runs first. `tsnet` pins its own graph tightly and moves fast, and a hand-written `require`
-in a generated skeleton is a stale pin waiting to break someone's first build. To make a build
-reproducible, run `go mod tidy` once and commit the resulting `go.mod` and `go.sum` — CI logs
-the resolved `tailscale.com` version so you know what you tested against.
+**The pin is `go.mod` + `go.sum`.** Those two files are the dependency graph the AAR is built
+from, and the graph `THIRD-PARTY-NOTICES.md` is generated from. They are `go mod tidy` output and
+are not hand-edited. `go mod tidy` still runs on every build path — a cold checkout needs it, and
+the `tool` directive only survives it — but if it changes either file, `build-bridge.mjs` restores
+them and fails rather than building something that matches no commit. `--write-mod` accepts a
+deliberate move, which then lands as a reviewed commit. CI logs the resolved `tailscale.com`
+version, so a build always names the node it embedded.

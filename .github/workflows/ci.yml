@@ -1,9 +1,10 @@
 name: CI
 
-# Runs on every push and pull request. Three jobs, deliberately separate, so a
+# Runs on every push and pull request. Four jobs, deliberately separate, so a
 # failure tells you which kind of problem you have:
 #
 #   guardrails  — policy violations (a bare Log call, a committed credential)
+#   licences    — the third-party notices still match the dependency graph
 #   test        — unit tests and lint, no native toolchain needed
 #   assemble    — does a debug APK actually build
 #
@@ -82,15 +83,60 @@ jobs:
           set -euo pipefail
           # A tailnet address is not a secret, but a committed one is a leak of
           # the maintainer's own topology into a public repo. Docs may show
-          # documentation-range examples (100.64.0.1, 100.100.100.100).
+          # documentation-range examples (100.64.0.1, 100.100.100.100, and the
+          # 100.101.102.x block Tailscale's own documentation uses, which is also
+          # what the app's placeholder and the test fixtures use).
           hits=$(git grep -nIE '\b100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}\b' \
                  -- . ':!*.md' \
-                 | grep -vE '100\.(64\.0\.(0|1)|100\.100\.100)' || true)
+                 | grep -vE '100\.(64\.0\.(0|1)|100\.100\.100|101\.102\.)' || true)
           if [ -n "$hits" ]; then
             echo "::warning::a specific tailnet address appears in a non-documentation file — prefer a placeholder."
             echo "$hits"
           fi
           echo "ok: no unexpected tailnet literals in code"
+
+  # ---------------------------------------------------------------------------
+  # Third-party notices.
+  #
+  # Separate from `guardrails` on purpose: this one needs a Go toolchain, and the
+  # static checks above are supposed to stay instant and dependency-free.
+  # ---------------------------------------------------------------------------
+  licences:
+    name: Third-party notices
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `scripts/third-party-licenses.mjs` sets GOTOOLCHAIN=local, so whatever
+      # runs it has to be the toolchain the module asks for.
+      - name: Read the Go version the module requires
+        id: gover
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^go [0-9]+\.[0-9]+' tailnet/go.mod | awk '{print $2}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.gover.outputs.version }}
+          cache-dependency-path: tailnet/go.sum
+
+      - name: Regenerate and compare
+        run: |
+          set -euo pipefail
+          # BSD-3-Clause and Apache-2.0 attach conditions to *binary* distribution,
+          # and these files are how those conditions are met. A generated file that
+          # is never regenerated rots quietly, so this is a check rather than a
+          # paragraph in a document asking people to remember.
+          ( cd tailnet && go mod download )
+          node scripts/third-party-licenses.mjs
+          if ! git diff --quiet -- THIRD-PARTY-NOTICES.md licenses/; then
+            echo "::error::THIRD-PARTY-NOTICES.md or licenses/ no longer matches the dependency graph."
+            git diff --stat -- THIRD-PARTY-NOTICES.md licenses/
+            echo "Run 'node scripts/third-party-licenses.mjs' and commit the result."
+            exit 1
+          fi
+          echo "ok: third-party notices match the dependency graph"
 
   # ---------------------------------------------------------------------------
   # Unit tests and lint. No Go, no NDK: the default build is pure Kotlin.
