@@ -193,6 +193,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 |---|---|
 | [docs/BUILD.md](docs/BUILD.md) | Build the app, and the native bridge |
 | [docs/RELEASING.md](docs/RELEASING.md) | What a release records, and what must be true first |
+| [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) | How the graph is pinned, and what moving it costs |
 | [docs/TSNET.md](docs/TSNET.md) | How the embedded node works, and the traps |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module layout and the decisions behind it |
 | [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) | Threat model, in plain language |

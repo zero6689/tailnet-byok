@@ -66,7 +66,14 @@ node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aa
 ```
 
 `build-bridge.mjs --check` prints what it can find without building anything, which is the
-fastest way to learn what is missing.
+fastest way to learn what is missing. It also prints the revision that `gomobile` and
+`gobind` were built from, next to the revision `tailnet/go.mod` pins — the two have to be
+the same one.
+
+**The one step that needs the network is `gomobile init`**, which installs gobind from
+`@latest` regardless of the pin. Everything else runs from a warm cache, and the build
+reinstalls either tool if `init` left it at the wrong revision. See
+[`DEPENDENCIES.md`](DEPENDENCIES.md) for why.
 
 If you set `-PwithTsnet=true` and `app/libs/tailnet.aar` is absent, the build fails
 immediately with the command to produce it — rather than with ten thousand "unresolved
