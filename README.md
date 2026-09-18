@@ -63,6 +63,11 @@ gomobile-bound tunnel in a Kotlin app), applied to the single-destination case.
   into your tailnet is created in Go and Android's HTTP stack has no route to it. The
   listener is loopback-only, requires a random per-session token, and its session cookie
   is cleared when you leave the screen.
+- **Updates, verified or refused** — *Check for updates* reads `dsh.apk.version` from the
+  update source (by default the target's origin, and configurable), downloads `dsh.apk` when
+  that is newer, and installs it only when the bytes match `dsh.apk.sha256` and the archive
+  declares this app's package name. There is no timer and no background check; the result of
+  the last attempt stays on the screen, including after the installer restarts the app.
 
 ### A sample run
 
@@ -166,7 +171,8 @@ not an accident of the implementation.
 | Key never written to logs | All logging goes through `SafeLog`, which scrubs through `Redact`; release builds strip `v`/`d`/`i` at the bytecode level. `RedactTest` covers the credential shapes this project actually handles. |
 | No accidental egress | `TailnetAddressPolicy` rejects anything outside `100.64.0.0/10`, `fd7a:115c:a1e0::/48` and named hosts **before** a dial. |
 | Nothing leaves the device | `android:allowBackup="false"`, backup and device-transfer rules exclude everything, no analytics, no crash reporter, no server. |
-| Minimum permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`. No `BIND_VPN_SERVICE`. No `QUERY_ALL_PACKAGES`. No location. |
+| Minimum permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES` (the updater asks the system installer — it cannot install silently). No `BIND_VPN_SERVICE`. No `QUERY_ALL_PACKAGES`. No location. |
+| Updates are verified or refused | The updater downloads `dsh.apk` only after `dsh.apk.version` advertises something newer, and installs it only if its SHA-256 matches `dsh.apk.sha256` and the archive declares this app's package name. A missing or mismatched sidecar is a failure, never a silent pass. |
 
 The honest limits of all of this — what Keystore does *not* protect against, and
 why the plaintext key exists in the heap for a short window — are in

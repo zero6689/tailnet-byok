@@ -41,12 +41,16 @@ We will credit you in the advisory unless you prefer otherwise.
 
 | Version | Supported |
 |---|---|
-| 0.1.x | Yes — fixes land here |
+| 0.2.x | Yes — fixes land here |
 | Older | No |
 
 Because the app ships with no server component, "a fix has shipped" means a new
-release on the GitHub releases page. Users are responsible for updating; the app
-has no auto-update mechanism and does not phone home to check for one.
+release. From 0.2.6 the app can install one for you: it reads a version sidecar
+from the update source you configure (by default the target host you already
+talk to), downloads the package, and refuses to install anything whose SHA-256
+does not match the published sidecar. There is still no background updater and no
+call to any server you did not configure — the check runs only when you press the
+button.
 
 ## Threat model
 

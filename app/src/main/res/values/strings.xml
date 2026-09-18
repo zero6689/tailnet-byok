@@ -216,6 +216,38 @@
     <string name="web_error_http">The page answered HTTP <xliff:g id="status" example="502">%1$d</xliff:g> — 502 means the proxy could not reach your server.</string>
     <string name="web_error_network">No answer from the page\'s origin: <xliff:g id="detail" example="net::ERR_CONNECTION_REFUSED">%1$s</xliff:g>. Close this screen and open it again to restart the proxy.</string>
 
+    <!-- App update: the panel, and every way it can end -->
+    <string name="section_update_title">App update</string>
+    <string name="section_update_subtitle">Installs only what the source can prove</string>
+    <string name="update_current">Installed: <xliff:g id="version" example="0.2.6-debug">%1$s</xliff:g></string>
+    <string name="update_base_label">Update source</string>
+    <string name="update_base_hint">Leave empty to use the target origin (<xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g>), which serves dsh.apk.version, dsh.apk and dsh.apk.sha256.</string>
+    <string name="update_base_invalid">The update source must be an absolute http:// or https:// URL.</string>
+    <string name="btn_check_update">Check for updates</string>
+    <string name="update_checking">Checking, and downloading if there is something newer…</string>
+    <string name="update_none">No update has been attempted on this install yet.</string>
+    <string name="update_uptodate">Up to date: this build is <xliff:g id="current" example="0.2.6">%1$s</xliff:g>, the source offers <xliff:g id="advertised" example="0.2.6">%2$s</xliff:g>.</string>
+    <string name="update_ready">Downloaded <xliff:g id="version" example="0.2.7">%1$s</xliff:g> (<xliff:g id="size_mb" example="59">%2$d</xliff:g> MB) and verified it against the source\'s SHA-256.</string>
+    <string name="btn_install_update">Install the downloaded update</string>
+    <string name="update_handed_to_installer">Handed to the system installer — confirm the install there.</string>
+    <string name="btn_open_install_settings">Allow installs from this app</string>
+    <string name="update_settings_unavailable">This device has no screen for that permission; allow installs from this app in system settings.</string>
+    <!-- Each failure says what failed, and never suggests carrying on anyway. -->
+    <string name="update_fail_transport_unavailable">The update source is unreachable: the connection to it could not be brought up.</string>
+    <string name="update_fail_version_unreadable">Could not read dsh.apk.version from the update source.</string>
+    <string name="update_fail_version_unparsable">dsh.apk.version did not contain a version.</string>
+    <string name="update_fail_download_failed">Could not download dsh.apk, or it arrived truncated.</string>
+    <string name="update_fail_no_sidecar">dsh.apk.sha256 was missing or held no SHA-256 — refusing to install anything that cannot be verified.</string>
+    <string name="update_fail_sidecar_mismatch">SHA-256 mismatch: the bytes served are not the bytes the source published. Nothing was installed.</string>
+    <string name="update_fail_not_an_apk">What the update source served is not an APK.</string>
+    <string name="update_fail_wrong_package_short">The downloaded package declares a different app.</string>
+    <string name="update_fail_wrong_package">The downloaded package is <xliff:g id="package" example="com.example.other">%1$s</xliff:g>, not this app. Nothing was installed.</string>
+    <string name="update_fail_apk_gone">The downloaded file is gone (the system cleared the cache) — check for updates again.</string>
+    <string name="update_fail_no_installer">No app on this device can install packages.</string>
+    <string name="update_fail_install_blocked">Android needs your permission before this app can install an update.</string>
+    <string name="diag_update_source">update source: <xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g></string>
+    <string name="diag_update_result">last update: <xliff:g id="result">%1$s</xliff:g></string>
+
     <!-- Footer -->
     <string name="footer_privacy">No telemetry. No account. No server of ours — your key is only ever sent to the control plane you configure.</string>
     <string name="footer_trademark">Not affiliated with DeepSeek. This is an independent, unofficial client; the name and the whale artwork describe what it connects to and are trademarks of their respective owner, not this project\'s.</string>

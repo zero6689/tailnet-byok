@@ -14,6 +14,8 @@ import io.github.zero6689.tailnetbyok.core.log.Redact
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
 import io.github.zero6689.tailnetbyok.core.text.TextRef
 import io.github.zero6689.tailnetbyok.data.crypto.KeystoreSecretVault
+import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
+import io.github.zero6689.tailnetbyok.domain.UpdateRecord
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +66,7 @@ class ConfigRepository(
                 hostInput = prefs[KEY_HOST] ?: "",
                 port = prefs[KEY_PORT] ?: AppConfig.DEFAULT_PORT,
                 path = prefs[KEY_PATH] ?: AppConfig.DEFAULT_PATH,
+                updateUrl = prefs[KEY_UPDATE_URL] ?: "",
                 controlUrl = prefs[KEY_CONTROL_URL] ?: "",
                 nodeHostname = prefs[KEY_NODE_HOSTNAME] ?: AppConfig.DEFAULT_NODE_HOSTNAME,
                 ephemeral = prefs[KEY_EPHEMERAL] ?: true,
@@ -71,6 +74,34 @@ class ConfigRepository(
                 acknowledgedSecurityModel = prefs[KEY_ACKNOWLEDGED] ?: false,
             )
         }
+
+    /**
+     * The outcome of the most recent update attempt, as it was left on disk.
+     *
+     * A separate flow from [config] because it is not configuration: it is a
+     * record. Keeping it out of [AppConfig] also means a form save cannot
+     * overwrite it by accident, and — the reason it exists at all — it outlives
+     * the process, which the installed path always destroys: the package
+     * installer stops this app, so "did that download verify?" has to be
+     * answerable on the next launch.
+     */
+    val lastUpdate: Flow<UpdateOutcome> = context.configStore.data
+        .catch { e ->
+            if (e is IOException) {
+                SafeLog.e(TAG, "update record unreadable, treating as none", e)
+                emit(emptyPreferences())
+            } else {
+                throw e
+            }
+        }
+        .map { prefs -> UpdateRecord.decode(prefs[KEY_UPDATE_RESULT]) }
+
+    /** Persists [outcome], for the next launch to read back. */
+    suspend fun recordUpdate(outcome: UpdateOutcome) {
+        context.configStore.edit { prefs ->
+            prefs[KEY_UPDATE_RESULT] = UpdateRecord.encode(outcome)
+        }
+    }
 
     /** Snapshot read, for one-shot work like building a request. */
     suspend fun current(): AppConfig = config.first()
@@ -90,6 +121,7 @@ class ConfigRepository(
                 hostInput = prefs[KEY_HOST] ?: "",
                 port = prefs[KEY_PORT] ?: AppConfig.DEFAULT_PORT,
                 path = prefs[KEY_PATH] ?: AppConfig.DEFAULT_PATH,
+                updateUrl = prefs[KEY_UPDATE_URL] ?: "",
                 controlUrl = prefs[KEY_CONTROL_URL] ?: "",
                 nodeHostname = prefs[KEY_NODE_HOSTNAME] ?: AppConfig.DEFAULT_NODE_HOSTNAME,
                 ephemeral = prefs[KEY_EPHEMERAL] ?: true,
@@ -102,6 +134,7 @@ class ConfigRepository(
             prefs[KEY_HOST] = after.hostInput
             prefs[KEY_PORT] = after.port
             prefs[KEY_PATH] = after.path
+            prefs[KEY_UPDATE_URL] = after.updateUrl
             prefs[KEY_CONTROL_URL] = after.controlUrl
             prefs[KEY_NODE_HOSTNAME] = after.nodeHostname
             prefs[KEY_EPHEMERAL] = after.ephemeral
@@ -232,6 +265,8 @@ class ConfigRepository(
         val KEY_HOST = stringPreferencesKey("host")
         val KEY_PORT = intPreferencesKey("port")
         val KEY_PATH = stringPreferencesKey("path")
+        val KEY_UPDATE_URL = stringPreferencesKey("update_url")
+        val KEY_UPDATE_RESULT = stringPreferencesKey("update_last_result")
         val KEY_CONTROL_URL = stringPreferencesKey("control_url")
         val KEY_NODE_HOSTNAME = stringPreferencesKey("node_hostname")
         val KEY_EPHEMERAL = booleanPreferencesKey("ephemeral")

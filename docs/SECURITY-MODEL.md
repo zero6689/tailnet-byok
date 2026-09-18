@@ -90,8 +90,17 @@ the library from becoming a general-purpose request forwarder if a caller gets t
 
 ## Permissions
 
-Declared: `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`. Each with its justification
-next to the declaration in `AndroidManifest.xml`.
+Declared: `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES`.
+Each with its justification next to the declaration in `AndroidManifest.xml`.
+
+`REQUEST_INSTALL_PACKAGES` exists for the in-app updater, and it is worth being precise about what
+it does and does not allow. It lets this app *ask* the system installer to install a file it has
+already downloaded and verified; it does not let the app install anything silently. Android still
+requires the user to have allowed installs from this app — a state the app checks and reports
+rather than assumes — and the system installer always shows the package and asks for confirmation.
+The file itself is staged in `cacheDir` and handed over as a one-shot read grant from an unexported
+`FileProvider`, and before the intent is sent the archive's declared package name is compared with
+this app's: a verified download that turns out to be a different application is not offered at all.
 
 Not declared, and why:
 
@@ -104,8 +113,10 @@ Not declared, and why:
 
 ## No IPC surface
 
-Exactly one exported component: the launcher activity. No exported service, receiver or content
-provider, so there is nothing for another app to bind to, query, or send an intent to.
+Exactly one exported component: the launcher activity. The only content provider is the updater's
+`FileProvider`, which is `exported="false"` and may serve exactly one directory under `cacheDir`
+to a URI that this app put in an intent it sent. There is no exported service or receiver, so there
+is nothing for another app to bind to, query, or send an intent to.
 
 ## On not setting `FLAG_SECURE`
 

@@ -13,12 +13,17 @@ import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
+import io.github.zero6689.tailnetbyok.domain.UpdateChecker
+import io.github.zero6689.tailnetbyok.domain.UpdateFailure
+import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
+import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
 import io.github.zero6689.tailnetbyok.net.ConnectivityProvider
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
 import io.github.zero6689.tailnetbyok.net.ProviderStatus
 import io.github.zero6689.tailnetbyok.net.WebAccess
 import io.github.zero6689.tailnetbyok.net.WebUrl
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +31,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Screen state, in one object.
@@ -56,6 +62,19 @@ data class UiState(
     val providerStatus: ProviderStatus? = null,
     val diagnostics: List<String> = emptyList(),
     val hardwareBackedKeystore: Boolean = false,
+    /** True while an update source is being queried and its package downloaded. */
+    val isCheckingUpdate: Boolean = false,
+    /**
+     * The last update attempt, as it was left on disk.
+     *
+     * Held in the state rather than only fetched when the panel is drawn, because
+     * the successful path ends with the system installer stopping this process:
+     * the record has to be there on the next launch, and it has to be visible
+     * without the user having to ask for diagnostics.
+     */
+    val updateOutcome: UpdateOutcome = UpdateOutcome.Unknown,
+    /** True when Android is waiting for the user to allow installs from this app. */
+    val needsInstallPermission: Boolean = false,
     /** Set when the embedded provider is unavailable, to explain why. */
     val embeddedUnavailableReason: TextRef? = null,
     val banner: Banner? = null,
@@ -90,6 +109,34 @@ data class UiState(
      */
     val canOpenWebUi: Boolean
         get() = canRunTest && !isOpeningWebUi
+
+    /**
+     * Whether "Check for updates" should be tappable.
+     *
+     * Built on [canRunTest] for the same reason [canOpenWebUi] is: reaching an
+     * update source runs the same bring-up as a connection test — the address has
+     * to be acceptable and, on the embedded route, the node has to be startable —
+     * and a second copy of that predicate is how the two drift apart. A
+     * half-typed update source disables it too, rather than letting the user start
+     * a download that cannot be addressed.
+     */
+    val canCheckForUpdate: Boolean
+        get() = canRunTest && !isCheckingUpdate && updateSourceErrorRes == null
+
+    /**
+     * The inline complaint about the update source field, or null when it is
+     * empty (which means "use the target origin") or a usable absolute URL.
+     */
+    val updateSourceErrorRes: Int?
+        get() {
+            val raw = config.updateUrl.trim()
+            if (raw.isEmpty()) return null
+            return if (raw.startsWith("http://") || raw.startsWith("https://")) {
+                null
+            } else {
+                R.string.update_base_invalid
+            }
+        }
 
     /** Why the test is disabled, as a message id, or null when it is enabled. */
     val testBlockedReasonRes: Int?
@@ -171,6 +218,18 @@ class SetupViewModel(
                 observeProvider(config.provider)
             }
             .launchIn(viewModelScope)
+
+        // The update record is read once at start-up and on every change. It is
+        // the only way the outcome of a completed download survives: the package
+        // installer kills this process, so "verified, waiting to install" has to
+        // come back from disk rather than from memory.
+        repository.lastUpdate
+            .catch { e ->
+                SafeLog.e(TAG, "update record flow failed", e)
+                emit(UpdateOutcome.Unknown)
+            }
+            .onEach { outcome -> _state.value = _state.value.copy(updateOutcome = outcome) }
+            .launchIn(viewModelScope)
     }
 
     /** Keeps [UiState.providerStatus] in step with whichever provider is active. */
@@ -212,6 +271,17 @@ class SetupViewModel(
     fun updatePath(value: String) = persist { it.copy(path = value) }
 
     fun updateControlUrl(value: String) = persist { it.copy(controlUrl = value.trim()) }
+
+    /**
+     * The update source, stored as typed.
+     *
+     * Not trimmed to emptiness or normalised into a URL here: an empty value has a
+     * defined meaning ("use the target origin"), and rewriting what the user typed
+     * is how a field ends up disagreeing with what they see. Whether the value is
+     * usable is a question for [UiState.updateSourceErrorRes].
+     */
+    fun updateUpdateUrl(value: String) = persist { it.copy(updateUrl = value.trim()) }
+
 
     fun updateNodeHostname(value: String) {
         val name = value.trim()
@@ -376,6 +446,17 @@ class SetupViewModel(
                             )
                         },
                     )
+                    // The update source, and what the last attempt to use it
+                    // produced. Both belong in a report: "the app says it is up to
+                    // date" is a claim, and these are the two facts that let
+                    // someone check it.
+                    add(res.getString(R.string.diag_update_source, _state.value.config.updateBase))
+                    add(
+                        res.getString(
+                            R.string.diag_update_result,
+                            resolve(_state.value.updateOutcome.describe(), res),
+                        ),
+                    )
                     addAll(lines)
                 },
             )
@@ -384,6 +465,182 @@ class SetupViewModel(
 
     fun dismissBanner() {
         _state.value = _state.value.copy(banner = null)
+    }
+
+    // -- Updates -------------------------------------------------------------
+
+    /**
+     * Asks the update source what it has, and downloads from it when that is
+     * newer than this build.
+     *
+     * # Why the connection test runs first
+     *
+     * Fetching through the embedded node requires the node to be up, exactly as
+     * the health check and the DSH UI do, and the four steps that bring it up
+     * already exist in [ConnectionTester]. Running them here with
+     * [ConnectionTester.Scope.BRING_UP] means one implementation of the bring-up
+     * and — more usefully — one set of sentences for why it failed.
+     *
+     * # What the state ends up holding
+     *
+     * Not the package. The verified bytes go straight to the installer's staging
+     * area inside this coroutine and are then dropped; what the state keeps is the
+     * outcome (and the outcome is written to disk, because the install path stops
+     * this process). Keeping 60 MB in a `StateFlow` would be a leak with a
+     * spinner attached.
+     */
+    fun checkForUpdate() {
+        val current = _state.value
+        if (!current.canCheckForUpdate) return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                isCheckingUpdate = true,
+                needsInstallPermission = false,
+                steps = emptyList(),
+                banner = null,
+            )
+
+            val provider = container.provider(current.config.provider)
+            val report = container.tester.run(
+                config = current.config,
+                nodeStateDir = container.nodeStateDir,
+                provider = provider,
+                readCredentials = { readCredentials() },
+                onStep = { step ->
+                    _state.value = _state.value.copy(steps = _state.value.steps + step)
+                },
+                scope = ConnectionTester.Scope.BRING_UP,
+            )
+
+            if (provider == null || !report.succeeded) {
+                // Nothing can be fetched through a transport that never came up.
+                record(UpdateOutcome.Failed(UpdateFailure.TRANSPORT_UNAVAILABLE))
+                _state.value = _state.value.copy(
+                    isCheckingUpdate = false,
+                    report = report,
+                    banner = UiState.Banner(
+                        report.firstFailure?.detail ?: TextRef.of(R.string.update_fail_transport_unavailable),
+                        isError = true,
+                    ),
+                )
+                return@launch
+            }
+
+            val checker = UpdateChecker(fetch = { spec -> provider.fetch(spec) })
+            val result = withContext(Dispatchers.IO) {
+                checker.check(current.config.updateBase, BuildConfig.VERSION_NAME)
+            }
+
+            val outcome = when (result) {
+                is UpdateChecker.UpdateCheck.UpToDate ->
+                    UpdateOutcome.UpToDate(result.current, result.advertised)
+
+                is UpdateChecker.UpdateCheck.Failed -> UpdateOutcome.Failed(result.reason)
+
+                is UpdateChecker.UpdateCheck.Downloaded -> runCatching {
+                    withContext(Dispatchers.IO) { container.updateInstaller.stage(result.bytes) }
+                }.fold(
+                    onSuccess = {
+                        UpdateOutcome.Ready(result.current, result.available, result.sizeBytes)
+                    },
+                    onFailure = { e ->
+                        // The bytes verified but would not land on disk. Reported as
+                        // a download failure: from the user's side that is what it is.
+                        SafeLog.e(TAG, "could not stage the downloaded package", e)
+                        UpdateOutcome.Failed(UpdateFailure.DOWNLOAD_FAILED)
+                    },
+                )
+            }
+
+            record(outcome)
+            _state.value = _state.value.copy(isCheckingUpdate = false, report = report)
+        }
+    }
+
+    /**
+     * Hands the staged, verified package to the system installer.
+     *
+     * Every outcome is named, including the two that are the user's to resolve:
+     * Android wanting permission first, and the archive turning out to declare a
+     * different application. Both are recorded as failures so the panel says what
+     * happened on the next launch rather than silently forgetting.
+     */
+    fun installUpdate() {
+        if (_state.value.updateOutcome !is UpdateOutcome.Ready) return
+
+        when (val request = container.updateInstaller.requestInstall()) {
+            UpdateInstaller.InstallRequest.Launched ->
+                _state.value = _state.value.copy(
+                    needsInstallPermission = false,
+                    banner = UiState.Banner(
+                        TextRef.of(R.string.update_handed_to_installer),
+                        isError = false,
+                    ),
+                )
+
+            UpdateInstaller.InstallRequest.NeedsPermission ->
+                _state.value = _state.value.copy(
+                    needsInstallPermission = true,
+                    banner = UiState.Banner(
+                        TextRef.of(R.string.update_fail_install_blocked),
+                        isError = true,
+                    ),
+                )
+
+            UpdateInstaller.InstallRequest.MissingFile -> fail(UpdateFailure.APK_GONE)
+
+            is UpdateInstaller.InstallRequest.WrongPackage -> {
+                record(UpdateOutcome.Failed(UpdateFailure.WRONG_PACKAGE))
+                _state.value = _state.value.copy(
+                    banner = UiState.Banner(
+                        TextRef.of(R.string.update_fail_wrong_package, request.packageName ?: "?"),
+                        isError = true,
+                    ),
+                )
+            }
+
+            UpdateInstaller.InstallRequest.NoHandler -> fail(UpdateFailure.NO_INSTALLER)
+        }
+    }
+
+    /**
+     * Opens the per-app "install unknown apps" screen.
+     *
+     * Only reachable from the panel, and only after Android itself said the
+     * permission is missing — this takes the user out of the app, which is not
+     * something to do unprompted.
+     */
+    fun allowInstallSource() {
+        if (!container.updateInstaller.openInstallPermissionSettings()) {
+            _state.value = _state.value.copy(
+                banner = UiState.Banner(
+                    TextRef.of(R.string.update_settings_unavailable),
+                    isError = true,
+                ),
+            )
+        }
+    }
+
+    private fun fail(reason: UpdateFailure) {
+        record(UpdateOutcome.Failed(reason))
+        _state.value = _state.value.copy(
+            banner = UiState.Banner(TextRef.of(reason.messageRes()), isError = true),
+        )
+    }
+
+    /**
+     * Writes an outcome to disk.
+     *
+     * Fire-and-forget on purpose: nothing on screen depends on the write having
+     * landed, and a failure to persist must not turn a successful download into
+     * an error message.
+     */
+    private fun record(outcome: UpdateOutcome) {
+        viewModelScope.launch {
+            runCatching { repository.recordUpdate(outcome) }
+                .onFailure { SafeLog.e(TAG, "could not record the update outcome", it) }
+        }
     }
 
     // -- The DSH web UI ------------------------------------------------------

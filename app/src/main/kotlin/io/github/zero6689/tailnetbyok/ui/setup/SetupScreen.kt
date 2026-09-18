@@ -64,6 +64,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.zero6689.tailnetbyok.BuildConfig
 import io.github.zero6689.tailnetbyok.R
 import io.github.zero6689.tailnetbyok.core.text.TextRef
 import io.github.zero6689.tailnetbyok.data.config.AppConfig
@@ -71,6 +72,7 @@ import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.AddressMessages
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
+import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderStatus
 import io.github.zero6689.tailnetbyok.ui.theme.Danger
@@ -175,6 +177,8 @@ fun SetupScreen(
 
             item { WebUiSection(state = state, actions = actions) }
 
+            item { UpdateSection(state = state, actions = actions) }
+
             // Shown even when empty: "no diagnostics" is itself information, and a
             // panel that only appears once something has gone wrong cannot be
             // refreshed on the way to finding out.
@@ -200,6 +204,10 @@ interface SetupActions {
     fun selectProvider(id: ProviderId)
     fun runTest()
     fun openWebUi()
+    fun updateUpdateUrl(value: String)
+    fun checkForUpdate()
+    fun installUpdate()
+    fun allowInstallSource()
     fun loadDiagnostics()
     fun acknowledgeSecurityModel()
     fun dismissBanner()
@@ -226,6 +234,10 @@ private fun SetupViewModel.asActions(): SetupActions = object : SetupActions {
     override fun selectProvider(id: ProviderId) = this@asActions.selectProvider(id)
     override fun runTest() = this@asActions.runTest()
     override fun openWebUi() = this@asActions.openWebUi()
+    override fun updateUpdateUrl(value: String) = this@asActions.updateUpdateUrl(value)
+    override fun checkForUpdate() = this@asActions.checkForUpdate()
+    override fun installUpdate() = this@asActions.installUpdate()
+    override fun allowInstallSource() = this@asActions.allowInstallSource()
     override fun loadDiagnostics() = this@asActions.loadDiagnostics()
     override fun acknowledgeSecurityModel() = this@asActions.acknowledgeSecurityModel()
     override fun dismissBanner() = this@asActions.dismissBanner()
@@ -587,6 +599,121 @@ private fun WebUiSection(state: UiState, actions: SetupActions) {
     }
 }
 
+/**
+ * The update panel.
+ *
+ * # What it deliberately does not do
+ *
+ * It does not check on its own. There is no timer, no check-at-launch, and no
+ * silent background download: reaching the update source brings up the node and
+ * transfers tens of megabytes, and doing either of those without being asked is
+ * how an app becomes something the user tolerates rather than uses. The check
+ * happens when the button is pressed, and the record of the last attempt is on
+ * screen — including after the installer has restarted the app.
+ *
+ * # Why the source field is visible rather than hidden in code
+ *
+ * The default (the target's origin) is right for the common case, but it is a
+ * guess about where the user publishes builds. An explicit field means the guess
+ * is visible, correctable, and — because it is echoed in the diagnostics — part of
+ * any bug report rather than folklore.
+ */
+@Composable
+private fun UpdateSection(state: UiState, actions: SetupActions) {
+    SectionCard(R.string.section_update_title, R.string.section_update_subtitle) {
+        Text(
+            stringResource(R.string.update_current, BuildConfig.VERSION_NAME),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        OutlinedTextField(
+            value = state.config.updateUrl,
+            onValueChange = actions::updateUpdateUrl,
+            label = { Text(stringResource(R.string.update_base_label)) },
+            // The resolved default, shown where it would be used: an empty field
+            // plus the origin it falls back to is clearer than either alone.
+            placeholder = { Text(state.config.updateBase) },
+            singleLine = true,
+            isError = state.updateSourceErrorRes != null,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            stringResource(
+                state.updateSourceErrorRes ?: R.string.update_base_hint,
+                state.config.updateBase,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (state.updateSourceErrorRes != null) {
+                Danger
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+
+        Button(
+            onClick = actions::checkForUpdate,
+            enabled = state.canCheckForUpdate,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (state.isCheckingUpdate) {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(18.dp).width(18.dp),
+                    strokeWidth = 2.dp,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.update_checking))
+            } else {
+                Text(stringResource(R.string.btn_check_update))
+            }
+        }
+
+        if (!state.isCheckingUpdate) {
+            state.testBlockedReasonRes?.let {
+                Text(
+                    stringResource(it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        val outcome = state.updateOutcome
+        val tint = when (outcome) {
+            is UpdateOutcome.Ready -> MaterialTheme.colorScheme.primary
+            is UpdateOutcome.Failed -> Danger
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        Text(
+            outcome.describe().resolve(),
+            style = MaterialTheme.typography.bodySmall,
+            color = tint,
+        )
+
+        // Offered only once a verified package is actually staged: an install
+        // button that appears before the download finishes would be a button that
+        // usually fails.
+        if (outcome is UpdateOutcome.Ready) {
+            Button(
+                onClick = actions::installUpdate,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.btn_install_update))
+            }
+        }
+
+        if (state.needsInstallPermission) {
+            OutlinedButton(
+                onClick = actions::allowInstallSource,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.btn_open_install_settings))
+            }
+        }
+    }
+}
+
 @Composable
 private fun StepRow(step: ConnectionTester.StepResult) {
     val tint = when (step.outcome) {
@@ -767,6 +894,10 @@ private val noopActions = object : SetupActions {
     override fun selectProvider(id: ProviderId) = Unit
     override fun runTest() = Unit
     override fun openWebUi() = Unit
+    override fun updateUpdateUrl(value: String) = Unit
+    override fun checkForUpdate() = Unit
+    override fun installUpdate() = Unit
+    override fun allowInstallSource() = Unit
     override fun loadDiagnostics() = Unit
     override fun acknowledgeSecurityModel() = Unit
     override fun dismissBanner() = Unit

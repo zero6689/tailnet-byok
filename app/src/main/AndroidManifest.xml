@@ -15,6 +15,13 @@
       POST_NOTIFICATIONS  — Android 13+. Only when the user opts into a
                             persistent "tailnet connected" notification.
                             Not a VPN app: there is no foreground VPN service.
+      REQUEST_INSTALL_PACKAGES
+                          — so the in-app updater can hand a downloaded,
+                            hash-verified build to the system installer. It does
+                            not let this app install anything by itself: Android
+                            still requires the user to have allowed installs from
+                            this app, and the system installer always shows the
+                            package and asks. Nothing is installed silently.
 
       Deliberately NOT requested:
         * BIND_VPN_SERVICE      — the embedded tsnet node dials a single
@@ -29,6 +36,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".TailnetByokApp"
@@ -56,10 +64,33 @@
         </activity>
 
         <!--
-          No <service>, no <receiver>, no <provider> is exported. The app owns
-          no IPC surface other than its launcher activity, so there is nothing
-          for another app to bind to or send an intent to.
+          No <service> and no <receiver>, and the only <provider> is the
+          unexported FileProvider below. Nothing in this manifest is an IPC
+          surface another app can reach except the launcher activity itself.
         -->
+
+        <!--
+          The one provider in this app, and it is not an IPC surface.
+
+          It exists for a single job: handing the downloaded update to the system
+          package installer, which runs in another process and therefore cannot be
+          given a `file://` URI (that has thrown FileUriExposedException since
+          Android 7). It is `exported="false"` with
+          `grantUriPermissions="true"`, so the only way to read anything through it
+          is a URI this app put in an intent it sent, with a one-shot read grant
+          attached. It exposes exactly one directory — the staging directory inside
+          `cacheDir` — which is why `file_paths.xml` names that path and nothing
+          else.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

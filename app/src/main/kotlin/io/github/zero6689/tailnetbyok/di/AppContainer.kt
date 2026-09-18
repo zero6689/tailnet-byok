@@ -5,6 +5,7 @@ import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.data.crypto.KeystoreSecretVault
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 import io.github.zero6689.tailnetbyok.net.ConnectivityProvider
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
@@ -54,6 +55,15 @@ class AppContainer(private val appContext: Context) {
     }
 
     val tester: ConnectionTester by lazy { ConnectionTester() }
+
+    /**
+     * Stages a verified update and asks the system to install it.
+     *
+     * One instance for the process, like everything else here: it holds only the
+     * application context, and its two pieces of state — the staging directory and
+     * the FileProvider authority — are derived from that context rather than kept.
+     */
+    val updateInstaller: UpdateInstaller by lazy { UpdateInstaller(appContext) }
 
     /**
      * Where the embedded node keeps its state.

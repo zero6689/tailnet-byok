@@ -6,15 +6,61 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Because the app ships no server component, a security fix reaches users only when they install
-a new release. The app has no auto-update mechanism and does not phone home to check for one —
-that is a consequence of the privacy design, not an oversight, and it is worth knowing when you
-read a security entry below.
+a new release. Updates are checked only when you ask for them: there is no timer, no check at
+launch, and no request to any server that is not the update source you configured (by default,
+the target host you already talk to). That is a consequence of the privacy design, not an
+oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
 ## [Unreleased]
 
 _Nothing yet._
+
+## [0.2.6] — 2026-09-19
+
+The version the app reports is `0.2.6` (`versionCode` 6). It adds an update checker, and the
+first thing the checker does is refuse things.
+
+### Added
+
+- **In-app updates, from a source that has to prove itself.** The app reads
+  `<update source>/dsh.apk.version`, downloads `<update source>/dsh.apk` when that advertises
+  something newer than the installed `versionName`, and installs it through the system installer.
+  The update source defaults to the **target's own origin** — the DSH host already publishes all
+  three files next to its own UI — and is a configurable field in the app, so a mirror, another
+  port, or a path on the same host works without a rebuild. Only the base URL moves; the three
+  names are fixed (`UpdateProtocol`).
+
+### Security
+
+- **A missing or mismatched `dsh.apk.sha256` is a failure, never a pass.** Every path that does not
+  end in a hash-verified zip ends in a named refusal, and the refusal is what the screen and the
+  diagnostics report. Concretely: the version sidecar must contain a version; a body the provider
+  had to truncate is refused rather than hashed; a gzip transfer is unwrapped before hashing (DSH's
+  own static routes gzip bodies that the client did not ask to be gzipped); the payload must still
+  carry zip magic, so an HTML error page or a captive portal cannot be installed even if its hash
+  "matches"; and the sidecar must contain an actual 64-hex SHA-256. `domain/UpdateChecker.kt`.
+- **A verified download must also be *this* app.** The staged archive's package name is read with
+  `getPackageArchiveInfo` and compared against the running package before any install intent is
+  sent. A hash proves the bytes are the ones the source published; it does not prove they are a
+  build of this application — and the default source is a host the app does not own, so the two
+  checks are answering different questions. A mismatch installs nothing. `domain/UpdateInstaller.kt`.
+- **The install path asks for the minimum.** `REQUEST_INSTALL_PACKAGES` is the only permission
+  added; there is no silent install (Android requires the user to have allowed installs from this
+  app, and the system installer always shows the package), the staged file lives in `cacheDir` and
+  goes out as a one-shot read grant from an unexported `FileProvider` whose paths file names exactly
+  one directory, and a missing permission is reported as its own outcome with a button that opens
+  the right settings screen rather than an unexplained intent error.
+- **The outcome is recorded, because installing stops the process.** The result of the last attempt
+  (`UpdateRecord`) is persisted as stable tokens — never a rendered sentence, so it stays
+  translatable — which is what makes "downloaded and verified" survive the package installer
+  killing the app, and what lets a bug report quote what actually happened.
+
+### Changed
+
+- **`docs/` and the README no longer say the app has no update mechanism.** It has one now; the
+  honest description is that it is user-initiated and talks only to the source you configured.
 
 ## [0.2.5] — 2026-09-18
 
@@ -282,6 +328,7 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.6
 [0.2.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.5
 [0.1.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.1.0
