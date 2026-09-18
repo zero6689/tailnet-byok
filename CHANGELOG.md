@@ -142,8 +142,16 @@ The sizes quoted throughout the docs were re-measured for it.
 
 ### Notes
 
-- The `tailnet-bridge` workflow has not been exercised on a runner yet. Expect breakage in the
-  gomobile toolchain pinning before it settles.
+- The `tailnet-bridge` workflow has now been exercised on a runner, and the first run failed
+  where this note predicted it would: `yes | sdkmanager` under `set -o pipefail` reports the
+  licence-acceptance pipe as failed (`yes: standard output: Broken pipe`) after the NDK has in
+  fact installed. The same three lines were in `release.yml` and `reproducible-build.yml`, so
+  all three workflows died before reaching a build. Fixed in all three: accept licences
+  best-effort, then install without a pipe, so a real failure stays a real failure.
+- `GOMOBILE_VERSION: latest` was removed from the bridge workflow's environment. The build
+  script never read it — the revision comes from `tailnet/go.mod` — so its only effect was to
+  print a value in every run that looked like the build floats its toolchain, which is the
+  opposite of what it does.
 
 ---
 
