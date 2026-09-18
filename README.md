@@ -206,22 +206,25 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.1.0** — a skeleton with a working spine, and it compiles.
+Version **0.2.5** (`versionCode` 5) — a working spine, and it compiles.
 
 **Verified by an actual build**, not by inspection: unit tests pass, Lint reports zero errors,
 `assembleDebug` and `assembleRelease` both succeed, and the gomobile bridge produces a
-59.7 MB `tailnet.aar` whose `libgojni.so` lands in all four ABI directories of the APK.
+60.2 MiB `tailnet.aar` whose `libgojni.so` lands in all four ABI directories of the APK.
 
 | Artifact | Size |
 |---|---|
-| `tailnet.aar` | 59.7 MB |
-| Release APK, four ABIs | 162.6 MB |
-| Release APK, `arm64-v8a` only (estimated) | ~46 MB |
+| `tailnet.aar` | 60.2 MiB |
+| Release APK, four ABIs | 164.1 MiB |
+| Release APK, `arm64-v8a` only (estimated) | ~46 MiB |
 
-> **The embedded node is essentially the whole app.** Four ABIs of `libgojni.so` total 161.2 MB
-> against a 162.6 MB release APK. If that matters to you, either ship one ABI, ship an App
+> **The embedded node is essentially the whole app.** Four ABIs of `libgojni.so` total 162.4 MiB
+> against a 164.1 MiB release APK. If that matters to you, either ship one ABI, ship an App
 > Bundle, or use the `SYSTEM_NETWORK` provider and let the official Tailscale app own the
 > tunnel. Details in [docs/TSNET.md](docs/TSNET.md#measured-sizes).
+
+Sizes are MiB, measured on the build described in that document; they move when
+`tailscale.com` moves, which is why they are stated with the version that produced them.
 
 **Embedded at build time:** `tailscale.com v1.102.4`, resolved by `go mod tidy` and committed
 in `tailnet/go.mod` + `go.sum`.

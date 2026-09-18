@@ -260,25 +260,27 @@ Setting `GOPROXY` yourself overrides the probing entirely.
 
 ## Measured sizes
 
-From the first real build: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d, all four ABIs.
+From a real build: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d, all four ABIs. Re-measured
+2026-09-18 after the security work added to the bridge; sizes are MiB and grow when
+`tailscale.com` does.
 
 | Artifact | Size |
 |---|---|
-| `tailnet.aar` | 59.7 MB |
-| Debug APK, four ABIs | 183.0 MB |
-| Release APK (R8, four ABIs, unsigned) | 162.6 MB |
-| `libgojni.so` — `arm64-v8a` | 40.9 MB |
-| `libgojni.so` — `armeabi-v7a` | 38.8 MB |
-| `libgojni.so` — `x86` | 39.2 MB |
-| `libgojni.so` — `x86_64` | 42.4 MB |
-| Four ABIs of `libgojni.so` combined | **161.2 MB** |
+| `tailnet.aar` | 60.2 MiB |
+| Debug APK, four ABIs | 179.6 MiB |
+| Release APK (R8, four ABIs, unsigned) | 164.1 MiB |
+| `libgojni.so` — `arm64-v8a` | 41.2 MiB |
+| `libgojni.so` — `armeabi-v7a` | 39.1 MiB |
+| `libgojni.so` — `x86` | 39.4 MiB |
+| `libgojni.so` — `x86_64` | 42.7 MiB |
+| Four ABIs of `libgojni.so` combined | **162.4 MiB** |
 
 Read that last row against the release APK size above it. The embedded node is not a
-significant part of this app's download — **it is essentially all of it**. 161.2 MB of a
-162.6 MB APK is Go runtime and linked `tsnet`.
+significant part of this app's download — **it is essentially all of it**. 162.4 MiB of a
+164.1 MiB APK is Go runtime and linked `tsnet`.
 
 So the honest guidance is: **ship one ABI.** Every Android device sold in the last five years
-is `arm64-v8a`, and restricting to it turns a 162 MB download into roughly 46 MB:
+is `arm64-v8a`, and restricting to it turns a 164 MB download into roughly 46 MB:
 
 ```kotlin
 android {
