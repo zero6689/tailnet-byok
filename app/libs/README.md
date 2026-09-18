@@ -20,11 +20,10 @@ node scripts/fetch-toolchain.mjs go ndk
 node scripts/build-bridge.mjs
 ```
 
-The **Tailnet bridge** CI workflow builds the same AAR on every push, but it does not publish
-it: an Actions artifact in a public repository is downloadable by anyone, which would make CI a
-distribution channel with no release record, no version and no checksum. The workflow asserts
-that the AAR is real and that its `libgojni.so` reaches all four ABIs in the APK; if you want
-the file itself, build it.
+The **Tailnet bridge** CI workflow builds the same AAR on every push and publishes it as an
+Actions artifact, so a phone-testable build can be fetched without a local Go toolchain. That is
+a deliberate exception to "no binaries from CI", and it is not a release: no tag, no signature
+record, no checksum, and it expires. Anything meant for users comes from a tagged release.
 
 ## Using it
 

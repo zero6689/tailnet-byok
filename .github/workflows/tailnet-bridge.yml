@@ -146,17 +146,19 @@ jobs:
           echo "--- ABIs ---"
           unzip -l app/libs/tailnet.aar | grep -E 'jni/[^/]+/' | awk '{print $4}' | cut -d/ -f1-2 | sort -u
 
-      # The AAR is deliberately NOT uploaded as an artifact.
+      # Published deliberately -- the one place this repository hands out a binary.
       #
-      # A public repository's Actions artifacts are downloadable by anyone, so
-      # uploading this one would quietly make CI the place prebuilt native
-      # libraries are published from: no tag, no release record, no hashes --
-      # the opposite of what docs/RELEASING.md promises a release is. Build it
-      # locally (`node scripts/build-bridge.mjs`), or let a release publish it
-      # properly.
-      #
-      # What proves the build worked is in this job's log: the size assertion
-      # above, and the ABI listing below.
+      # The trade, stated plainly: a public repository's Actions artifacts are
+      # downloadable by anyone who finds the run, and this is now the easiest way
+      # to get a build onto a phone to test. What it is *not* is a release: no tag,
+      # no signing-certificate record, no checksum file, and it expires in 30 days.
+      # Anything meant for users still goes through a tagged release, which is what
+      # docs/RELEASING.md describes.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailnet-aar-${{ github.sha }}
+          path: app/libs/tailnet.aar
+          retention-days: 30
 
       # --- Prove it integrates ---------------------------------------------
 
@@ -180,8 +182,11 @@ jobs:
           fi
           echo "ok: libgojni.so is present in the APK"
 
-      # The APK is deliberately NOT uploaded, for the same reason as the AAR: an
-      # Actions artifact in a public repository is a downloadable build, and an
-      # unsigned debug APK is still a binary handed out without a release record
-      # or a checksum. The assertion above is the evidence this job exists to
-      # produce.
+      # The installable build, for the same reason as the AAR: it is how a build
+      # gets onto a phone to be tested. Debug-signed, four ABIs, and gone in 14
+      # days -- a test build, not a distribution.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-with-bridge
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
