@@ -46,7 +46,7 @@ jobs:
     name: Guardrails
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: No bare android.util.Log outside SafeLog
         run: |
@@ -127,7 +127,7 @@ jobs:
     name: Third-party notices
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # `scripts/third-party-licenses.mjs` sets GOTOOLCHAIN=local, so whatever
       # runs it has to be the toolchain the module asks for.
@@ -138,7 +138,7 @@ jobs:
           version=$(grep -E '^go [0-9]+\.[0-9]+' tailnet/go.mod | awk '{print $2}')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ steps.gover.outputs.version }}
           cache-dependency-path: tailnet/go.sum
@@ -167,14 +167,14 @@ jobs:
     name: Unit tests and lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: false
 
@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-report
           path: app/build/reports/tests/testDebugUnitTest
@@ -195,7 +195,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
@@ -210,14 +210,14 @@ jobs:
     name: Assemble debug APK (no native bridge)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Assemble
         run: ./gradlew --no-daemon assembleDebug
