@@ -34,11 +34,6 @@ on:
       - 'scripts/build-bridge.mjs'
       - '.github/workflows/tailnet-bridge.yml'
   workflow_dispatch:
-    inputs:
-      gomobile_version:
-        description: 'golang.org/x/mobile version to install ("latest" or a pinned tag)'
-        required: false
-        default: 'latest'
 
 permissions:
   contents: read
@@ -48,10 +43,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # After your first green build, pin this to the revision the log reported, so
-  # the AAR is reproducible. The script prints the resolved revision for exactly
-  # that reason. Overridable per-run via workflow_dispatch.
-  GOMOBILE_VERSION: ${{ inputs.gomobile_version || 'latest' }}
+  # No `GOMOBILE_VERSION` here any more.
+  #
+  # It used to be `${{ inputs.gomobile_version || 'latest' }}`, which the build
+  # script never read: the revision comes from `tailnet/go.mod` (see
+  # scripts/build-bridge.mjs), and `--gomobile-version` overrides it. So the only
+  # thing that variable did was print `GOMOBILE_VERSION: latest` in every run's
+  # environment block, where it reads like the build installs the latest revision
+  # -- exactly the thing the pin exists to prevent. The resolved revision is in
+  # the log, from `--check`, where it can be compared with the pin in go.mod.
 
   # gomobile needs a Go toolchain that matches the module. `local` makes a
   # version mismatch a loud failure instead of a silent download of a different
@@ -102,7 +102,16 @@ jobs:
           # gomobile is sensitive to the NDK version, so it is pinned: a floating
           # NDK is a build that breaks on a Tuesday for no reason you can see.
           NDK_VERSION=26.3.11579264
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" >/dev/null
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          # `yes | sdkmanager` cannot be used under `set -o pipefail`: when
+          # sdkmanager exits, `yes` is killed by SIGPIPE and the *pipeline* reports
+          # failure even though the install succeeded. That is how the first real
+          # run of this workflow failed -- `yes: standard output: Broken pipe`,
+          # exit code 1, NDK installed. Accept licences best-effort (they are
+          # usually already accepted on a hosted runner), then install without a
+          # pipe so a real failure is a real failure.
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "ndk;$NDK_VERSION"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
 
