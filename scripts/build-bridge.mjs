@@ -369,6 +369,18 @@ function tidyAndAssertPin(goPath, env, failureMessage) {
   );
 }
 
+/**
+ * The `golang.org/x/mobile` revision a built Go binary was compiled from.
+ *
+ * Read out of the binary's own build metadata (`go version -m`), which works
+ * offline — unlike asking a module proxy what the latest version is.
+ */
+function toolRevision(goPath, binaryPath, env) {
+  const info = captureToFile(goPath, ['version', '-m', binaryPath], { env });
+  if (!info) return null;
+  return info.match(/^\s*mod\s+golang\.org\/x\/mobile\s+(v\S+)/m)?.[1] ?? null;
+}
+
 function main() {
   const dev = platformPaths();
 
@@ -507,6 +519,24 @@ function main() {
     fail('could not determine GOPATH, so there is nowhere to install gomobile into');
   }
 
+  /**
+   * The gomobile/gobind pair, each with the revision it was built from.
+   *
+   * They have to be one revision, and `gomobile init` will happily install gobind
+   * at `@latest` behind our back, so this is asked twice: once to report, once
+   * after init to decide whether anything has to be put back.
+   */
+  const toolPair = () =>
+    ['gomobile', 'gobind'].map((name) => {
+      const path = join(binDir, isWindows ? `${name}.exe` : name);
+      return { name, path, revision: existsSync(path) ? toolRevision(goPath, path, env) : null };
+    });
+
+  for (const tool of toolPair()) {
+    const note = tool.revision === GOMOBILE_VERSION ? '' : '  <- not the pinned revision';
+    log(`  ${tool.name.padEnd(9)} ${tool.revision ?? '(not installed)'}${note}`);
+  }
+
   // `--check` reports the whole toolchain, including whether the Go tools are
   // present, and stops before anything slow or mutating. Everything above is
   // discovery; everything below downloads or builds.
@@ -593,8 +623,16 @@ function main() {
   //
   // `go get -tool` is idempotent, and the resulting `tool` directive is
   // committed, so this is a no-op on a warm checkout.
+  //
+  // The revision is stated explicitly, for two reasons that showed up in the same
+  // test. Without it, `go get` asks the proxy for the *latest* version of
+  // `x/mobile` — a second floating pin, of exactly the kind the rest of this
+  // script exists to prevent — and it fails outright in a warm checkout with no
+  // network (`module lookup disabled by GOPROXY=off`), even though the module is
+  // already in the cache. With `@<pinned>`, both go away: no lookup, no drift.
   log('\n== recording gomobile as a module tool ==');
-  if (!run(goPath, ['get', '-tool', 'golang.org/x/mobile/cmd/gobind'], { cwd: GO_MODULE, env })) {
+  const toolSpec = `golang.org/x/mobile/cmd/gobind@${GOMOBILE_VERSION}`;
+  if (!run(goPath, ['get', '-tool', toolSpec], { cwd: GO_MODULE, env })) {
     fail('could not record golang.org/x/mobile as a tool dependency');
   }
   // Re-tidy so go.mod and go.sum reflect the tool directive as well.
@@ -719,8 +757,58 @@ function main() {
   // --- Bind -----------------------------------------------------------------
 
   log('\n== gomobile init ==');
-  if (!run(join(binDir, isWindows ? 'gomobile.exe' : 'gomobile'), ['init'], { cwd: GO_MODULE, env })) {
-    fail('gomobile init failed');
+  if (
+    !run(join(binDir, isWindows ? 'gomobile.exe' : 'gomobile'), ['init'], { cwd: GO_MODULE, env })
+  ) {
+    // `gomobile init` reinstalls gobind itself, with a hardcoded `@latest`
+    // (cmd/gomobile/init.go: `goInstall([]string{"golang.org/x/mobile/cmd/gobind@latest"}, nil)`).
+    // Two consequences, both bad and neither obvious from the error:
+    //
+    //   * it needs the module proxy, so an otherwise fully cached, offline
+    //     checkout cannot get past this point;
+    //   * online, it installs whatever revision is latest *that day*, which is
+    //     the tool/runtime mismatch this script's header warns about.
+    //
+    // The second one is fixed below; the first one is not fixable from here, so
+    // say what is actually wrong instead of relaying "exit status 1".
+    fail(
+      'gomobile init failed.\n' +
+        '    `gomobile init` installs gobind with a hardcoded @latest, so it needs a\n' +
+        '    reachable Go module proxy even when everything else is cached.\n' +
+        '    Set GOPROXY to a proxy you can reach (direct or a mirror), then retry.',
+    );
+  }
+
+  // Undo init's `@latest`, if it did anything.
+  //
+  // `gomobile init` reinstalls gobind itself, with a hardcoded `@latest`
+  // (cmd/gomobile/init.go: `goInstall([]string{"golang.org/x/mobile/cmd/gobind@latest"}, nil)`).
+  // `gomobile bind` then runs whatever gobind sits next to the gomobile binary,
+  // so without this the tool pair is whatever "latest" meant that day — the
+  // mismatch this script's header warns about. Only a real mismatch is fixed:
+  // when the pair already matches the pin (the usual case, since the pin is
+  // normally the latest revision) nothing is reinstalled and nothing changes.
+  log('\n== checking the gomobile/gobind pair ==');
+  const stale = toolPair().filter((tool) => tool.revision !== GOMOBILE_VERSION);
+  if (stale.length === 0) {
+    log(`  both are at the pinned revision (${GOMOBILE_VERSION})`);
+  } else {
+    for (const tool of stale) {
+      log(`  ${tool.name}: ${tool.revision ?? '(missing)'} -> ${GOMOBILE_VERSION}`);
+    }
+    for (const tool of stale) {
+      if (
+        !run(goPath, ['install', `golang.org/x/mobile/cmd/${tool.name}@${GOMOBILE_VERSION}`], {
+          env,
+        })
+      ) {
+        fail(
+          `could not install ${tool.name}@${GOMOBILE_VERSION}.\n` +
+            '    That revision is in the module cache if the pin has not moved; if it is\n' +
+            '    not, this step needs a reachable Go module proxy.',
+        );
+      }
+    }
   }
 
   // The bind runs from INSIDE the Go module, binding `.`.
