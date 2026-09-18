@@ -1,0 +1,176 @@
+name: Reproducible bridge build
+
+# Manual only, on purpose.
+#
+# This answers one question: does the same commit, built twice on the same runner
+# with the same pinned toolchain, produce the same native library? `RELEASING.md`
+# makes a claim about that, and a claim nobody ever checks is a claim that quietly
+# stops being true.
+#
+# It is deliberately not part of CI: two gomobile binds cost tens of minutes, and
+# the answer is information for a maintainer rather than a reason to block a pull
+# request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      compare_container:
+        description: 'Also compare the .aar container hash (expected to differ: zip metadata)'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Build the bridge twice and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Toolchain --------------------------------------------------------
+      # Same pins as tailnet-bridge.yml: a difference in the toolchain is a
+      # difference in the build, and this job is about everything else.
+
+      - name: Read the Go version the module requires
+        id: gover
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^go [0-9]+\.[0-9]+' tailnet/go.mod | awk '{print $2}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.gover.outputs.version }}
+          cache-dependency-path: tailnet/go.sum
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Install the Android NDK
+        run: |
+          set -euo pipefail
+          NDK_VERSION=26.3.11579264
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
+
+      - name: Record the toolchain
+        run: |
+          set -euo pipefail
+          node scripts/build-bridge.mjs --check | tee /tmp/toolchain.txt
+
+      # --- First build ------------------------------------------------------
+
+      - name: Build 1 of 2
+        env:
+          GOPROXY: ${{ vars.GOPROXY || 'https://proxy.golang.org,direct' }}
+        run: |
+          set -euo pipefail
+          node scripts/build-bridge.mjs
+          cp app/libs/tailnet.aar /tmp/tailnet-1.aar
+          sha256sum /tmp/tailnet-1.aar
+          rm -rf /tmp/payload-1 && mkdir -p /tmp/payload-1
+          unzip -o -q /tmp/tailnet-1.aar 'jni/*' -d /tmp/payload-1
+          (cd /tmp/payload-1 && find . -name '*.so' | sort | xargs sha256sum) | tee /tmp/payload-1.txt
+          cat /tmp/payload-1.txt
+
+      # --- Second build -----------------------------------------------------
+      #
+      # `go clean -cache` is deliberately NOT run. The question is not "can two
+      # cold builds agree" but "does rebuilding from this commit give me back the
+      # same library", and a warm toolchain is the realistic case for both a
+      # maintainer and CI.
+
+      - name: Build 2 of 2
+        env:
+          GOPROXY: ${{ vars.GOPROXY || 'https://proxy.golang.org,direct' }}
+        run: |
+          set -euo pipefail
+          rm -f app/libs/tailnet.aar
+          node scripts/build-bridge.mjs
+          cp app/libs/tailnet.aar /tmp/tailnet-2.aar
+          sha256sum /tmp/tailnet-2.aar
+          rm -rf /tmp/payload-2 && mkdir -p /tmp/payload-2
+          unzip -o -q /tmp/tailnet-2.aar 'jni/*' -d /tmp/payload-2
+          (cd /tmp/payload-2 && find . -name '*.so' | sort | xargs sha256sum) | tee /tmp/payload-2.txt
+          cat /tmp/payload-2.txt
+
+      # --- Compare ----------------------------------------------------------
+
+      - name: Compare the native libraries
+        id: compare
+        run: |
+          set -euo pipefail
+          echo "--- libgojni.so, build 1 ---"; cat /tmp/payload-1.txt
+          echo "--- libgojni.so, build 2 ---"; cat /tmp/payload-2.txt
+          if diff -u /tmp/payload-1.txt /tmp/payload-2.txt; then
+            echo "identical=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "identical=false" >> "$GITHUB_OUTPUT"
+            echo "::error::the native library is not reproducible across two builds of the same commit."
+            echo "::error::That contradicts docs/RELEASING.md — either fix the cause (an embedded path, a"
+            echo "::error::timestamp, a non-deterministic link step) or narrow the claim in that document."
+            echo "::error::Do not ignore it: a rebuild nobody can compare is a rebuild nobody can verify."
+            exit 1
+          fi
+
+      - name: Compare the containers
+        if: ${{ always() && inputs.compare_container }}
+        run: |
+          set -euo pipefail
+          # Informational. A zip stores modification times, so the container hash
+          # is expected to differ even when every byte of the payload matches --
+          # which is exactly why the payload comparison above is the one that
+          # decides.
+          if cmp -s /tmp/tailnet-1.aar /tmp/tailnet-2.aar; then
+            echo "the .aar containers are byte-identical as well"
+          else
+            echo "the .aar containers differ (expected: zip metadata); payload comparison above is authoritative"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "## Reproducible bridge build"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| commit | \`$GITHUB_SHA\` |"
+            echo "| native library identical | **${{ steps.compare.outputs.identical }}** |"
+            echo "| .aar build 1 | \`$(sha256sum /tmp/tailnet-1.aar | cut -c1-16)…\` ($(stat -c%s /tmp/tailnet-1.aar) bytes) |"
+            echo "| .aar build 2 | \`$(sha256sum /tmp/tailnet-2.aar | cut -c1-16)…\` ($(stat -c%s /tmp/tailnet-2.aar) bytes) |"
+            echo
+            echo "<details><summary>toolchain</summary>"
+            echo
+            echo '```'
+            cat /tmp/toolchain.txt
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep both AARs for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aar-reproducibility-${{ github.sha }}
+          path: |
+            /tmp/tailnet-1.aar
+            /tmp/tailnet-2.aar
+            /tmp/payload-1.txt
+            /tmp/payload-2.txt
+            /tmp/toolchain.txt
+          retention-days: 7
