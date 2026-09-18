@@ -20,7 +20,11 @@ node scripts/fetch-toolchain.mjs go ndk
 node scripts/build-bridge.mjs
 ```
 
-Or download the artifact from a run of the **Tailnet bridge** workflow and drop it in here.
+The **Tailnet bridge** CI workflow builds the same AAR on every push, but it does not publish
+it: an Actions artifact in a public repository is downloadable by anyone, which would make CI a
+distribution channel with no release record, no version and no checksum. The workflow asserts
+that the AAR is real and that its `libgojni.so` reaches all four ABIs in the APK; if you want
+the file itself, build it.
 
 ## Using it
 
