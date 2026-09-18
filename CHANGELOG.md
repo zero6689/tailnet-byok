@@ -56,6 +56,15 @@ first thing the checker does is refuse things.
   (`UpdateRecord`) is persisted as stable tokens — never a rendered sentence, so it stays
   translatable — which is what makes "downloaded and verified" survive the package installer
   killing the app, and what lets a bug report quote what actually happened.
+- **A size ceiling per route, instead of one ceiling and a hopeful guess.** The embedded node hands
+  response bodies across the gomobile boundary as base64 inside a JSON string, so a body of N bytes
+  costs several times N in transient heap; a 60 MB package would be an out-of-memory kill rather
+  than a failure message. The embedded route therefore asks for
+  `UpdateProtocol.MAX_EMBEDDED_APK_BYTES` (32 MB) and reports anything larger as
+  `PACKAGE_TOO_LARGE` — "switch to the system network" — while the system-network route keeps the
+  200 MB ceiling. The real fix is to stream the body to a file across the bridge, which needs a new
+  binding and a re-bound AAR; until then the bound is explicit rather than accidental. That is also
+  why this release's own ~60 MB APK cannot be staged over the embedded route.
 
 ### Changed
 
@@ -187,10 +196,10 @@ The sizes quoted throughout the docs were re-measured for it.
   marker or an obvious placeholder word. The tailnet-address check scans documentation too now,
   for the same reason.
 - **Nothing that identifies a person or a machine is committed, and CI now enforces it.** A
-  build-machine path (`C:\Users\…`, `/home/…`) fails the guardrails job, next to the existing
-  checks for credential-shaped strings and tailnet addresses; `CONTRIBUTING.md` states the whole
-  list in one table. Measured while writing it: the scan finds nothing in the tree today, and
-  catches an injected `C:\Users\<name>\…` line.
+  build-machine path (a drive-rooted profile directory, or a POSIX home directory) fails the
+  guardrails job, next to the existing checks for credential-shaped strings and tailnet addresses;
+  `CONTRIBUTING.md` states the whole list in one table. Measured while writing it: the scan finds
+  nothing in the tree today, and catches an injected profile-path line.
 - **The native library no longer carries the checkout's source paths.**
   `scripts/build-bridge.mjs` passes `-trimpath` to `gomobile bind`, after measuring that
   `L:\CodexProjects\tailnet-byok\` appeared four times inside `libgojni.so` — bytes that go on

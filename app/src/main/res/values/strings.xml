@@ -237,6 +237,7 @@
     <string name="update_fail_version_unreadable">Could not read dsh.apk.version from the update source.</string>
     <string name="update_fail_version_unparsable">dsh.apk.version did not contain a version.</string>
     <string name="update_fail_download_failed">Could not download dsh.apk, or it arrived truncated.</string>
+    <string name="update_fail_package_too_large">This package is larger than the embedded node can stage safely. Switch the connection method to the system network, or update from a smaller build.</string>
     <string name="update_fail_no_sidecar">dsh.apk.sha256 was missing or held no SHA-256 — refusing to install anything that cannot be verified.</string>
     <string name="update_fail_sidecar_mismatch">SHA-256 mismatch: the bytes served are not the bytes the source published. Nothing was installed.</string>
     <string name="update_fail_not_an_apk">What the update source served is not an APK.</string>

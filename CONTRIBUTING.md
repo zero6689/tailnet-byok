@@ -26,7 +26,7 @@ message, not in an issue:
 |---|---|---|
 | a credential, `*.keystore`, `*.jks`, `*.p12`, `keystore.properties` | it is the secret itself | `.gitignore`, and the credential-shaped-string scan |
 | a real tailnet address or device name | it is somebody's topology, and a bug report is not improved by it | the address scan (warns; use `100.101.102.103`) |
-| a path from your machine (`C:\Users\…`, `/home/…`) | it names a user, and it travels on into every build artefact | the machine-path scan (fails; use `/home/you`) |
+| a path from your machine (a drive-rooted profile directory, or a POSIX home directory) | it names a user, and it travels on into every build artefact | the machine-path scan (fails; use a relative path) |
 | a log or a screenshot from a real run | redaction happens in the app, not in your terminal | by eye — CI cannot see an image |
 
 Placeholders are the answer in every row. `scripts/build-bridge.mjs` passes `-trimpath` so that

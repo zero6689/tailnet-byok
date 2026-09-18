@@ -62,7 +62,9 @@ class UpdateCheckerTest {
                 statusCode = 200,
                 headers = emptyMap(),
                 body = body,
-                truncated = spec.url in truncatedUrls,
+                // Mirrors what both real providers do: a body over the cap this call
+                // asked for comes back flagged, not silently shortened.
+                truncated = spec.url in truncatedUrls || body.size > spec.maxBodyBytes,
                 elapsedMs = 1,
             )
         }
@@ -161,18 +163,57 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun `a truncated package is a failure even though its prefix may be valid`() = runTest {
-        // The provider fetched a body it had to cut off at the cap. A cut-off zip
-        // is exactly the kind of "looks fine at a glance" result that must never
-        // be hashed and installed, so truncation is a refusal on its own.
+    fun `a package over the transport's ceiling is refused by name`() = runTest {
+        // The provider cut the body off at the cap it was given. On the embedded
+        // route that is not a network failure — it is "this package is bigger than
+        // this route can hold" — and saying so is the difference between a user
+        // switching connection method and a user hunting for a network problem.
         val source = FakeSource(
             routes = routes(version = "0.2.7", apk = apkBytes, sidecar = apkHash),
             truncatedUrls = setOf("$base/${UpdateProtocol.APK_PATH}"),
         )
 
         assertEquals(
-            UpdateChecker.UpdateCheck.Failed(UpdateFailure.DOWNLOAD_FAILED),
+            UpdateChecker.UpdateCheck.Failed(UpdateFailure.PACKAGE_TOO_LARGE),
             checkerFor(source).check(base, "0.2.6"),
+        )
+    }
+
+    @Test
+    fun `each route asks for its own ceiling`() = runTest {
+        val embedded = UpdateProtocol.MAX_EMBEDDED_APK_BYTES
+        val source = FakeSource(routes(version = "0.2.7", apk = apkBytes, sidecar = apkHash))
+        val seen = mutableListOf<Int>()
+        val checker = UpdateChecker(
+            fetch = { spec ->
+                seen += spec.maxBodyBytes
+                source.fetch(spec)
+            },
+            maxPackageBytes = embedded,
+        )
+
+        checker.check(base, "0.2.6")
+
+        // version, apk, sha256 — the package request carries the ceiling, and the
+        // two text sidecars stay small.
+        assertEquals(
+            listOf(UpdateProtocol.MAX_TEXT_BYTES, embedded, UpdateProtocol.MAX_TEXT_BYTES),
+            seen,
+        )
+        // And the ceiling is genuinely lower on that route, or the guard is theatre.
+        assertTrue(embedded < UpdateProtocol.MAX_APK_BYTES)
+    }
+
+    @Test
+    fun `a body over the ceiling this route was given is refused, not hashed`() = runTest {
+        // The same package that verifies fine under the normal ceiling, with a
+        // ceiling small enough that the provider has to cut it off. This is the
+        // mechanism the embedded route relies on to avoid an out-of-memory kill.
+        val source = FakeSource(routes(version = "0.2.7", apk = apkBytes, sidecar = apkHash))
+
+        assertEquals(
+            UpdateChecker.UpdateCheck.Failed(UpdateFailure.PACKAGE_TOO_LARGE),
+            UpdateChecker(fetch = source::fetch, maxPackageBytes = 16).check(base, "0.2.6"),
         )
     }
 
