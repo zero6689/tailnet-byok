@@ -192,9 +192,12 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 | | |
 |---|---|
 | [docs/BUILD.md](docs/BUILD.md) | Build the app, and the native bridge |
+| [docs/RELEASING.md](docs/RELEASING.md) | What a release records, and what must be true first |
 | [docs/TSNET.md](docs/TSNET.md) | How the embedded node works, and the traps |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module layout and the decisions behind it |
 | [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) | Threat model, in plain language |
+| [docs/PROVENANCE.md](docs/PROVENANCE.md) | Where the code came from, and how that was checked |
+| [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | Every module linked into the native library |
 | [tailnet/README.md](tailnet/README.md) | The Go bridge, and its binding rules |
 | [Website](https://zero6689.github.io/tailnet-byok/) | The same docs, rendered |
 
