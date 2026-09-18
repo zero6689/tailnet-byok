@@ -132,6 +132,14 @@ The sizes quoted throughout the docs were re-measured for it.
   marker or an obvious placeholder word. The tailnet-address check scans documentation too now,
   for the same reason.
 
+- **CI publishes no build artifacts.** The AAR, the debug APKs, and the two AARs the
+  reproducibility check produces are no longer uploaded: an Actions artifact in a public
+  repository is downloadable by anyone, which would have made CI a distribution channel with no
+  tag, no release record and no checksum — the opposite of what `docs/RELEASING.md` says a
+  release is. Each job keeps its textual evidence (size assertions, ABI listing, payload
+  hashes) in the run log. The unit-test and lint reports are still uploaded, because they are
+  diagnostics built from this repository's own code rather than distributable binaries.
+
 ### Notes
 
 - The `tailnet-bridge` workflow has not been exercised on a runner yet. Expect breakage in the
