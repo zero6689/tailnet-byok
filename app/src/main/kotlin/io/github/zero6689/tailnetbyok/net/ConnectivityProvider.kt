@@ -34,6 +34,17 @@ interface ConnectivityProvider {
     val status: StateFlow<ProviderStatus>
 
     /**
+     * The version of the bundled node library, or null when there is none.
+     *
+     * This is the version of the *library in the APK*, not of the running node:
+     * it is answerable before anything is started, and it is what a bug report
+     * needs in order to say which build the report is about. The system-network
+     * provider bundles nothing and answers null.
+     */
+    val libraryVersion: String?
+        get() = null
+
+    /**
      * Brings the provider up.
      *
      * [credentials] carries the auth key. Implementations must not retain it

@@ -105,6 +105,15 @@ The sizes quoted throughout the docs were re-measured for it.
   example in the repository. It was found by running the tailnet-address guardrail by hand — the
   guardrail had been reporting it, and that check excluding markdown is why nothing else did.
 
+- **The diagnostics panel can be copied, refreshed, and now says which build it is.** It gains
+  the app version and the version of the node library compiled into the APK
+  (`ConnectivityProvider.libraryVersion`, answered from the native library itself), a copy
+  button, a refresh button, and selectable text. It is also rendered when empty, because
+  "no diagnostics" is itself information and a panel that only appears once something has
+  already gone wrong cannot be refreshed on the way to finding out. A section rather than a
+  screen: this app has no navigation library, and a second screen for a block of text is not a
+  reason to add one.
+
 ### Security
 
 - **Third-party licence obligations are met, and generated rather than remembered.** The native
@@ -131,6 +140,21 @@ The sizes quoted throughout the docs were re-measured for it.
   path-based exclusions, and lets a line through only when it carries an explicit `not-a-secret`
   marker or an obvious placeholder word. The tailnet-address check scans documentation too now,
   for the same reason.
+- **Nothing that identifies a person or a machine is committed, and CI now enforces it.** A
+  build-machine path (`C:\Users\…`, `/home/…`) fails the guardrails job, next to the existing
+  checks for credential-shaped strings and tailnet addresses; `CONTRIBUTING.md` states the whole
+  list in one table. Measured while writing it: the scan finds nothing in the tree today, and
+  catches an injected `C:\Users\<name>\…` line.
+- **The native library no longer carries the checkout's source paths.**
+  `scripts/build-bridge.mjs` passes `-trimpath` to `gomobile bind`, after measuring that
+  `<checkout>\` appeared four times inside `libgojni.so` — bytes that go on
+  into every published AAR and every APK built from it. It is an environment variable rather
+  than a flag because `bind` does not register `-trimpath` (only `build` does), and it is scoped
+  to that one call. Measured afterwards: source paths are module-relative, and two classes of
+  path remain that the flag does not cover — the module's own directory in the build info, and
+  the NDK's include paths. On a CI runner both read `/home/runner/…` and
+  `/usr/local/lib/android/…`, i.e. nothing private; the limit is written down in the script
+  rather than presented as "the library is path-free".
 
 - **CI publishes exactly two artifacts, on purpose.** The AAR and the debug APK from the bridge
   workflow are uploaded, because that is how a build gets onto a phone to be tested without a

@@ -3,6 +3,7 @@ package io.github.zero6689.tailnetbyok.ui.setup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import io.github.zero6689.tailnetbyok.BuildConfig
 import io.github.zero6689.tailnetbyok.R
 import io.github.zero6689.tailnetbyok.core.log.Redact
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
@@ -354,6 +355,13 @@ class SetupViewModel(
                     // the provider's own lines are passed through verbatim (they
                     // are meant to be pasted into bug reports).
                     add(res.getString(R.string.diag_provider, res.getString(_state.value.config.provider.labelRes)))
+                    add(res.getString(R.string.diag_app_version, BuildConfig.VERSION_NAME))
+                    // Only when the build actually bundles a node: the
+                    // system-network provider has no library of its own, and a
+                    // line reading "node library: null" is worse than no line.
+                    provider.libraryVersion?.let {
+                        add(res.getString(R.string.diag_library_version, it))
+                    }
                     add(res.getString(R.string.diag_hardware_keystore, _state.value.hardwareBackedKeystore.toString()))
                     _state.value.providerStatus?.let {
                         add(res.getString(R.string.diag_node, describe(it, res)))

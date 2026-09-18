@@ -95,6 +95,27 @@ jobs:
           fi
           echo "ok: no credential-shaped strings in tracked files"
 
+      - name: No build-machine paths in tracked files
+        run: |
+          set -euo pipefail
+          # A path from somebody's machine is not a credential, but it is not
+          # something a public repository should carry either: it names a user, a
+          # drive layout, or a company's directory structure, and it travels on into
+          # every build artefact (`-trimpath` keeps it out of the compiled library;
+          # this keeps it out of the repository).
+          #
+          # Fails rather than warns. Unlike a tailnet address, there is no version
+          # of this that a document legitimately needs: an example is written with a
+          # placeholder, and the placeholders are the exemption list below.
+          hits=$(git grep -nIE '([A-Za-z]:\\Users\\[^\\ ]+)|(/home/[a-z0-9._-]+)|(/Users/[a-z0-9._-]+)' -- . \
+                 | grep -viE 'runner|example|\\Users\\(you|user|me|name|username)|/(home|Users)/(you|user|me|name)$' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::a build-machine path is committed. Replace the user name with a placeholder."
+            echo "$hits"
+            exit 1
+          fi
+          echo "ok: no build-machine paths in tracked files"
+
       - name: No private network addresses in tracked files
         run: |
           set -euo pipefail

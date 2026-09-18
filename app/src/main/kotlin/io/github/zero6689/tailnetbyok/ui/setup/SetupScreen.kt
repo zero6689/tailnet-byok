@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -40,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -72,6 +77,7 @@ import io.github.zero6689.tailnetbyok.ui.theme.Danger
 import io.github.zero6689.tailnetbyok.ui.theme.TailnetByokTheme
 import io.github.zero6689.tailnetbyok.ui.theme.Warning
 import io.github.zero6689.tailnetbyok.ui.web.WebScreen
+import kotlinx.coroutines.delay
 
 /**
  * The whole app, on one scrollable screen.
@@ -169,9 +175,10 @@ fun SetupScreen(
 
             item { WebUiSection(state = state, actions = actions) }
 
-            if (state.diagnostics.isNotEmpty()) {
-                item { DiagnosticsSection(state = state) }
-            }
+            // Shown even when empty: "no diagnostics" is itself information, and a
+            // panel that only appears once something has gone wrong cannot be
+            // refreshed on the way to finding out.
+            item { DiagnosticsSection(state = state, onRefresh = actions::loadDiagnostics) }
 
             item { FooterNote() }
         }
@@ -612,13 +619,69 @@ private fun StepRow(step: ConnectionTester.StepResult) {
 }
 
 @Composable
-private fun DiagnosticsSection(state: UiState) {
+private fun DiagnosticsSection(state: UiState, onRefresh: () -> Unit) {
+    // The panel exists to be pasted into a bug report, so "copy" is the action
+    // that matters and it is done here rather than in the view model: the text is
+    // already in the state, and the clipboard is a UI concern.
+    //
+    // A section rather than a screen, deliberately. This app has no navigation
+    // library (see docs/ARCHITECTURE.md), and a second full screen for a block of
+    // text would mean introducing one, or a flag in the view model that pretends
+    // to be one.
+    val clipboard = LocalClipboardManager.current
+    val copiedLabel = stringResource(R.string.diag_copied)
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(2_000)
+            copied = false
+        }
+    }
+
     SectionCard(R.string.section_diagnostics_title, R.string.section_diagnostics_subtitle) {
-        Text(
-            state.diagnostics.joinToString("\n"),
-            style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onRefresh) {
+                Icon(Icons.Filled.Refresh, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.diag_refresh))
+            }
+            TextButton(
+                onClick = {
+                    clipboard.setText(AnnotatedString(state.diagnostics.joinToString("\n")))
+                    copied = true
+                },
+            ) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.diag_copy))
+            }
+            if (copied) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    copiedLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        if (state.diagnostics.isEmpty()) {
+            Text(
+                stringResource(R.string.diag_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            // Selectable as well as copyable: someone reading this on a desktop
+            // beside the phone will want to take half of it, and the copy button
+            // only takes all of it.
+            SelectionContainer {
+                Text(
+                    state.diagnostics.joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+        }
     }
 }
 
