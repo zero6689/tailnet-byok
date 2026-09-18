@@ -41,7 +41,7 @@ func startBounded(stateDir, authKey, controlURL, hostname string, timeoutMs int,
 // tsnet rather than a mock.
 func TestStartFailsCleanlyAgainstAnUnreachableControlServer(t *testing.T) {
 	stateDir := t.TempDir()
-	const fakeKey = "tskey-auth-THISMUSTNOTAPPEARINANYOUTPUT"
+	const fakeKey = "tskey-auth-THISMUSTNOTAPPEARINANYOUTPUT" // not-a-secret: fixture
 
 	err, returned := startBounded(stateDir, fakeKey, "https://127.0.0.1:1", "byok-test", 5000, 30*time.Second)
 	if !returned {
