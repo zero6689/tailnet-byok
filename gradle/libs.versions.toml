@@ -34,7 +34,7 @@ okhttp = "4.12.0"
 junit = "4.13.2"
 androidxTestJunit = "1.2.1"
 espresso = "3.6.1"
-robolectric = "4.14.1"
+robolectric = "4.17"
 mockk = "1.13.13"
 turbine = "1.2.0"
 
