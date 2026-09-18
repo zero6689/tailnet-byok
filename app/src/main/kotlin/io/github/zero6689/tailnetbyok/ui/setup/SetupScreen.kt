@@ -627,23 +627,32 @@ private fun UpdateSection(state: UiState, actions: SetupActions) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        val base = state.config.updateBase
         OutlinedTextField(
             value = state.config.updateUrl,
             onValueChange = actions::updateUpdateUrl,
             label = { Text(stringResource(R.string.update_base_label)) },
             // The resolved default, shown where it would be used: an empty field
-            // plus the origin it falls back to is clearer than either alone.
-            placeholder = { Text(state.config.updateBase) },
+            // plus the origin it falls back to is clearer than either alone. With
+            // no target typed in yet there is no origin to show, so the hint says
+            // that instead of printing a URL with no host in it.
+            placeholder = {
+                Text(if (base.isEmpty()) stringResource(R.string.update_base_no_target) else base)
+            },
             singleLine = true,
             isError = state.updateSourceErrorRes != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            stringResource(
-                state.updateSourceErrorRes ?: R.string.update_base_hint,
-                state.config.updateBase,
-            ),
+            when (val error = state.updateSourceErrorRes) {
+                null -> if (base.isEmpty()) {
+                    stringResource(R.string.update_base_hint_needs_target)
+                } else {
+                    stringResource(R.string.update_base_hint, base)
+                }
+                else -> stringResource(error)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = if (state.updateSourceErrorRes != null) {
                 Danger
