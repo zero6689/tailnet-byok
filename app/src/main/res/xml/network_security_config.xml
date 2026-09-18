@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP: permitted at the platform level, and the reason is not
+  laziness — it is that the platform cannot express the rule this app needs.
+
+  tailnet-byok exists to talk to a service that is already inside a WireGuard
+  tunnel. Traffic to 100.64.0.0/10 (the CGNAT range Tailscale allocates) leaves
+  the app, is encrypted by the embedded tsnet node, and is decrypted only at the
+  destination node. There is no point on the path where a passive observer sees
+  the plaintext — including the local Wi-Fi network the phone is attached to.
+
+  That means the honest tradeoff is: requiring HTTPS here would push users
+  toward self-signed certificates and "install this CA" flows, which is a
+  strictly worse security story than accepting the tunnel as the transport
+  boundary. Most self-hosted services on a tailnet (dashboards, DSH-style dev
+  servers, Home Assistant, Proxmox) speak plain HTTP behind the tunnel.
+
+  WHY THIS FILE NO LONGER LISTS TAILNET HOSTS (changed 2026-09-13)
+  =================================================================
+  Android's network security config matches on hostnames. It cannot say
+  "100.64.0.0/10", and it cannot know a name that only resolves inside the
+  tunnel. The previous revision tried to paper over that with a single
+  placeholder entry (`100.64.0.1`), which matches no real node — so a user
+  pointing at their own tailnet address got
+
+      communication to 100.101.102.103 not permitted by network security policy
+
+  and could not connect at all. The app's own example target was one of the
+  blocked addresses.
+
+  So the rule moved one layer up, to `domain/TailnetAddressPolicy.kt`, which is
+  the single gate every destination passes through before it is dialled. It
+  knows the real destination, so it can apply the rule the platform could not:
+    * cleartext is allowed for tailnet destinations — a 100.x or fd7a:... literal
+      (that file checks the ranges as ranges), or a name under *.ts.net, *.local,
+      *.internal, *.lan, *.home.arpa, or localhost;
+    * cleartext to everything else is REJECTED with
+      Reason.CLEARTEXT_REQUIRES_HTTPS, before a socket is opened.
+
+  This file still carries the part the platform must own: the trust anchors, and
+  the refusal of user-installed CAs. The address rule is paired with
+  `cleartextPermitted()` in that policy object — change one, change the other.
+
+  If you fork this and point it at a public endpoint, keep the pairing: either
+  loosen `cleartextPermitted()` deliberately, or make that endpoint HTTPS-only.
+-->
+<network-security-config>
+
+    <!--
+      Cleartext is permitted here because `TailnetAddressPolicy` refuses it for
+      every destination outside the tailnet (see above). The platform flag on
+      its own would allow cleartext to the public internet; the flag plus that
+      check does not.
+
+      System trust anchors only. `src="user"` is deliberately absent. Trusting
+      user-installed CAs for every host would mean that anyone who can install a
+      root certificate on the device — the user, an MDM profile they did not
+      read, or malware with the right permission — can transparently intercept
+      HTTPS from this app. That is a real weakening for no benefit here, because
+      the case user CAs would serve (a self-signed certificate on your own
+      tailnet service) is already covered by the cleartext allowance above: point
+      the app at the `100.x` address over http and the tunnel is the transport
+      boundary.
+
+      If you fork this and genuinely need a private CA, add it as a pinned
+      `<certificates src="@raw/my_ca" />` rather than reopening `user` for
+      everything.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+</network-security-config>

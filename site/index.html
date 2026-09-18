@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tailnet-byok — an Android app that carries its own Tailscale node</title>
+<meta name="description" content="An Android app that embeds a Tailscale node so you can paste your own auth key and reach one host inside your own tailnet. No account, no server, no VPN permission.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html" aria-current="page">Overview</a>
+      <a href="guide.html">Build &amp; use</a>
+      <a href="security.html">Security</a>
+      <a href="architecture.html">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>An Android app that carries its own Tailscale node.</h1>
+    <p class="lead">
+      Paste a pre-auth key and a target host. The app joins <em>your</em> tailnet, on
+      <em>your</em> terms, and talks to that one service. No account with us, no server of
+      ours, no shared relay — and no VPN permission.
+    </p>
+
+    <div class="cta">
+      <a class="btn primary" href="guide.html">Build it</a>
+      <a class="btn" href="security.html">Read the threat model</a>
+      <a class="btn" href="{{REPO_URL}}">Source on GitHub</a>
+    </div>
+  </section>
+
+  <div class="callout">
+    <span class="label">What "BYOK" means here</span>
+    <p>
+      The key is a <strong>Tailscale auth key</strong>, not an LLM API key. It is stored
+      encrypted by the Android Keystore, it is never written to disk in plain text, it is
+      never logged, and it leaves the device only to reach the control plane you configure.
+    </p>
+  </div>
+
+  <h2 id="why">Why this exists<a class="anchor" href="#why">#</a></h2>
+
+  <p>
+    Reaching a service on your own tailnet from a phone normally means one of two
+    unsatisfying options.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>The official Tailscale app</h3>
+      <p class="small">
+        It works, and for most people it is the right answer. But it takes the device-wide
+        VPN slot, changes DNS for every app on the phone, and — decisively — <strong>no
+        other app can hand it an auth key</strong>. There is no API, intent or content
+        provider for that.
+      </p>
+      <p class="small muted">
+        So if your goal is "an app that provisions a device onto my tailnet from inside the
+        app", this route cannot do it. Not "is inconvenient" — cannot.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Ship your own VPN service</h3>
+      <p class="small">
+        That means <code>BIND_VPN_SERVICE</code>, a foreground service, split-tunnel policy
+        and a permanent notification — a great deal of surface, and a great many ways to get
+        it wrong, in order to open one socket to one host.
+      </p>
+      <p class="small muted">
+        Most of that surface exists to serve the case where you want to route
+        <em>everything</em>. This app does not.
+      </p>
+    </div>
+  </div>
+
+  <p>
+    <code>tailnet-byok</code> takes a third path: it embeds a <strong>userspace</strong>
+    Tailscale node with <a href="https://pkg.go.dev/tailscale.com/tsnet">tsnet</a> and dials
+    the target through it. The device's other traffic is untouched. No VPN permission is
+    requested. The app opens one connection, to one destination, and nothing else.
+  </p>
+
+  <p>
+    The shape is borrowed from two projects that proved it works:
+    <a href="https://github.com/tailscale/tailvisor">tailvisor</a> (tsnet without a system
+    VPN) and
+    <a href="https://github.com/netbirdio/android-client">netbirdio/android-client</a>
+    (a gomobile-bound tunnel inside a Kotlin app), applied to the single-destination case.
+  </p>
+
+  <h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does">#</a></h2>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Feature</th><th>How</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Configuration</strong></td>
+        <td>Auth key, target host (MagicDNS name or <code>100.x</code> address), port,
+            scheme, path, node hostname, and an optional self-hosted control server for
+            headscale.</td>
+      </tr>
+      <tr>
+        <td><strong>Secure storage</strong></td>
+        <td>AES-256-GCM under a key that lives in the Android Keystore. On a device with a
+            TEE or StrongBox, that key never exists in the app's address space at all.</td>
+      </tr>
+      <tr>
+        <td><strong>Connection test</strong></td>
+        <td>Six named steps, each with a duration, stopping at the first hard failure. It
+            tells you <em>which</em> part broke, because the fixes are different.</td>
+      </tr>
+      <tr>
+        <td><strong>Direct connection</strong></td>
+        <td>Traffic reaches the target over the tailnet, from inside the app, through the
+            tailnet's own network stack.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="sample-run">A sample run<a class="anchor" href="#sample-run">#</a></h3>
+
+  <div class="transcript">
+<span class="ok">✓</span> <span class="step">Validate target address</span>  target looks like a tailnet address
+<span class="ok">✓</span> <span class="step">Select connection method</span> using Embedded tailnet node
+<span class="ok">✓</span> <span class="step">Check stored credential</span> auth key present (fp:3f9a1c04)
+<span class="ok">✓</span> <span class="step">Bring up tailnet node</span>    node up at 100.101.102.103 <span class="dim">1840 ms</span>
+<span class="ok">✓</span> <span class="step">Open TCP connection</span>      connected in 142 ms        <span class="dim">142 ms</span>
+<span class="ok">✓</span> <span class="step">Send HTTP request</span>        HTTP 200                    <span class="dim">187 ms</span>
+
+<span class="ok">Connected</span>
+  </div>
+
+  <p class="small muted">
+    Note what is <em>not</em> in that output: the auth key. The credential step reports a
+    non-reversible fingerprint (<code>fp:3f9a1c04</code>) — enough to tell two keys apart in
+    a log, useless for anything else.
+  </p>
+
+  <p>And when it fails, it says which part:</p>
+
+  <div class="transcript">
+<span class="bad">✗</span> <span class="step">Validate target address</span>  a public address is not reachable through a tailnet.
+                               Use the 100.x address or the MagicDNS name.
+  </div>
+
+  <h2 id="security-posture">Security posture, in one table<a class="anchor" href="#security-posture">#</a></h2>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Requirement</th><th>How it is met</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>No hardcoded private configuration</td>
+        <td>No credential exists in the source, the build, or <code>BuildConfig</code>. The
+            only generated constant is a non-secret control-plane URL.</td>
+      </tr>
+      <tr>
+        <td>Key never on disk in plain text</td>
+        <td>AES-256-GCM via the Android Keystore, <code>setRandomizedEncryptionRequired</code>,
+            <code>setUnlockedDeviceRequired</code> on API 28+. Node state lives in
+            <code>noBackupFilesDir</code>.</td>
+      </tr>
+      <tr>
+        <td>Key never in a log</td>
+        <td>One logging entry point, scrubbed; release builds strip <code>v</code>/<code>d</code>/<code>i</code>
+            at the bytecode level; CI fails the build on a bare <code>android.util.Log</code>
+            call.</td>
+      </tr>
+      <tr>
+        <td>No accidental egress</td>
+        <td>Anything outside <code>100.64.0.0/10</code>, <code>fd7a:115c:a1e0::/48</code>
+            and named hosts is refused <em>before</em> a dial — in the network layer, not just
+            in the UI.</td>
+      </tr>
+      <tr>
+        <td>Nothing leaves the device</td>
+        <td><code>allowBackup="false"</code>, backup rules exclude everything, no analytics,
+            no crash reporter, no server of ours.</td>
+      </tr>
+      <tr>
+        <td>Minimum permissions</td>
+        <td>Three: <code>INTERNET</code>, <code>ACCESS_NETWORK_STATE</code>,
+            <code>POST_NOTIFICATIONS</code>. No <code>BIND_VPN_SERVICE</code>, no
+            <code>QUERY_ALL_PACKAGES</code>, no location.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Read this before trusting it with a key</span>
+    <p>
+      The honest limits are documented rather than glossed over — including the fact that
+      the plaintext key exists in the heap for a short window, because Kotlin strings cannot
+      be zeroed. See <a href="security.html">Security</a>.
+    </p>
+  </div>
+
+  <h2 id="status">Status<a class="anchor" href="#status">#</a></h2>
+
+  <p>
+    Version <strong>{{VERSION}}</strong>, commit <code>{{BUILD_SHA}}</code>, docs built
+    {{BUILD_DATE}}.
+  </p>
+
+  <p>
+    <span class="tag ok">Working</span> secure storage, address policy, the six-step test,
+    the system-network provider, the full Go bridge source, and CI for all of it.
+  </p>
+
+  <p>
+    <span class="tag warn">Not done</span> the bridge is written but has not been built on
+    every platform; no instrumented tests; UI strings are not extracted for translation;
+    the embedded provider's per-ABI footprint is unmeasured.
+  </p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>
+      <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
+      <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+    </p>
+    <p class="small">
+      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      client; the name and the whale artwork are used descriptively, to say what the app
+      connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
+      owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
+      "Tailscale" is their trademark, and this is an independent client for their protocol
+      and for headscale.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

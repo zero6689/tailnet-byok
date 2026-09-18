@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The platform theme, which does almost nothing.
+
+      Colours, typography and surfaces come from Compose
+      (`ui/theme/Theme.kt`), including the dynamic-colour path on Android 12+.
+      What is left for XML is the window itself, and the one thing that must be
+      right before the first Compose frame: the background, so a launch on a
+      light device does not flash dark.
+
+      Note what is NOT here: `windowLightStatusBar` and `windowLightNavigationBar`.
+      Those are set programmatically by `enableEdgeToEdge()` in `MainActivity`,
+      which picks the right icon tint from the theme and does it correctly across
+      API levels. Declaring them here as well would be a second source of truth
+      for the same fact — and `windowLightNavigationBar` needs API 27 while this
+      app supports 26, so the XML copy would also be wrong on the oldest
+      supported devices.
+
+      The parent is the platform Material theme rather than AppCompat, so the app
+      carries no AppCompat dependency at all.
+    -->
+    <style name="Theme.TailnetByok" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F6F8FB</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!--
+          FLAG_SECURE is intentionally NOT set. It would block screenshots of the
+          connection test — which is the main thing a user needs to share when
+          asking for help — and the only secret on screen is masked behind a
+          password field. If you disagree, this is the one-line place to change
+          it, and docs/SECURITY-MODEL.md records the reasoning.
+        -->
+    </style>
+</resources>

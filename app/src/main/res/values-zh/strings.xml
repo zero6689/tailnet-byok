@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  中文文案（values-zh）。键名必须与 `values/strings.xml` 完全一致：
+  这里缺哪个键，那个键就静默回落到英文，而不会报错。
+
+  翻译口径
+  ========
+  * 术语：tailnet / tailnet 节点、auth key = 认证密钥、MagicDNS、headscale、
+    Keystore、TEE/StrongBox 一律保留原文，不强行意译 —— 这些是查文档要用的词。
+  * 占位符一律保留 `%n$s` 形式，可以按中文语序调整先后。
+  * `xliff:g` 包起来的是值，不是词，原样搬运。
+  * 步骤名与错误说明保持"短、直、可行动"：用户看这一行是要决定下一步做什么。
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <string name="app_name">DeepSeek Harness</string>
+    <string name="screen_title">DeepSeek Harness</string>
+
+    <!-- 首次运行的安全模型说明 -->
+    <string name="intro_title">这个 App 会怎么处理你的密钥</string>
+    <string name="intro_body">你的认证密钥由 Android Keystore 加密保存：不会以明文落盘、不会写进日志，除了你自己配置的控制面（control plane）之外不会离开这台设备。本 App 没有自己的服务器、没有统计、不发起任何自己的网络请求。</string>
+    <string name="intro_acknowledge">知道了</string>
+
+    <string name="banner_dismiss">关闭</string>
+    <string name="banner_provider_embedded">正在使用内嵌节点 —— 会用到你的认证密钥。</string>
+    <string name="banner_provider_system">正在使用系统网络 —— 不使用你的认证密钥。</string>
+    <string name="banner_key_saved">认证密钥已保存，由 Android Keystore 加密</string>
+    <string name="banner_key_forgotten">认证密钥与节点身份已删除</string>
+
+    <!-- 目标服务 -->
+    <string name="section_target_title">目标服务</string>
+    <string name="section_target_subtitle">服务在你 tailnet 里的位置</string>
+    <string name="target_host_label">主机（MagicDNS 名或 100.x 地址）</string>
+    <string name="target_host_placeholder">100.101.102.103 或 host.tailnet.ts.net</string>
+    <string name="target_port_label">端口</string>
+    <string name="target_path_label">路径</string>
+    <string name="target_path_placeholder">/</string>
+
+    <!-- 主机字段的即时提醒 -->
+    <string name="warn_bare_short_name">短名依赖 tailnet 的搜索域。如果测试失败，请改用完整的 *.ts.net 名或 100.x 地址。</string>
+    <string name="warn_non_magic_dns">这不是 *.ts.net 名 —— 请确认它能在你的 tailnet 内解析。</string>
+    <string name="warn_defaulted_port">没有填端口，按 <xliff:g id="port" example="3080">%1$d</xliff:g> 处理。</string>
+
+    <!-- 主机字段的即时拒绝 -->
+    <string name="reject_empty">请填写目标主机。</string>
+    <string name="reject_malformed">这不是合法的 主机:端口。</string>
+    <string name="reject_scheme_present">去掉协议头 —— 用下面的 http/https 选择器来选。</string>
+    <string name="reject_public_address">公网地址无法经 tailnet 到达。请用 100.x 地址或 MagicDNS 名。</string>
+    <string name="reject_loopback">这里的 127.0.0.1 指的是手机自己，不是你的服务器。</string>
+    <string name="reject_ipv6_needs_brackets">IPv6 地址要加方括号，端口写在括号外：[fd7a:…]:3080</string>
+    <string name="reject_unparseable_host">无法解析这个主机名。</string>
+    <string name="reject_cleartext_requires_https">明文 http 只对 tailnet 内的目标有效。请改用 https，或用 100.x / *.ts.net 地址访问它。</string>
+
+    <!-- 连接方式 -->
+    <string name="section_provider_title">连接方式</string>
+    <string name="section_provider_subtitle">流量如何到达目标</string>
+    <string name="provider_embedded_tsnet">内嵌 tailnet 节点</string>
+    <string name="provider_system_network">系统网络（已有 VPN）</string>
+    <string name="provider_system_explanation">这种方式不使用你的认证密钥。连上官方 Tailscale App（或本来就在同一网络里），App 就直接用那条连接。</string>
+
+    <!-- 内嵌节点不可用的原因 -->
+    <string name="provider_unavailable_not_compiled">这个构建里没有编入（需用 -PwithTsnet=true 重新构建）</string>
+    <string name="provider_unavailable_bridge_missing">缺少原生桥接（app/libs/tailnet.aar 没有打进来）</string>
+    <string name="provider_unavailable_bridge_failed">原生桥接加载失败：<xliff:g id="cause" example="UnsatisfiedLinkError">%1$s</xliff:g></string>
+    <string name="provider_unavailable_no_abi">没有适配本机 ABI 的原生库</string>
+    <string name="provider_unavailable_generic">这个构建里不可用</string>
+
+    <!-- 认证密钥 -->
+    <string name="section_key_title">Tailscale 认证密钥</string>
+    <string name="section_key_subtitle">加密保存，不写日志</string>
+    <string name="key_stored">本机已存有一枚密钥</string>
+    <string name="key_hardware_backed">加密密钥存放在硬件里（TEE/StrongBox）。</string>
+    <string name="key_software_backed">加密密钥在软件层 —— 仍受 Android Keystore 保护，但没有安全芯片兜底。</string>
+    <string name="key_forget">忘记密钥并重置节点</string>
+    <string name="key_field_label">tskey-auth-…</string>
+    <string name="key_save">保存密钥</string>
+    <string name="key_paste">粘贴</string>
+    <string name="key_reveal">显示认证密钥</string>
+    <string name="key_hide">隐藏认证密钥</string>
+    <string name="key_create_hint">在 tailnet 管理后台的 Settings → Keys 里创建。建议用一次性、带 tag 的密钥，这样吊销它不会影响别的东西。</string>
+
+    <!-- 认证密钥相关错误 -->
+    <string name="key_error_empty">认证密钥是空的。</string>
+    <string name="key_error_whitespace">认证密钥里含有空白字符。</string>
+    <string name="key_error_keystore_unavailable">这台设备上的 Android Keystore 不可用。</string>
+    <string name="key_error_store_corrupt">已保存的凭据损坏了 —— 请重新粘贴。</string>
+    <string name="key_error_no_encryption_key">本机没有加密密钥 —— 请重新粘贴认证密钥。</string>
+    <string name="key_error_invalidated">已保存的凭据未通过完整性校验 —— 请重新输入。</string>
+    <string name="key_error_encrypt_failed">无法加密凭据：<xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_decrypt_failed">无法解密凭据：<xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_delete_failed">无法删除加密密钥：<xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_truncated">已保存的值被截断了 —— 请重新粘贴密钥。</string>
+
+    <!-- 节点 -->
+    <string name="section_node_title">节点</string>
+    <string name="section_node_subtitle">本设备在你 tailnet 里的身份</string>
+    <string name="node_hostname_label">节点主机名</string>
+    <string name="node_control_label">控制服务器（用 Tailscale 就留空）</string>
+    <string name="node_control_placeholder">https://headscale.example.com</string>
+    <string name="node_ephemeral">临时节点（ephemeral）</string>
+    <string name="node_ephemeral_hint">断开时自动注销，不会在 tailnet 里留下失效机器。</string>
+
+    <!-- 连接测试 -->
+    <string name="section_test_title">连接测试</string>
+    <string name="section_test_subtitle">逐项检查，遇到第一个硬失败就停</string>
+    <string name="test_run">测试连接</string>
+    <string name="test_diagnostics_button">诊断</string>
+    <string name="test_blocked_no_host">请填写目标主机</string>
+    <string name="test_blocked_bad_address">先修正目标地址</string>
+    <string name="test_blocked_no_key">先保存认证密钥</string>
+    <plurals name="test_summary_connected_with_warnings">
+        <item quantity="one">已连接，有 %1$d 项警告</item>
+        <item quantity="other">已连接，有 %1$d 项警告</item>
+    </plurals>
+    <string name="test_summary_connected">已连接</string>
+    <string name="test_summary_failed">失败</string>
+
+    <!-- 六个步骤的名称 -->
+    <string name="step_validate_address">校验目标地址</string>
+    <string name="step_resolve_provider">选择连接方式</string>
+    <string name="step_check_credential">检查已存凭据</string>
+    <string name="step_start_node">拉起 tailnet 节点</string>
+    <string name="step_probe_tcp">与目标建立 TCP 连接</string>
+    <string name="step_probe_http">发送 HTTP 请求</string>
+
+    <!-- 各步骤的结果说明（保持简短，用户看的是"下一步做什么"） -->
+    <string name="step_address_ok">目标看起来是 tailnet 地址</string>
+    <string name="step_address_rejected">地址被拒绝</string>
+    <string name="step_no_provider">这个构建里没有任何可用的连接方式</string>
+    <string name="step_using_provider">使用 <xliff:g id="provider" example="内嵌 tailnet 节点">%1$s</xliff:g></string>
+    <string name="step_key_present">已读到认证密钥（指纹 fp:<xliff:g id="fingerprint" example="3f9a1c04">%1$s</xliff:g>）</string>
+    <string name="step_key_absent">没有存认证密钥 —— 先粘贴一枚再测试</string>
+    <string name="step_key_not_used">这种方式不需要认证密钥</string>
+    <string name="step_skip_no_provider">没有可用连接方式</string>
+    <string name="step_skip_no_credential">没有凭据</string>
+    <string name="step_skip_credential_unreadable">凭据无法读取</string>
+    <string name="step_skip_node_not_up">节点没有起来</string>
+    <string name="step_skip_provider_unavailable">连接方式不可用</string>
+    <string name="step_skip_no_tcp">没有 TCP 连接</string>
+    <string name="step_node_up">节点已就绪</string>
+    <string name="step_node_up_at">节点已就绪，地址 <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g></string>
+    <string name="step_node_up_in">节点已就绪，地址 <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g>，属于 <xliff:g id="tailnet" example="phone.tailnet-name.ts.net">%2$s</xliff:g></string>
+    <string name="step_node_needs_login">%1$s —— 打开 <xliff:g id="login_url" example="https://login.tailscale.com/a/1234">%2$s</xliff:g> 为这台设备授权</string>
+    <string name="step_provider_start_failed">连接方式启动失败</string>
+    <string name="step_provider_not_running">连接方式没有进入运行状态（<xliff:g id="state" example="Stopped">%1$s</xliff:g>）</string>
+    <string name="step_tcp_connected">已连接，耗时 <xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms</string>
+    <string name="step_tcp_connected_resolved">已连接，耗时 <xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms（解析到 <xliff:g id="address" example="100.101.102.103">%2$s</xliff:g>）</string>
+    <string name="step_tcp_failed">连接失败</string>
+    <string name="step_http_result">HTTP <xliff:g id="status" example="200">%1$d</xliff:g>，耗时 <xliff:g id="elapsed_ms" example="187">%2$d</xliff:g> ms</string>
+    <string name="step_http_truncated">HTTP <xliff:g id="status" example="200">%1$d</xliff:g>，耗时 <xliff:g id="elapsed_ms" example="187">%2$d</xliff:g> ms（正文已截断）</string>
+    <string name="step_elapsed_ms"><xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms</string>
+
+    <!-- 诊断面板 -->
+    <string name="section_diagnostics_title">诊断</string>
+    <string name="section_diagnostics_subtitle">显示前已脱敏</string>
+    <string name="diag_provider">连接方式：<xliff:g id="provider">%1$s</xliff:g></string>
+    <string name="diag_hardware_keystore">硬件级 Keystore：<xliff:g id="value" example="true">%1$s</xliff:g></string>
+    <string name="diag_node">节点：<xliff:g id="status">%1$s</xliff:g></string>
+    <string name="diag_target">目标：<xliff:g id="host" example="100.101.102.103">%1$s</xliff:g>:<xliff:g id="port" example="3080">%2$d</xliff:g>（<xliff:g id="scheme" example="http">%3$s</xliff:g>）</string>
+
+    <!-- 节点状态徽标 -->
+    <string name="status_up">在线</string>
+    <string name="status_starting">启动中</string>
+    <string name="status_error">错误</string>
+    <string name="status_off">未启用</string>
+    <string name="status_idle">空闲</string>
+    <string name="status_running_at">运行中，地址 <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g></string>
+    <string name="status_running_at_unknown">运行中，地址未知</string>
+    <string name="status_error_message">错误：<xliff:g id="message">%1$s</xliff:g></string>
+    <string name="status_unavailable_message">不可用：<xliff:g id="reason">%1$s</xliff:g></string>
+    <string name="status_stopped">已停止</string>
+
+    <!-- 系统网络方式的网络错误 -->
+    <string name="net_blocked">被拦截：<xliff:g id="message">%1$s</xliff:g></string>
+    <string name="net_timeout">超时（目标没有回应）</string>
+    <string name="net_name_not_resolved">域名没有解析出来</string>
+    <string name="net_connection_refused">连接被拒绝（主机可达，但端口上没有服务在听）</string>
+    <string name="net_no_route">没有到主机的路由（隧道起来了吗？）</string>
+    <string name="net_unreachable">网络不可达：<xliff:g id="message">%1$s</xliff:g></string>
+    <string name="net_failed_with_detail">连接失败：<xliff:g id="detail" example="dial tcp: connection refused">%1$s</xliff:g></string>
+    <string name="net_no_auth_key">没有认证密钥 —— 节点需要交互式登录。</string>
+
+    <!-- DSH 网页界面：打开它的按钮，以及这个界面本身 -->
+    <string name="section_web_title">DSH 网页界面</string>
+    <string name="section_web_subtitle">在 App 里直接打开目标自己的界面</string>
+    <string name="btn_open_web_ui">打开 DSH 界面</string>
+    <string name="web_opening">正在启动本机代理…</string>
+    <string name="web_title">DSH 界面</string>
+    <string name="web_close">关闭</string>
+    <string name="web_retry">重试</string>
+    <string name="web_proxy_failed">无法打开 DSH 界面：<xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
+    <string name="web_proxy_unavailable">打开 DSH 界面需要内嵌 tailnet 节点，这个构建里没有。</string>
+    <string name="web_error_title">页面没有加载出来</string>
+    <string name="web_error_http">页面返回 HTTP <xliff:g id="status" example="502">%1$d</xliff:g> —— 502 表示代理连不上你的服务器。</string>
+    <string name="web_error_network">页面来源没有回应：<xliff:g id="detail" example="net::ERR_CONNECTION_REFUSED">%1$s</xliff:g>。关闭本页再重新打开，就可以重启代理。</string>
+
+    <!-- 页脚 -->
+    <string name="footer_privacy">无遥测、无账号、没有我们的服务器 —— 你的密钥只会发给你自己配置的控制面。</string>
+    <string name="footer_trademark">与 DeepSeek 无关联。这是一个独立、非官方客户端；名称与鲸鱼图标用来说明它连接的是什么，相关商标归各自所有者，不属于本项目。</string>
+
+</resources>

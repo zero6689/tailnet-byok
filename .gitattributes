@@ -1,0 +1,23 @@
+# Line endings, stated once instead of discovered per contributor.
+#
+# Every text file in this repository is LF, and that is what the repository
+# stores — including on Windows, where a `core.autocrlf=true` default would
+# otherwise rewrite the whole working tree on checkout and make every diff look
+# like it touched every line. `.bat` is the exception: `cmd.exe` wants CRLF, so
+# it gets CRLF in the working tree and stays CRLF in the repository.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets: never normalise, never diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+
+# Signing material must never be treated as text, even if one slips past
+# .gitignore — normalising a keystore corrupts it.
+*.keystore binary
+*.jks binary
+*.p12 binary
