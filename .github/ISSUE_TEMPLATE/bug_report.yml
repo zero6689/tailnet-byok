@@ -1,0 +1,123 @@
+name: Bug report
+description: Something does not work as documented
+title: '[bug] '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report.
+
+        **Before you paste anything:** read it first. This project handles credentials, and
+        issue text is public and permanent. Never paste a real auth key — not even a revoked one,
+        and not a screenshot of one.
+
+        The app's **Diagnostics** output is redacted before it is displayed, so it is usually
+        safe to paste. Read it anyway.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I have searched existing issues for this problem
+          required: true
+        - label: This is not a security vulnerability (those go through SECURITY.md, not here)
+          required: true
+        - label: I have not included a real auth key or any other live credential in this report
+          required: true
+
+  - type: dropdown
+    id: build
+    attributes:
+      label: Which build are you running?
+      options:
+        - Release APK from GitHub releases
+        - My own build with -PwithTsnet=true (embedded node included)
+        - My own build without the embedded node (default)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Which connection method is selected?
+      options:
+        - Embedded tailnet node
+        - System network (existing VPN)
+        - The embedded provider is unavailable in my build
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: If the connection test ran, the exact step that failed is the most useful thing here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Entered 100.x.y.z:3080 as the host
+        2. Saved an auth key
+        3. Pressed Test connection
+        4. Step "Open TCP connection to target" failed with …
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics output
+      description: From the Diagnostics button in the app. Redacted before display, but read it before pasting.
+      render: text
+
+  - type: input
+    id: android
+    attributes:
+      label: Android version and device
+      placeholder: 'Android 14, Pixel 7 / Android 13, Samsung A54'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target
+    attributes:
+      label: How is the target addressed?
+      options:
+        - 100.x.y.z literal
+        - MagicDNS *.ts.net FQDN
+        - Bare short name
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: control
+    attributes:
+      label: Control plane
+      options:
+        - Tailscale (hosted)
+        - headscale (self-hosted)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logcat, if you have it
+      description: 'Only debug builds emit verbose logs. Redacted, but read before pasting: `adb logcat -s TailnetBYOK`'
+      render: text

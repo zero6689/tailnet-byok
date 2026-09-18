@@ -1,0 +1,98 @@
+name: Docs site
+
+# Publishes the documentation site to GitHub Pages on every push to main.
+#
+# The site is hand-written static HTML in `site/`. There is no framework and no
+# package install: the "build" is `site/build.mjs`, a dependency-free Node
+# script that validates internal links, checks that every page declares the
+# shared stylesheet, and stamps the build. That means a docs deploy cannot fail
+# because an npm registry was slow, which for a page whose whole job is to
+# explain how to reach your own infrastructure is the right trade.
+#
+# The reasoning behind not using a generator is recorded in site/README.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'README.md'
+      - 'PRIVACY.md'
+      - 'SECURITY.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
+      - 'docs/**'
+      - '.github/workflows/docs-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Pages deploys are not cancellable mid-flight in a useful way, and two
+# concurrent deploys can leave the site on an older revision than main. Queue
+# instead of cancelling.
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build and validate the site
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node site/build.mjs
+
+      - name: Verify the build produced the expected pages
+        run: |
+          set -euo pipefail
+          # `site/*.html` are templates; `site/dist/` is what gets published.
+          # Asserting on the output rather than the source is the difference
+          # between checking that the templates exist and checking that a site
+          # was actually rendered from them.
+          for page in index.html guide.html security.html architecture.html; do
+            if [ ! -s "site/dist/$page" ]; then
+              echo "::error::site/dist/$page is missing or empty after the build"
+              exit 1
+            fi
+          done
+
+          # A template token that survived stamping would be served to the
+          # public. The build already fails on this; this is the belt to that
+          # suspenders, and it runs against the real output directory.
+          if grep -rqE '\{\{[A-Z_]+\}\}' site/dist/; then
+            echo "::error::an unsubstituted {{TOKEN}} reached the built site"
+            grep -rnoE '\{\{[A-Z_]+\}\}' site/dist/ | head -20
+            exit 1
+          fi
+
+          echo "ok: $(find site/dist -name '*.html' | wc -l) pages, $(du -sh site/dist | cut -f1) total"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

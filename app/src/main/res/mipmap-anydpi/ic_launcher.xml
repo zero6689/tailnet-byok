@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive launcher icon.
+
+  This lives in `mipmap-anydpi`, not `mipmap-anydpi-v26`. Adaptive icons arrived
+  in API 26, which is exactly this app's minSdk, so the version qualifier could
+  never select anything else — and Lint says so. Keeping it would also imply the
+  project supports a pre-adaptive path that it does not, and therefore needs
+  bitmap fallbacks it does not have.
+
+  The foreground is a raster (`mipmap-<density>/ic_launcher_foreground.png`), not
+  a vector, because the mark is a piece of brand art rather than a glyph. It is
+  generated at five densities by `scripts/make-icons.ps1` from
+  `branding/mark-taiji.png` — which itself is cropped out of a screenshot by the
+  same script's `-AutoCrop`. See `branding/README.md`.
+
+  There is no `<monochrome>` layer. Material You themed icons need a single-colour
+  silhouette, and this mark is two-tone by design: the subject *is* the contrast
+  between the blue whale and the black orca, so a threshold-based silhouette would
+  keep the white markings as holes and destroy what makes it recognisable.
+  Omitting the layer is better than shipping a wrong one; doing it properly means
+  drawing a real silhouette, which is a job for the artwork, not a filter.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

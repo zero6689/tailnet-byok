@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup rules.
+
+  Everything this app stores is either a secret (the Tailscale auth key) or a
+  pointer to one. None of it is useful on another device, and the Keystore key
+  that decrypts the auth key is hardware-bound to this device and is NOT
+  transferable — restoring the ciphertext elsewhere would only produce noise.
+
+  android:allowBackup="false" already disables both cloud and D2D transfer
+  (see AndroidManifest.xml). These rules are the belt to that suspenders: if a
+  future contributor flips allowBackup, the credential store still must not
+  leave the device.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/" />
+        <exclude domain="file" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/" />
+        <exclude domain="file" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

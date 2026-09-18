@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Permissions, and why each one is here. Anything not justified below is
+      absent on purpose: an app that asks for less is an app that can do less
+      damage when it is compromised.
+
+      INTERNET            — required to reach the control plane and the target
+                            host over the tailnet.
+      ACCESS_NETWORK_STATE— used only to report "no underlying network" as a
+                            distinct, actionable error in the connection test.
+                            It does not read any network payload.
+      POST_NOTIFICATIONS  — Android 13+. Only when the user opts into a
+                            persistent "tailnet connected" notification.
+                            Not a VPN app: there is no foreground VPN service.
+
+      Deliberately NOT requested:
+        * BIND_VPN_SERVICE      — the embedded tsnet node dials a single
+                                  destination inside its own process. It never
+                                  intercepts device-wide traffic, so it must
+                                  not ask for the VPN slot.
+        * QUERY_ALL_PACKAGES    — nothing here needs to enumerate other apps.
+        * READ/WRITE_EXTERNAL   — exports go through the Storage Access
+                                  Framework, which grants a single file.
+        * ACCESS_FINE_LOCATION  — never. Not for "nearby networks", not ever.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".TailnetByokApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TailnetByok"
+        tools:targetApi="34">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          No <service>, no <receiver>, no <provider> is exported. The app owns
+          no IPC surface other than its launcher activity, so there is nothing
+          for another app to bind to or send an intent to.
+        -->
+
+    </application>
+
+</manifest>

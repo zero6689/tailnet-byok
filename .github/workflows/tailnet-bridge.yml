@@ -1,0 +1,172 @@
+name: Tailnet bridge
+
+# Builds the gomobile AAR that gives the app its embedded Tailscale node, then
+# proves the whole path end to end by assembling an APK with it.
+#
+# This is the expensive workflow. Go plus gomobile plus the Android NDK is
+# several minutes of setup and a multi-hundred-megabyte download, so it runs only
+# when something it depends on changed, or on demand.
+#
+# The build itself is delegated to `scripts/build-bridge.mjs` rather than spelled
+# out here. That is deliberate: the recipe has four load-bearing details (gomobile
+# and gobind from one revision, `-androidapi` matching minSdk, `-javapkg` matching
+# the Kotlin import, and running from inside the Go module), and duplicating them
+# in YAML means CI and a developer's machine drift until one of them breaks in a
+# way only the other can reproduce.
+#
+# There is no prebuilt AAR to download: not Maven Central, not JitPack, not the
+# tailscale-android GitHub releases (which ship only APKs). Building it here is
+# not a shortcut avoided, it is the only option. See docs/TSNET.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tailnet/**'
+      - 'app/src/tsnet/**'
+      - 'scripts/build-bridge.mjs'
+      - '.github/workflows/tailnet-bridge.yml'
+      - 'gradle/libs.versions.toml'
+  pull_request:
+    paths:
+      - 'tailnet/**'
+      - 'app/src/tsnet/**'
+      - 'scripts/build-bridge.mjs'
+      - '.github/workflows/tailnet-bridge.yml'
+  workflow_dispatch:
+    inputs:
+      gomobile_version:
+        description: 'golang.org/x/mobile version to install ("latest" or a pinned tag)'
+        required: false
+        default: 'latest'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tailnet-bridge-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # After your first green build, pin this to the revision the log reported, so
+  # the AAR is reproducible. The script prints the resolved revision for exactly
+  # that reason. Overridable per-run via workflow_dispatch.
+  GOMOBILE_VERSION: ${{ inputs.gomobile_version || 'latest' }}
+
+  # gomobile needs a Go toolchain that matches the module. `local` makes a
+  # version mismatch a loud failure instead of a silent download of a different
+  # toolchain mid-build.
+  GOTOOLCHAIN: local
+
+jobs:
+  build-bridge:
+    name: Build AAR and assemble with it
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Toolchain --------------------------------------------------------
+
+      # The Go toolchain version comes from `tailnet/go.mod`, which is itself
+      # resolved from tsnet's requirements. Reading it rather than hardcoding it
+      # means bumping tsnet cannot silently break CI's toolchain selection.
+      - name: Read the Go version the module requires
+        id: gover
+        run: |
+          set -euo pipefail
+          version=$(grep -E '^go [0-9]+\.[0-9]+' tailnet/go.mod | awk '{print $2}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tailnet/go.mod requires Go $version"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.gover.outputs.version }}
+          cache-dependency-path: tailnet/go.sum
+
+      # Also provides JAVA_HOME, which gomobile needs: it compiles the generated
+      # Java bindings with javac, so a JDK is required, not just a JRE.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Install the Android NDK
+        run: |
+          set -euo pipefail
+          # gomobile is sensitive to the NDK version, so it is pinned: a floating
+          # NDK is a build that breaks on a Tuesday for no reason you can see.
+          NDK_VERSION=26.3.11579264
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
+
+      - name: Check the toolchain the script can see
+        run: node scripts/build-bridge.mjs --check
+
+      # --- Bridge -----------------------------------------------------------
+
+      - name: Build the bridge
+        env:
+          # The script probes for a reachable module proxy when GOPROXY is unset.
+          # On a GitHub runner the official proxy works, so leave it to the script
+          # rather than pinning a mirror here — but a fork building behind a
+          # restrictive network can set this and the script will respect it.
+          GOPROXY: ${{ vars.GOPROXY || 'https://proxy.golang.org,direct' }}
+        run: node scripts/build-bridge.mjs
+
+      - name: Assert the AAR is real
+        run: |
+          set -euo pipefail
+          ls -la app/libs/
+          size=$(stat -c%s app/libs/tailnet.aar)
+          echo "AAR is $size bytes"
+          if [ "$size" -lt 1000000 ]; then
+            echo "::error::the AAR is implausibly small — gomobile probably produced an empty binding"
+            exit 1
+          fi
+          # The generated facade is verified by name inside the script; this is
+          # the belt to that suspenders, and it also shows the ABI layout, which
+          # is what you want in a log when an emulator later fails to load it.
+          unzip -l app/libs/tailnet.aar | head -40
+          echo "--- ABIs ---"
+          unzip -l app/libs/tailnet.aar | grep -E 'jni/[^/]+/' | awk '{print $4}' | cut -d/ -f1-2 | sort -u
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailnet-aar-${{ github.sha }}
+          path: app/libs/tailnet.aar
+          retention-days: 30
+
+      # --- Prove it integrates ---------------------------------------------
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble with the embedded node enabled
+        run: ./gradlew --no-daemon assembleDebug -PwithTsnet=true
+
+      - name: Assert the APK contains the native library
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
+          [ -n "$apk" ] || { echo "::error::no APK produced"; exit 1; }
+          echo "built $apk"
+          # If the AAR was attached but its .so was not packaged, the app builds
+          # and then throws UnsatisfiedLinkError at runtime. Catch it here.
+          if ! unzip -l "$apk" | grep -q 'lib/arm64-v8a/libgojni.so'; then
+            echo "::error::the APK does not contain libgojni.so — the native bridge was not packaged"
+            unzip -l "$apk" | grep -E 'lib/' || true
+            exit 1
+          fi
+          echo "ok: libgojni.so is present in the APK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-with-bridge
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14

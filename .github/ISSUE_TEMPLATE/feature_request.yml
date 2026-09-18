@@ -1,0 +1,73 @@
+name: Feature request
+description: Suggest a change in behaviour or a new capability
+title: '[feature] '
+labels: ['enhancement', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you write: this project has an unusually narrow scope on purpose. It
+        configures one tailnet identity and reaches one host. Features that widen that — a
+        general HTTP client, a proxy for other apps, device-wide routing, telemetry — are
+        usually declined, and `docs/ARCHITECTURE.md` explains why.
+
+        That does not mean "no". It means explaining the problem you have, rather than the
+        feature you have in mind, gives the idea a much better chance.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I have searched existing issues and discussions for this
+          required: true
+        - label: I have read the scope notes in docs/ARCHITECTURE.md
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the solution. "I have three services on my tailnet and re-entering the key each time is tedious" is a problem statement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
+      description: Workarounds you considered, and why they are not good enough.
+
+  - type: dropdown
+    id: security
+    attributes:
+      label: Does this change the security model?
+      description: Adding an outbound destination, storing more, or requesting a permission all do.
+      options:
+        - 'No — it is UI or internal behaviour only'
+        - 'Yes — it needs a new permission'
+        - 'Yes — it adds a network destination'
+        - 'Yes — it changes what is stored'
+        - 'Not sure'
+    validations:
+      required: true
+
+  - type: textarea
+    id: security-detail
+    attributes:
+      label: If yes, what changes?
+      description: Changes to the security model require a note in docs/SECURITY-MODEL.md in the same pull request, so it helps to think about it now.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to open a pull request for this

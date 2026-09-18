@@ -1,0 +1,181 @@
+name: Release
+
+# Builds a signed release APK (with the embedded node) on a version tag and
+# attaches it to a GitHub release.
+#
+# Signing material comes from repository secrets and is never written to a file
+# in the workspace that outlives the step. The keystore is materialised from a
+# base64 secret into a path outside the checkout, used, and removed.
+#
+# Required secrets:
+#   KEYSTORE_BASE64     base64 of the .jks file
+#   KEYSTORE_PASSWORD   store password
+#   KEY_ALIAS           key alias
+#   KEY_PASSWORD        key password
+#
+# See .env.example for how to produce the base64 value without leaking it.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (must already exist)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Signed release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check that signing secrets are configured
+        run: |
+          set -euo pipefail
+          # Fail before spending ten minutes on a native build that cannot be
+          # signed. An unsigned release APK is useless to users, so this is a
+          # hard error rather than a warning.
+          missing=""
+          [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]   || missing="$missing KEYSTORE_BASE64"
+          [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] || missing="$missing KEYSTORE_PASSWORD"
+          [ -n "${{ secrets.KEY_ALIAS }}" ]         || missing="$missing KEY_ALIAS"
+          [ -n "${{ secrets.KEY_PASSWORD }}" ]      || missing="$missing KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::missing signing secrets:$missing"
+            exit 1
+          fi
+          echo "ok: signing secrets present"
+
+      - name: Read the Go version the module requires
+        id: gover
+        run: |
+          set -euo pipefail
+          echo "version=$(grep -E '^go [0-9]+\.[0-9]+' tailnet/go.mod | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.gover.outputs.version }}
+          cache-dependency-path: tailnet/go.sum
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Install the Android NDK
+        run: |
+          set -euo pipefail
+          NDK_VERSION=26.3.11579264
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" >/dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
+
+      - name: Install gomobile and gobind
+        run: |
+          set -euo pipefail
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build the native bridge
+        run: |
+          set -euo pipefail
+          cd tailnet
+          go mod tidy
+          go mod download
+          cd ..
+          gomobile init
+          mkdir -p app/libs
+          CGO_ENABLED=0 gomobile bind \
+            -target=android \
+            -androidapi 26 \
+            -javapkg=io.github.zero6689.tailnetbyok \
+            -o app/libs/tailnet.aar \
+            ./tailnet
+
+      - name: Materialise the signing keystore
+        run: |
+          set -euo pipefail
+          # Written outside the checkout on purpose: a signing key inside the
+          # workspace is a signing key that can be picked up by a later
+          # upload-artifact step.
+          KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "KEYSTORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Build the release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease -PwithTsnet=true
+
+      - name: Verify the APK is signed
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/release -name '*.apk' | head -n1)
+          [ -n "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+          echo "signed: $apk"
+
+      - name: Record what went into the build
+        run: |
+          set -euo pipefail
+          {
+            echo "tag: ${{ inputs.tag || github.ref_name }}"
+            echo "commit: ${{ github.sha }}"
+            echo "go: $(go version)"
+            echo "gradle: $(./gradlew --version | grep -E '^Gradle' || true)"
+          } > "$RUNNER_TEMP/build-info.txt"
+          cat "$RUNNER_TEMP/build-info.txt"
+
+      - name: Remove the signing keystore
+        if: always()
+        run: rm -f "${KEYSTORE_FILE:-/nonexistent}"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          files: app/build/outputs/apk/release/*.apk
+          body: |
+            ## Install
+
+            Download the APK below and install it. Android will warn about
+            installing from outside the Play Store; that warning is correct and
+            expected, since this build is not distributed through it.
+
+            ## Verify what you downloaded
+
+            The APK is signed. To check the signature matches the certificate
+            used for previous releases:
+
+            ```bash
+            apksigner verify --print-certs tailnet-byok-*.apk
+            ```
+
+            ## What is in this build
+
+            This build includes the embedded Tailscale node. Your auth key is
+            entered in the app and stored encrypted by the Android Keystore; it
+            is not present in this APK in any form.
+
+            See [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) before trusting
+            it with a key that can join a machine to your tailnet.

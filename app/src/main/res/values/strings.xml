@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every user-visible string in the app.
+
+  Why this file exists: the screen copy used to live inline in the Compose
+  sources, next to the condition that decided whether it was shown. That was a
+  deliberate trade for a single-language app, but it made translation impossible
+  without editing Kotlin — so the strings moved here, and `values-zh/` now holds
+  the Chinese translation of this same key set.
+
+  Conventions
+  ===========
+  * Keys are prefixed by where they are used: `screen_`, `section_`, `target_`,
+    `reject_`, `warn_`, `key_`, `node_`, `test_`, `step_`, `diag_`, `net_`,
+    `status_`, `web_`, plus `provider_` for names that are owned by the domain
+    layer.
+  * Resource *ids* travel through `@StringRes Int`, never display text: the
+    domain layer returns an id, the UI resolves it. That is what keeps the
+    domain free of Android context while still being translatable.
+  * Placeholders use positional `%n$s` form, so a translation may reorder them.
+    Text inside <xliff:g> is never translated — it is a value, not a word.
+  * Keep the key set identical to `values-zh/strings.xml`. A key present in one
+    file and missing from the other silently falls back to English.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- The launcher label, and the only string the manifest needs. -->
+    <string name="app_name">DeepSeek Harness</string>
+
+    <!-- App bar. Same brand as `app_name`, so the two can never drift apart. -->
+    <string name="screen_title">DeepSeek Harness</string>
+
+    <!-- First-run card: the security model, stated once. -->
+    <string name="intro_title">What this app does with your key</string>
+    <string name="intro_body">Your auth key is stored encrypted by the Android Keystore and is never written to disk in plain text, never logged, and never leaves this device except to your own control plane. This app has no server, no analytics and no network calls of its own.</string>
+    <string name="intro_acknowledge">Got it</string>
+
+    <string name="banner_dismiss">Dismiss</string>
+    <string name="banner_provider_embedded">Using the embedded node — your auth key is used.</string>
+    <string name="banner_provider_system">Using the system network — your auth key is NOT used.</string>
+    <string name="banner_key_saved">Auth key saved, encrypted with the Android Keystore</string>
+    <string name="banner_key_forgotten">Auth key and node identity deleted</string>
+
+    <!-- Target section -->
+    <string name="section_target_title">Target</string>
+    <string name="section_target_subtitle">Where the service lives inside your tailnet</string>
+    <string name="target_host_label">Host (MagicDNS name or 100.x address)</string>
+    <string name="target_host_placeholder">100.101.102.103 or host.tailnet.ts.net</string>
+    <string name="target_port_label">Port</string>
+    <string name="target_path_label">Path</string>
+    <string name="target_path_placeholder">/</string>
+
+    <!-- Inline warnings on the host field -->
+    <string name="warn_bare_short_name">A bare name relies on the tailnet search domain. If the test fails, use the full *.ts.net name or the 100.x address.</string>
+    <string name="warn_non_magic_dns">Not a *.ts.net name — make sure this resolves inside your tailnet.</string>
+    <string name="warn_defaulted_port">No port given, so <xliff:g id="port" example="3080">%1$d</xliff:g> is assumed.</string>
+
+    <!-- Inline rejections on the host field -->
+    <string name="reject_empty">Enter the target host.</string>
+    <string name="reject_malformed">That is not a valid host:port.</string>
+    <string name="reject_scheme_present">Remove the scheme — pick http/https below instead.</string>
+    <string name="reject_public_address">A public address is not reachable through a tailnet. Use the 100.x address or the MagicDNS name.</string>
+    <string name="reject_loopback">127.0.0.1 here is the phone itself, not your server.</string>
+    <string name="reject_ipv6_needs_brackets">IPv6 addresses need brackets, including the port: [fd7a:…]:3080</string>
+    <string name="reject_unparseable_host">The host could not be understood.</string>
+    <string name="reject_cleartext_requires_https">Plain http only works for tailnet destinations. Use https, or reach it as a 100.x / *.ts.net address.</string>
+
+    <!-- Connection-method section -->
+    <string name="section_provider_title">Connection method</string>
+    <string name="section_provider_subtitle">How traffic reaches the target</string>
+    <string name="provider_embedded_tsnet">Embedded tailnet node</string>
+    <string name="provider_system_network">System network (existing VPN)</string>
+    <string name="provider_system_explanation">This method does not use your auth key. Connect the official Tailscale app (or be on the same network) and the app will use that connection.</string>
+
+    <!-- Why the embedded node is unavailable in this build -->
+    <string name="provider_unavailable_not_compiled">not compiled into this build (rebuild with -PwithTsnet=true)</string>
+    <string name="provider_unavailable_bridge_missing">native bridge missing (app/libs/tailnet.aar was not bundled)</string>
+    <string name="provider_unavailable_bridge_failed">native bridge failed to load: <xliff:g id="cause" example="UnsatisfiedLinkError">%1$s</xliff:g></string>
+    <string name="provider_unavailable_no_abi">no native library for this device ABI</string>
+    <string name="provider_unavailable_generic">unavailable in this build</string>
+
+    <!-- Credential section -->
+    <string name="section_key_title">Tailscale auth key</string>
+    <string name="section_key_subtitle">Stored encrypted, never logged</string>
+    <string name="key_stored">A key is stored on this device</string>
+    <string name="key_hardware_backed">Encryption key is held in hardware (TEE/StrongBox).</string>
+    <string name="key_software_backed">Encryption key is software-backed on this device — still protected by the Android Keystore, but not by a secure element.</string>
+    <string name="key_forget">Forget key and reset node</string>
+    <string name="key_field_label">tskey-auth-…</string>
+    <string name="key_save">Save key</string>
+    <string name="key_paste">Paste</string>
+    <string name="key_reveal">Reveal auth key</string>
+    <string name="key_hide">Hide auth key</string>
+    <string name="key_create_hint">Create one in your tailnet\'s admin console under Settings → Keys. Prefer a single-use, tagged key so it can be revoked without affecting anything else.</string>
+
+    <!-- Credential errors -->
+    <string name="key_error_empty">The auth key is empty.</string>
+    <string name="key_error_whitespace">The auth key contains whitespace.</string>
+    <string name="key_error_keystore_unavailable">The Android Keystore is unavailable on this device.</string>
+    <string name="key_error_store_corrupt">The stored credential is corrupt — paste it again.</string>
+    <string name="key_error_no_encryption_key">No encryption key exists on this device — paste the key again.</string>
+    <string name="key_error_invalidated">The stored credential failed its integrity check — re-enter it.</string>
+    <string name="key_error_encrypt_failed">Could not encrypt the credential: <xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_decrypt_failed">Could not decrypt the credential: <xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_delete_failed">Could not delete the encryption key: <xliff:g id="cause">%1$s</xliff:g></string>
+    <string name="key_error_truncated">The stored value is truncated — paste the key again.</string>
+
+    <!-- Node section -->
+    <string name="section_node_title">Node</string>
+    <string name="section_node_subtitle">This device\'s identity in your tailnet</string>
+    <string name="node_hostname_label">Node hostname</string>
+    <string name="node_control_label">Control server (leave empty for Tailscale)</string>
+    <string name="node_control_placeholder">https://headscale.example.com</string>
+    <string name="node_ephemeral">Ephemeral node</string>
+    <string name="node_ephemeral_hint">The node deregisters when it disconnects, leaving no stale machine behind.</string>
+
+    <!-- Connection test -->
+    <string name="section_test_title">Connection test</string>
+    <string name="section_test_subtitle">Runs every check and stops at the first hard failure</string>
+    <string name="test_run">Test connection</string>
+    <string name="test_diagnostics_button">Diagnostics</string>
+    <string name="test_blocked_no_host">Enter the target host</string>
+    <string name="test_blocked_bad_address">Fix the target address first</string>
+    <string name="test_blocked_no_key">Save an auth key first</string>
+    <plurals name="test_summary_connected_with_warnings">
+        <item quantity="one">Connected, with %1$d warning</item>
+        <item quantity="other">Connected, with %1$d warnings</item>
+    </plurals>
+    <string name="test_summary_connected">Connected</string>
+    <string name="test_summary_failed">Failed</string>
+
+    <!-- The six steps, by title -->
+    <string name="step_validate_address">Validate target address</string>
+    <string name="step_resolve_provider">Select connection method</string>
+    <string name="step_check_credential">Check stored credential</string>
+    <string name="step_start_node">Bring up tailnet node</string>
+    <string name="step_probe_tcp">Open TCP connection to target</string>
+    <string name="step_probe_http">Send HTTP request</string>
+
+    <!-- Step outcomes, in the tester's terse register -->
+    <string name="step_address_ok">target looks like a tailnet address</string>
+    <string name="step_address_rejected">address was rejected</string>
+    <string name="step_no_provider">no connection method is available in this build</string>
+    <string name="step_using_provider">using <xliff:g id="provider" example="Embedded tailnet node">%1$s</xliff:g></string>
+    <string name="step_key_present">auth key present (fp:<xliff:g id="fingerprint" example="3f9a1c04">%1$s</xliff:g>)</string>
+    <string name="step_key_absent">no auth key stored — paste one before testing</string>
+    <string name="step_key_not_used">this method does not use an auth key</string>
+    <string name="step_skip_no_provider">no provider</string>
+    <string name="step_skip_no_credential">no credential</string>
+    <string name="step_skip_credential_unreadable">credential unreadable</string>
+    <string name="step_skip_node_not_up">node is not up</string>
+    <string name="step_skip_provider_unavailable">provider unavailable</string>
+    <string name="step_skip_no_tcp">no TCP connection</string>
+    <string name="step_node_up">node up</string>
+    <string name="step_node_up_at">node up at <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g></string>
+    <string name="step_node_up_in">node up at <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g> in <xliff:g id="tailnet" example="phone.tailnet-name.ts.net">%2$s</xliff:g></string>
+    <string name="step_node_needs_login">%1$s — open <xliff:g id="login_url" example="https://login.tailscale.com/a/1234">%2$s</xliff:g> to authenticate this device</string>
+    <string name="step_provider_start_failed">provider failed to start</string>
+    <string name="step_provider_not_running">provider did not reach a running state (<xliff:g id="state" example="Stopped">%1$s</xliff:g>)</string>
+    <string name="step_tcp_connected">connected in <xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms</string>
+    <string name="step_tcp_connected_resolved">connected in <xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms (resolved to <xliff:g id="address" example="100.101.102.103">%2$s</xliff:g>)</string>
+    <string name="step_tcp_failed">connection failed</string>
+    <string name="step_http_result">HTTP <xliff:g id="status" example="200">%1$d</xliff:g> in <xliff:g id="elapsed_ms" example="187">%2$d</xliff:g> ms</string>
+    <string name="step_http_truncated">HTTP <xliff:g id="status" example="200">%1$d</xliff:g> in <xliff:g id="elapsed_ms" example="187">%2$d</xliff:g> ms (body truncated)</string>
+    <string name="step_elapsed_ms"><xliff:g id="elapsed_ms" example="142">%1$d</xliff:g> ms</string>
+
+    <!-- Diagnostics panel -->
+    <string name="section_diagnostics_title">Diagnostics</string>
+    <string name="section_diagnostics_subtitle">Redacted before display</string>
+    <string name="diag_provider">provider: <xliff:g id="provider">%1$s</xliff:g></string>
+    <string name="diag_hardware_keystore">hardware-backed keystore: <xliff:g id="value" example="true">%1$s</xliff:g></string>
+    <string name="diag_node">node: <xliff:g id="status">%1$s</xliff:g></string>
+    <string name="diag_target">target: <xliff:g id="host" example="100.101.102.103">%1$s</xliff:g>:<xliff:g id="port" example="3080">%2$d</xliff:g> (<xliff:g id="scheme" example="http">%3$s</xliff:g>)</string>
+
+    <!-- Node status pill -->
+    <string name="status_up">up</string>
+    <string name="status_starting">starting</string>
+    <string name="status_error">error</string>
+    <string name="status_off">off</string>
+    <string name="status_idle">idle</string>
+    <string name="status_running_at">running at <xliff:g id="ipv4" example="100.101.102.104">%1$s</xliff:g></string>
+    <string name="status_running_at_unknown">running at an unknown address</string>
+    <string name="status_error_message">error: <xliff:g id="message">%1$s</xliff:g></string>
+    <string name="status_unavailable_message">unavailable: <xliff:g id="reason">%1$s</xliff:g></string>
+    <string name="status_stopped">stopped</string>
+
+    <!-- Network failures reported by the system-network provider -->
+    <string name="net_blocked">blocked: <xliff:g id="message">%1$s</xliff:g></string>
+    <string name="net_timeout">timed out (no reply from the target)</string>
+    <string name="net_name_not_resolved">name did not resolve</string>
+    <string name="net_connection_refused">connection refused (host reachable, nothing listening)</string>
+    <string name="net_no_route">no route to host (is the tunnel up?)</string>
+    <string name="net_unreachable">network unreachable: <xliff:g id="message">%1$s</xliff:g></string>
+    <string name="net_failed_with_detail">Connection failed: <xliff:g id="detail" example="dial tcp: connection refused">%1$s</xliff:g></string>
+    <string name="net_no_auth_key">No auth key supplied — the node needs interactive login.</string>
+
+    <!-- The DSH web UI: the button that opens it, and the screen itself -->
+    <string name="section_web_title">DSH web UI</string>
+    <string name="section_web_subtitle">The target\'s own interface, rendered in the app</string>
+    <string name="btn_open_web_ui">Open the DSH UI</string>
+    <string name="web_opening">Starting the local proxy…</string>
+    <string name="web_title">DSH UI</string>
+    <string name="web_close">Close</string>
+    <string name="web_retry">Retry</string>
+    <string name="web_proxy_failed">Could not open the DSH UI: <xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
+    <string name="web_proxy_unavailable">The DSH UI needs the embedded tailnet node, which this build cannot provide.</string>
+    <string name="web_error_title">The page did not load</string>
+    <string name="web_error_http">The page answered HTTP <xliff:g id="status" example="502">%1$d</xliff:g> — 502 means the proxy could not reach your server.</string>
+    <string name="web_error_network">No answer from the page\'s origin: <xliff:g id="detail" example="net::ERR_CONNECTION_REFUSED">%1$s</xliff:g>. Close this screen and open it again to restart the proxy.</string>
+
+    <!-- Footer -->
+    <string name="footer_privacy">No telemetry. No account. No server of ours — your key is only ever sent to the control plane you configure.</string>
+    <string name="footer_trademark">Not affiliated with DeepSeek. This is an independent, unofficial client; the name and the whale artwork describe what it connects to and are trademarks of their respective owner, not this project\'s.</string>
+
+</resources>

@@ -1,0 +1,176 @@
+name: CI
+
+# Runs on every push and pull request. Three jobs, deliberately separate, so a
+# failure tells you which kind of problem you have:
+#
+#   guardrails  — policy violations (a bare Log call, a committed credential)
+#   test        — unit tests and lint, no native toolchain needed
+#   assemble    — does a debug APK actually build
+#
+# The build that includes the embedded node is NOT here. It needs Go, gomobile
+# and the NDK, which is minutes of setup, and it lives in tailnet-bridge.yml
+# where it is triggered only when the Go bridge or this workflow changes.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege. Nothing in this workflow writes to the repository, so the
+# token does not need to be able to.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: >-
+    -Dorg.gradle.jvmargs=-Xmx3g
+    -Dorg.gradle.parallel=true
+    -Dorg.gradle.caching=true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Policy guardrails.
+  #
+  # These are the checks that keep the security claims in README.md and
+  # SECURITY.md true over time. A claim in a document decays; a check in CI does
+  # not.
+  # ---------------------------------------------------------------------------
+  guardrails:
+    name: Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No bare android.util.Log outside SafeLog
+        run: |
+          set -euo pipefail
+          # SafeLog.kt is the one file allowed to touch android.util.Log: it is
+          # the redacting wrapper. Anywhere else, a Log call is a credential
+          # waiting to leak.
+          hits=$(grep -rn 'android\.util\.Log' --include='*.kt' app/src \
+                 | grep -v 'core/log/SafeLog.kt' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::android.util.Log used outside SafeLog.kt — route it through SafeLog so it is redacted."
+            echo "$hits"
+            exit 1
+          fi
+          echo "ok: all logging goes through SafeLog"
+
+      - name: No credential-shaped string in tracked files
+        run: |
+          set -euo pipefail
+          # Match real credential shapes, and allow obvious placeholders so that
+          # tests and docs can still show what a key looks like.
+          pattern='(tskey-(auth|api)-[A-Za-z0-9]{8,}|hskey-auth-[A-Za-z0-9]{8,}|tsclientsecret-[A-Za-z0-9]{8,})'
+          hits=$(git grep -nIE "$pattern" -- . \
+                 | grep -viE 'EXAMPLE|PLACEHOLDER|dummy|fake|redact|test|\.md:' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::a credential-shaped string is committed. Rotate it immediately, then remove it and rewrite history."
+            echo "$hits"
+            exit 1
+          fi
+          echo "ok: no credential-shaped strings in tracked files"
+
+      - name: No private network addresses in tracked files
+        run: |
+          set -euo pipefail
+          # A tailnet address is not a secret, but a committed one is a leak of
+          # the maintainer's own topology into a public repo. Docs may show
+          # documentation-range examples (100.64.0.1, 100.100.100.100).
+          hits=$(git grep -nIE '\b100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}\b' \
+                 -- . ':!*.md' \
+                 | grep -vE '100\.(64\.0\.(0|1)|100\.100\.100)' || true)
+          if [ -n "$hits" ]; then
+            echo "::warning::a specific tailnet address appears in a non-documentation file — prefer a placeholder."
+            echo "$hits"
+          fi
+          echo "ok: no unexpected tailnet literals in code"
+
+  # ---------------------------------------------------------------------------
+  # Unit tests and lint. No Go, no NDK: the default build is pure Kotlin.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Unit tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Lint
+        run: ./gradlew --no-daemon lintDebug
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Does it actually build? Tests passing with a broken packaging step is a real
+  # and common state, and it is the one a user hits first.
+  # ---------------------------------------------------------------------------
+  assemble:
+    name: Assemble debug APK (no native bridge)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Assert the APK exists and is not empty
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
+          if [ -z "$apk" ]; then
+            echo "::error::no APK produced"
+            exit 1
+          fi
+          size=$(stat -c%s "$apk")
+          echo "built $apk ($size bytes)"
+          if [ "$size" -lt 100000 ]; then
+            echo "::error::APK is implausibly small ($size bytes) — packaging probably failed silently"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-no-bridge
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7

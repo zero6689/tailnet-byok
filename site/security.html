@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security — tailnet-byok</title>
+<meta name="description" content="The threat model for tailnet-byok, including what Android Keystore encryption does and does not protect against.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html">Overview</a>
+      <a href="guide.html">Build &amp; use</a>
+      <a href="security.html" aria-current="page">Security</a>
+      <a href="architecture.html">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Security</h1>
+
+  <p class="lead">
+    A key that can join a machine to your tailnet deserves a straight answer about what the
+    app protects and what it does not. This page is that answer, including the parts that
+    are limitations rather than features.
+  </p>
+
+  <div class="callout danger">
+    <span class="label">Reporting a vulnerability</span>
+    <p>
+      Please do not open a public issue. Use GitHub's private vulnerability reporting on
+      <a href="{{REPO_URL}}/security/advisories/new">{{REPO_NAME}} → Security → Report a vulnerability</a>,
+      or open a public issue containing only "security report — please contact me" and no
+      technical detail.
+    </p>
+  </div>
+
+  <h2 id="what-keystore-buys">What the encryption actually buys<a class="anchor" href="#what-keystore-buys">#</a></h2>
+
+  <p>
+    The auth key is encrypted with a randomly generated AES-256-GCM key. That key is created
+    inside the Android Keystore and is non-exportable: the app holds a handle, not the bytes.
+    On a device with a Trusted Execution Environment or StrongBox, the key material never
+    enters the app's address space at all.
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Threat</th><th>Protected?</th><th>By what</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Someone copies the app's data directory — rooted file copy, forensic image,
+            stray backup</td>
+        <td><span class="tag ok">Yes</span></td>
+        <td>Only ciphertext is on disk, and the decrypting key is hardware-bound</td>
+      </tr>
+      <tr>
+        <td>The ciphertext reaches a cloud backup</td>
+        <td><span class="tag ok">Yes</span></td>
+        <td><code>allowBackup="false"</code> plus backup rules that exclude every domain</td>
+      </tr>
+      <tr>
+        <td>An attacker reads it from logcat</td>
+        <td><span class="tag ok">Yes</span></td>
+        <td>One logging entry point, scrubbed; release builds strip <code>v</code>/<code>d</code>/<code>i</code>;
+            CI fails the build on a bare <code>android.util.Log</code></td>
+      </tr>
+      <tr>
+        <td>The ciphertext is decrypted while the phone is locked</td>
+        <td><span class="tag ok">Yes</span></td>
+        <td><code>setUnlockedDeviceRequired(true)</code> on API 28+</td>
+      </tr>
+      <tr>
+        <td>The app is used to reach arbitrary internet hosts</td>
+        <td><span class="tag ok">Yes</span></td>
+        <td>Address policy refuses anything outside the tailnet ranges, <em>before</em> the
+            dial</td>
+      </tr>
+      <tr>
+        <td>An attacker runs code as this app, on your unlocked device</td>
+        <td><span class="tag bad">No</span></td>
+        <td>Nothing can. The app must be able to read the key to use it.</td>
+      </tr>
+      <tr>
+        <td>Someone takes a memory dump of the live process</td>
+        <td><span class="tag bad">No</span></td>
+        <td>See the heap caveat below</td>
+      </tr>
+      <tr>
+        <td>Your control plane is malicious</td>
+        <td><span class="tag bad">No</span></td>
+        <td>Inherent to the protocol, not to this app</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3 id="heap-caveat">The heap caveat, stated plainly<a class="anchor" href="#heap-caveat">#</a></h3>
+
+  <p>
+    Kotlin strings are immutable and cannot be zeroed, and the Go bridge takes a string. So
+    the plaintext auth key exists in the process heap for the window between decryption and
+    the node coming up. The mitigations are real but partial:
+  </p>
+
+  <ul>
+    <li>it is never persisted in plaintext, so it does not survive a process restart;</li>
+    <li>it is never logged, so it does not reach logcat or a bug report;</li>
+    <li>it is dropped from the UI state as soon as it is saved, so it is not held in
+        Compose state;</li>
+    <li><code>TailnetCredentials.toString()</code> is overridden to print
+        <code>present</code>/<code>absent</code>, so an accidental <code>println</code> or
+        a debugger pretty-print cannot leak it.</li>
+  </ul>
+
+  <p>
+    What none of that fixes: an attacker who can dump the heap of a running, unlocked
+    process can recover the key. This is a limitation of every Android app that holds a
+    credential, including the official clients.
+  </p>
+
+  <h3 id="software-keystore">Software-backed Keystore<a class="anchor" href="#software-keystore">#</a></h3>
+
+  <p>
+    Many devices — and every emulator — have no TEE. There, the Keystore key is
+    software-protected rather than hardware-isolated. The app <strong>tells you which
+    situation you are in</strong> on the settings screen rather than implying the stronger
+    guarantee, because a security indicator that is always green is not an indicator.
+  </p>
+
+  <h2 id="the-address-policy">The address policy is a security control<a class="anchor" href="#the-address-policy">#</a></h2>
+
+  <p>
+    <code>TailnetAddressPolicy</code> is easy to mistake for input validation. It is not. It
+    is the boundary that stops a typo, a pasted public hostname, or a malicious shared
+    configuration from turning this app into a general-purpose request forwarder that reaches
+    arbitrary internet hosts through the user's node.
+  </p>
+
+  <p>Allowed:</p>
+
+  <ul>
+    <li><code>100.64.0.0/10</code> — Tailscale's IPv4 range</li>
+    <li><code>fd7a:115c:a1e0::/48</code> — Tailscale's IPv6 ULA prefix</li>
+    <li>named hosts, with a warning when the name is not a <code>*.ts.net</code> FQDN</li>
+  </ul>
+
+  <p>Refused, with a reason the user can act on:</p>
+
+  <ul>
+    <li>any IPv4 or IPv6 literal outside those ranges, including <code>127.0.0.1</code>;</li>
+    <li>a pasted URL (the scheme belongs in a separate field);</li>
+    <li>malformed input, including out-of-range ports.</li>
+  </ul>
+
+  <p class="small muted">
+    The check runs in <code>ConnectionTester</code> before the provider is asked to dial, and
+    <code>TargetAddress</code> — the type the providers accept — can only be constructed with
+    a validated host and port. It is not possible to reach a dial without passing through the
+    policy, which is the property that makes it a control rather than a hint.
+  </p>
+
+  <h2 id="cleartext-http">Why cleartext HTTP is permitted<a class="anchor" href="#cleartext-http">#</a></h2>
+
+  <p>
+    Traffic to a <code>100.x</code> address is encrypted by WireGuard from the app to the
+    destination node. There is no point on the path — including the Wi-Fi network the phone
+    is attached to — where a passive observer sees the plaintext.
+  </p>
+
+  <p>
+    Requiring HTTPS on top of that would push users toward self-signed certificates and
+    "install this CA" flows, which is a strictly worse security story. Most self-hosted
+    services on a tailnet speak plain HTTP behind the tunnel.
+  </p>
+
+  <p>
+    So the network security config permits cleartext <strong>only for tailnet
+    destinations</strong> and refuses it by default everywhere else. Point the app at a
+    public hostname and it must use HTTPS.
+  </p>
+
+  <h2 id="permissions">Permissions, exhaustively<a class="anchor" href="#permissions">#</a></h2>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Permission</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>INTERNET</code></td>
+        <td>To reach the control plane and the target.</td>
+      </tr>
+      <tr>
+        <td><code>ACCESS_NETWORK_STATE</code></td>
+        <td>So "no underlying network" can be reported as a distinct, actionable error. It
+            reads no payload.</td>
+      </tr>
+      <tr>
+        <td><code>POST_NOTIFICATIONS</code></td>
+        <td>Android 13+, only if the user opts into a persistent "tailnet connected"
+            notification.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Deliberately absent, and why each one:</p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Not requested</th><th>Reason</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>BIND_VPN_SERVICE</code></td>
+        <td>
+          The embedded node dials a single destination inside its own process. It never
+          intercepts device-wide traffic, so it must not take the VPN slot — and taking it
+          would break any other VPN the user runs.
+        </td>
+      </tr>
+      <tr>
+        <td><code>QUERY_ALL_PACKAGES</code></td>
+        <td>Nothing here needs to enumerate other apps.</td>
+      </tr>
+      <tr>
+        <td><code>FOREGROUND_SERVICE</code></td>
+        <td>There is no long-lived background component. Work happens while you are looking
+            at the screen.</td>
+      </tr>
+      <tr>
+        <td>Location, storage, camera, contacts, phone</td>
+        <td>None of it is used. Exports, if added, go through the Storage Access Framework,
+            which grants exactly one file.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2 id="ipc-surface">There is no IPC surface<a class="anchor" href="#ipc-surface">#</a></h2>
+
+  <p>
+    The app declares exactly one exported component: its launcher activity. No exported
+    service, receiver or content provider exists, so there is nothing for another app to bind
+    to, query, or send an intent to. That is a deliberate structural choice — the cheapest
+    way to secure an attack surface is to not have one.
+  </p>
+
+  <h3 id="flag-secure">On not setting FLAG_SECURE<a class="anchor" href="#flag-secure">#</a></h3>
+
+  <p>
+    Screenshots are permitted. The reasoning: the connection-test output is the main thing a
+    user needs to share when asking for help, and the only secret on screen is behind a
+    password-masked field that requires an explicit tap to reveal. If you fork this and
+    disagree, it is a one-line change in <code>app/src/main/res/values/themes.xml</code>.
+  </p>
+
+  <h2 id="revocation">Revocation is your job<a class="anchor" href="#revocation">#</a></h2>
+
+  <div class="callout warn">
+    <span class="label">Important</span>
+    <p>
+      Deleting the key from the device does <strong>not</strong> revoke it at the control
+      plane. If the key was copied anywhere before you deleted it, it still works.
+      Revocation happens in your tailnet's admin console, and only there.
+    </p>
+  </div>
+
+  <p>
+    <strong>Forget key and reset node</strong> does two things: it deletes the stored
+    ciphertext <em>and</em> destroys the Keystore key, which makes any pre-existing copy of
+    the ciphertext permanently unreadable. It also clears the node's state directory, because
+    node state carries the identity the old key produced — leaving it behind is exactly what
+    makes a freshly pasted key appear to be ignored.
+  </p>
+
+  <h2 id="hardening">Hardening checklist<a class="anchor" href="#hardening">#</a></h2>
+
+  <p>Before you put a key on a device:</p>
+
+  <ul>
+    <li>Use a <strong>tagged, single-use, short-expiry</strong> pre-auth key, and write an ACL
+        that grants the resulting node access to only the service you intend. The app cannot
+        enforce this for you; your ACLs can.</li>
+    <li>Prefer a <code>100.x</code> address when testing, so a failure means the network
+        rather than the resolver.</li>
+    <li>If the device is not one you fully trust, do not store a key on it.</li>
+    <li>Delete the key in your admin console when you stop using the device.</li>
+  </ul>
+
+  <h2 id="contributor-rules">Rules for contributors<a class="anchor" href="#contributor-rules">#</a></h2>
+
+  <ul>
+    <li>No test, fixture, log line, screenshot, issue or commit message may contain a real
+        auth key. Use obvious dummies such as <code>tskey-auth-EXAMPLE…</code>. CI enforces
+        this on tracked files.</li>
+    <li>Security-relevant changes must add or update a note on this page in the same pull
+        request.</li>
+    <li>Never introduce a new outbound destination. If a change requires one, it needs a
+        documented justification in <code>PRIVACY.md</code> and explicit reviewer sign-off.</li>
+    <li>New logging goes through <code>SafeLog</code>. A bare <code>android.util.Log</code>
+        call is a review-blocking defect, and CI greps for it.</li>
+  </ul>
+
+  <h2 id="out-of-scope">Out of scope<a class="anchor" href="#out-of-scope">#</a></h2>
+
+  <ul>
+    <li><strong>A rooted or compromised device.</strong> An attacker running code as this app
+        can read what the app can read.</li>
+    <li><strong>A compromised control plane.</strong> Whoever controls it can re-key your
+        nodes. Inherent to the protocol.</li>
+    <li><strong>Traffic analysis.</strong> The app does not hide that a Tailscale node is
+        running.</li>
+    <li><strong>The security of the target service.</strong> This is a client. If the thing
+        you point it at is insecure, it will be reached insecurely and competently.</li>
+    <li><strong>Physical coercion.</strong> The masked field resists shoulder surfing and
+        nothing more.</li>
+  </ul>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>
+      <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
+      <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+    </p>
+        <p class="small">
+      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      client; the name and the whale artwork are used descriptively, to say what the app
+      connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
+      owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
+      "Tailscale" is their trademark, and this is an independent client for their protocol
+      and for headscale.
+    </p>
+<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+  </div>
+</footer>
+
+</body>
+</html>
