@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 5
+        versionCode = 6
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -137,7 +137,13 @@ android {
         // socket into the tailnet is created in Go, so Android's HTTP stack has
         // no route to it and a WebView cannot dial it directly. Also folds in
         // the trailing-dot MagicDNS false warning fixed after 0.2.4.
-        versionName = "0.2.5"
+        //
+        // 0.2.6: in-app updates. The app reads <update source>/dsh.apk.version,
+        // downloads /dsh.apk when it advertises something newer, and refuses to
+        // install anything whose bytes do not match /dsh.apk.sha256 -- a missing
+        // or mismatched sidecar is a failure, never a silent pass. The update
+        // source defaults to the target's own origin and is user-configurable.
+        versionName = "0.2.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

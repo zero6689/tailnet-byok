@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the FileProvider may serve, and nothing more.
+
+  Exactly one entry: the `updates` directory inside the app's cache directory,
+  which is where a verified download is staged for the package installer. It is
+  deliberately not `files-path`, not `external-path`, and not a catch-all — a
+  provider that can serve everything is a provider that can leak everything, and
+  this one has exactly one job.
+
+  The download lives in the cache because it is a disposable transfer: Android may
+  reclaim it under pressure, and the app treats "the file is gone" as a normal
+  outcome (re-check for the update) rather than an error.
+-->
+<paths>
+    <cache-path
+        name="updates"
+        path="updates/" />
+</paths>

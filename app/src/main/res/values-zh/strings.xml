@@ -201,6 +201,38 @@
     <string name="web_error_http">页面返回 HTTP <xliff:g id="status" example="502">%1$d</xliff:g> —— 502 表示代理连不上你的服务器。</string>
     <string name="web_error_network">页面来源没有回应：<xliff:g id="detail" example="net::ERR_CONNECTION_REFUSED">%1$s</xliff:g>。关闭本页再重新打开，就可以重启代理。</string>
 
+    <!-- 应用更新：面板本身，以及它每一种可能的结局 -->
+    <string name="section_update_title">应用更新</string>
+    <string name="section_update_subtitle">只装更新源能证明的东西</string>
+    <string name="update_current">当前已安装：<xliff:g id="version" example="0.2.6-debug">%1$s</xliff:g></string>
+    <string name="update_base_label">更新源</string>
+    <string name="update_base_hint">留空就用目标主机（<xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g>），那里会提供 dsh.apk.version、dsh.apk 与 dsh.apk.sha256。</string>
+    <string name="update_base_invalid">更新源必须是一个完整的 http:// 或 https:// 地址。</string>
+    <string name="btn_check_update">检查更新</string>
+    <string name="update_checking">正在检查；如果有新版本，顺便下载…</string>
+    <string name="update_none">这个安装还没有检查过更新。</string>
+    <string name="update_uptodate">已是最新：本机 <xliff:g id="current" example="0.2.6">%1$s</xliff:g>，更新源提供 <xliff:g id="advertised" example="0.2.6">%2$s</xliff:g>。</string>
+    <string name="update_ready">已下载 <xliff:g id="version" example="0.2.7">%1$s</xliff:g>（<xliff:g id="size_mb" example="59">%2$d</xliff:g> MB），并用更新源给的 SHA-256 校验通过。</string>
+    <string name="btn_install_update">安装已下载的更新</string>
+    <string name="update_handed_to_installer">已交给系统安装器 —— 请在那边确认安装。</string>
+    <string name="btn_open_install_settings">允许从本应用安装</string>
+    <string name="update_settings_unavailable">这台设备没有这个权限的设置页；请在系统设置里允许从本应用安装。</string>
+    <!-- 每条失败都只说清哪一步没成，绝不暗示"要不还是装吧"。 -->
+    <string name="update_fail_transport_unavailable">更新源不可达：到更新源的连接没能建立起来。</string>
+    <string name="update_fail_version_unreadable">读不到更新源上的 dsh.apk.version。</string>
+    <string name="update_fail_version_unparsable">dsh.apk.version 里没有版本号。</string>
+    <string name="update_fail_download_failed">dsh.apk 下载失败，或者收到的内容被截断了。</string>
+    <string name="update_fail_no_sidecar">dsh.apk.sha256 缺失，或者里面没有 SHA-256 —— 校验不了的东西一律不装。</string>
+    <string name="update_fail_sidecar_mismatch">SHA-256 不一致：收到的字节不是更新源发布的那些。没有安装任何东西。</string>
+    <string name="update_fail_not_an_apk">更新源给的这东西不是 APK。</string>
+    <string name="update_fail_wrong_package_short">下载到的包声明的是另一个应用。</string>
+    <string name="update_fail_wrong_package">下载到的包是 <xliff:g id="package" example="com.example.other">%1$s</xliff:g>，不是本应用。没有安装任何东西。</string>
+    <string name="update_fail_apk_gone">下载的文件已经不在了（系统清了缓存）—— 请重新检查更新。</string>
+    <string name="update_fail_no_installer">这台设备上没有能安装应用的东西。</string>
+    <string name="update_fail_install_blocked">在能装更新之前，Android 需要你先授予权限。</string>
+    <string name="diag_update_source">更新源：<xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g></string>
+    <string name="diag_update_result">最近一次更新：<xliff:g id="result">%1$s</xliff:g></string>
+
     <!-- 页脚 -->
     <string name="footer_privacy">无遥测、无账号、没有我们的服务器 —— 你的密钥只会发给你自己配置的控制面。</string>
     <string name="footer_trademark">与 DeepSeek 无关联。这是一个独立、非官方客户端；名称与鲸鱼图标用来说明它连接的是什么，相关商标归各自所有者，不属于本项目。</string>

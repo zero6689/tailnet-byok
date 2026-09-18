@@ -36,6 +36,21 @@ data class AppConfig(
     val path: String = DEFAULT_PATH,
 
     /**
+     * Where this app looks for a newer build of itself.
+     *
+     * Empty means "the target's own origin", which is the convention the DSH host
+     * already serves: `<origin>/dsh.apk.version`, `/dsh.apk` and
+     * `/dsh.apk.sha256`. Set it to any base URL that serves those same three
+     * names — a mirror, a different port, a directory on the same host — and the
+     * check follows it there. Only the base moves; the three names are fixed, by
+     * `UpdateProtocol`.
+     *
+     * It has a default rather than being required because the common case is a
+     * phone pointed at one DSH host that publishes both.
+     */
+    val updateUrl: String = "",
+
+    /**
      * Control plane base URL. Empty means Tailscale's hosted control plane;
      * anything else is a self-hosted headscale.
      */
@@ -71,6 +86,17 @@ data class AppConfig(
     val isIncomplete: Boolean
         get() = hostInput.isBlank() ||
             (provider == ProviderId.EMBEDDED_TSNET && !hasStoredKey)
+
+    /**
+     * The base URL an update is fetched from: the configured one, or — when the
+     * user has not set one — the target's origin.
+     *
+     * The target's *origin*, not its `targetUrl`: `/health` or `/` are the web
+     * UI's paths and have nothing to do with where `dsh.apk.version` lives. The
+     * origin is the one thing both conventions agree on.
+     */
+    val updateBase: String
+        get() = updateUrl.trim().trimEnd('/').ifEmpty { "$scheme://$hostInput:$port" }
 
     /** True when this configuration points at a self-hosted control plane. */
     val isSelfHostedControlPlane: Boolean
