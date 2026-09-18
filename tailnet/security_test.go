@@ -495,7 +495,7 @@ func TestRedactMasksThePercentEncodedCredentialSeparator(t *testing.T) {
 func TestRedactReturnsForEveryKeyPrefix(t *testing.T) {
 	cases := []struct{ name, in, want string }{
 		{"tskey with no payload", "tskey-", "tskey-***"},
-		{"tskey with a payload", "tskey-auth-abcdefgh", "tskey-***"},
+		{"tskey with a payload", "tskey-auth-abcdefgh", "tskey-***"}, // not-a-secret: fixture
 		{"hskey with no payload", "hskey-", "hskey-***"},
 		{"hskey with a payload", "hskey-0123456789", "hskey-***"},
 		{"tsclientsecret with no payload", "tsclientsecret-", "tsclientsecret-***"},
