@@ -14,6 +14,13 @@ read a security entry below.
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.2.5] — 2026-09-18
+
+The version the app reports (`versionCode` 5), and the first release with a public repository.
+The sizes quoted throughout the docs were re-measured for it.
+
 ### Added
 
 - **The DSH screen: your server's own UI, inside the app.** Until now the app could prove the
@@ -43,6 +50,17 @@ read a security entry below.
 - `branding/README.md` — how the mark was cropped, why the plate is white, why the mark is 72%
   of the canvas, and why there is no themed-icon layer. Includes the three options for a public
   release, since "MIT" and "you may use this name and logo" are not the same permission.
+- **`docs/RELEASING.md`** — what a release consists of, the record every release notes file has to
+  carry (tag and commit, Go, the `x/mobile` revision, the `tailscale.com` version, the AAR and APK
+  hashes, the signing certificate fingerprint), what to run before tagging, and the four rules
+  that exist because the alternative is worse.
+- **`docs/DEPENDENCIES.md`** — the pin, which three modules are load-bearing rather than routine,
+  how to move the pin safely, and which gates will object if you get it wrong.
+- **`docs/PROVENANCE.md`** — what is original here, what is merely linked, and what was read for
+  design inspiration without being copied, with the checks that back each claim up.
+- **A manual reproducibility check** (`.github/workflows/reproducible-build.yml`) that builds the
+  bridge twice on one runner with the pinned toolchain and compares the **native library**, not
+  the `.aar` container, whose zip metadata is expected to differ between builds.
 
 ### Fixed
 
@@ -73,6 +91,33 @@ read a security entry below.
   so a silent regression here would surface only on a phone, months later. `Version()` returns
   `version.Long()` rather than a placeholder, so the app can print the same string the node
   reports. `scripts/build-bridge.mjs`, `tailnet/tailnet.go`.
+- **Scripts are executable in the repository.** `git` on Windows records `core.filemode=false`,
+  so `gradlew` was committed as mode `100644` — which on Linux, macOS and CI makes `./gradlew` a
+  permission error, as the first CI run on the new repository would have discovered.
+- **The toolchain and size tables described an older build.** The README said version 0.1.0 while
+  the app reported 0.2.5, and the documented AAR and APK sizes predated the security work. Both
+  were re-measured with the build they describe (see `docs/TSNET.md`).
+- **`go get -tool golang.org/x/mobile/cmd/gobind`, without a revision**, asked the module proxy for
+  the latest version: a second floating pin, and a hard failure in a warm, offline checkout
+  (`module lookup disabled by GOPROXY=off`) even when the module was already cached.
+
+### Security
+
+- **Third-party licence obligations are met, and generated rather than remembered.** The native
+  bridge statically links 31 Go modules — `tailscale.com` (BSD-3-Clause), `gvisor.dev/gvisor`
+  (Apache-2.0), and MIT or BSD-2-Clause for the rest — and both of those first licences attach
+  conditions to *binary* distribution. `THIRD-PARTY-NOTICES.md` and `licenses/` reproduce the
+  notices and the full texts; `scripts/third-party-licenses.mjs` regenerates them from
+  `go list -deps`, and fails if a linked module has no licence text, so the list cannot drift into
+  being wrong or quietly incomplete. A CI job re-runs it and fails when the committed files differ.
+- **The build's dependency pin can no longer move silently.** `go mod tidy` runs on every build
+  path, and if it changes `go.mod` or `go.sum` the script restores them and fails; the deliberate
+  path is `--write-mod`, which keeps the change so that it lands as a diff somebody reviews. An
+  AAR built from a graph that matches no commit is an AAR nobody else can reproduce.
+- **`gomobile` and `gobind` are installed from the revision pinned in `go.mod`**, not from
+  `@latest`. That is what `gomobile init` would otherwise do behind the build's back, installing a
+  tool whose generated bindings describe an ABI the runtime does not implement — a mismatch that
+  surfaces at the first call rather than at build time.
 
 ### Notes
 
@@ -185,5 +230,6 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.5
 [0.1.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.1.0
