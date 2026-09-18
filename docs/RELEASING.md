@@ -76,3 +76,11 @@ differs between runs. The commitment here is narrower and checkable: **the same 
 the same recorded toolchain versions, and a native library whose embedded version
 stamp identifies the source it came from** (`tailnet/tailnet.go` reports the
 `longStamp` injected by `build-bridge.mjs`).
+
+That narrower claim is itself checkable, so it is checked rather than asserted:
+[`.github/workflows/reproducible-build.yml`](../.github/workflows/reproducible-build.yml)
+is a manual workflow that builds the bridge twice on one runner with the pinned
+toolchain and compares the **native library** byte for byte — not the `.aar` container,
+whose zip metadata is expected to differ — and fails with an explanation if they
+differ. Run it against a release commit before making claims about that release;
+if it reports a difference, fix the cause or narrow this section.
