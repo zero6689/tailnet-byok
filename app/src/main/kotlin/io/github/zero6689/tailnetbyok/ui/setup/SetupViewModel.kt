@@ -451,7 +451,15 @@ class SetupViewModel(
                     // produced. Both belong in a report: "the app says it is up to
                     // date" is a claim, and these are the two facts that let
                     // someone check it.
-                    add(res.getString(R.string.diag_update_source, _state.value.config.updateBase))
+                    add(
+                        res.getString(
+                            R.string.diag_update_source,
+                            // "(empty)" rather than a URL with no host in it, for the
+                            // same reason the panel says "no target yet": before a
+                            // host is typed there is nothing true to print.
+                            Redact.hostLabel(_state.value.config.updateBase),
+                        ),
+                    )
                     add(
                         res.getString(
                             R.string.diag_update_result,

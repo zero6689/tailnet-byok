@@ -94,9 +94,16 @@ data class AppConfig(
      * The target's *origin*, not its `targetUrl`: `/health` or `/` are the web
      * UI's paths and have nothing to do with where `dsh.apk.version` lives. The
      * origin is the one thing both conventions agree on.
+     *
+     * Empty when there is neither: with no host typed in, `"$scheme://:3080"` is
+     * not a URL, and showing it as "the source it will use" is worse than showing
+     * nothing. The callers render an empty base as "no target yet" — see
+     * `UpdateSection` and the diagnostics line.
      */
     val updateBase: String
-        get() = updateUrl.trim().trimEnd('/').ifEmpty { "$scheme://$hostInput:$port" }
+        get() = updateUrl.trim().trimEnd('/').ifEmpty {
+            if (hostInput.isBlank()) "" else "$scheme://$hostInput:$port"
+        }
 
     /** True when this configuration points at a self-hosted control plane. */
     val isSelfHostedControlPlane: Boolean

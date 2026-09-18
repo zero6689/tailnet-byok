@@ -206,6 +206,8 @@
     <string name="section_update_subtitle">只装更新源能证明的东西</string>
     <string name="update_current">当前已安装：<xliff:g id="version" example="0.2.6-debug">%1$s</xliff:g></string>
     <string name="update_base_label">更新源</string>
+    <string name="update_base_no_target">（先填目标主机）</string>
+    <string name="update_base_hint_needs_target">留空就用目标主机。现在还没有目标，先在上面把目标填上，这里就会显示它的地址。</string>
     <string name="update_base_hint">留空就用目标主机（<xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g>），那里会提供 dsh.apk.version、dsh.apk 与 dsh.apk.sha256。</string>
     <string name="update_base_invalid">更新源必须是一个完整的 http:// 或 https:// 地址。</string>
     <string name="btn_check_update">检查更新</string>
