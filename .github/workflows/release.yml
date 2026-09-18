@@ -80,7 +80,12 @@ jobs:
         run: |
           set -euo pipefail
           NDK_VERSION=26.3.11579264
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" >/dev/null
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          # No `yes | sdkmanager` under `set -o pipefail`: `yes` dies of SIGPIPE
+          # when sdkmanager exits, and the pipeline fails after a successful
+          # install. Accept licences best-effort, then install without a pipe.
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "ndk;$NDK_VERSION"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
 
