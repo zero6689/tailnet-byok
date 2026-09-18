@@ -162,15 +162,17 @@ jobs:
             echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Keep both AARs for inspection
+      - name: Record the evidence in the log
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aar-reproducibility-${{ github.sha }}
-          path: |
-            /tmp/tailnet-1.aar
-            /tmp/tailnet-2.aar
-            /tmp/payload-1.txt
-            /tmp/payload-2.txt
-            /tmp/toolchain.txt
-          retention-days: 7
+        run: |
+          set -euo pipefail
+          # No artifact: an Actions artifact in a public repository is
+          # downloadable by anyone, and these would be two 60 MiB native
+          # libraries. The evidence that decides the question is textual, and it
+          # belongs in this run's log and summary, where it can also be quoted.
+          echo "--- payload hashes, build 1 ---"
+          cat /tmp/payload-1.txt || true
+          echo "--- payload hashes, build 2 ---"
+          cat /tmp/payload-2.txt || true
+          echo "--- toolchain ---"
+          cat /tmp/toolchain.txt || true
