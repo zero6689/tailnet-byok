@@ -81,15 +81,16 @@ reference" lines.
 | AGP | 8.7.3 | `gradle/libs.versions.toml` |
 | Kotlin | 2.1.0 | with the Compose compiler plugin |
 | Android SDK | platform 35, build-tools 35.0.0 | |
-| Go | 1.23+ (resolved from `go.dev`) | `tailnet/go.mod` sets the minimum |
+| Go | the `go` line in `tailnet/go.mod` (1.26.6) | CI installs exactly that; `fetch-toolchain.mjs` resolves the newest Go unless you pin one |
 | Android NDK | r26d (26.3.11579264) | pinned in CI; gomobile is NDK-sensitive |
-| gomobile / gobind | one `x/mobile` revision | see below |
+| gomobile / gobind | the `golang.org/x/mobile` revision in `tailnet/go.mod` | see below |
 
 **gomobile and gobind must come from the same `golang.org/x/mobile` revision.** Different
 revisions generate bindings that describe an ABI the runtime does not implement, and the
-failure shows up at the first call rather than at build time.
-`scripts/build-bridge.mjs --gomobile-version <rev>` installs both from one revision and prints
-what it resolved, so that after your first green build you can pin it.
+failure shows up at the first call rather than at build time. `scripts/build-bridge.mjs`
+therefore installs both from the revision pinned in `tailnet/go.mod` — not from `latest` —
+and `--check` prints which one that is before anything is downloaded.
+`--gomobile-version <rev>` overrides it when you are deliberately moving both.
 
 ---
 
