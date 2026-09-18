@@ -842,7 +842,40 @@ function main() {
     // a shell would split it into five, leaving gomobile with a -ldflags value of
     // "-X" and four stray arguments. gomobile is invoked by absolute path, so no
     // shell is needed for anything else either.
-    { cwd: GO_MODULE, env, shell: false },
+    //
+    // `GOFLAGS=-trimpath` is set here, for this call only, to keep the build
+    // machine's source paths out of the shipped library: a Go binary otherwise
+    // records the absolute path of every file it was compiled from, and that path
+    // travels with it. Measured on a local build of this project before the flag,
+    // `L:\CodexProjects\tailnet-byok\` appeared four times inside `libgojni.so`,
+    // and the same bytes go into the AAR that CI publishes as an artifact and into
+    // every APK built from it. It is a machine-specific detail nobody needs to
+    // receive, and on a shared or company machine the path can say more than it
+    // does here.
+    //
+    // What it does, measured after: source-file paths become module-relative
+    // (`github.com/zero6689/tailnet-byok/tailnet/proxy.go`). What it does *not*
+    // remove, also measured: the module's own directory in the build info
+    // (`=> L:\CodexProjects\tailnet-byok\tailnet (devel)`, twice) and the NDK's
+    // include paths from the C toolchain (`.../ndk/26.3.11579264/bin/../sysroot/...`,
+    // ~60 times). Neither is covered by `-trimpath`, and neither carries anything
+    // private on a CI runner, where they read `/home/runner/...` and
+    // `/usr/local/lib/android/...`. Stated here so the flag is not mistaken for
+    // "the library is path-free".
+    //
+    // Three details make this the right shape:
+    //   * `bind` does not accept `-trimpath` as an argument (only `build` registers
+    //     it in gomobile's flag set), so the build flag has to arrive through the
+    //     environment;
+    //   * gomobile rewrites `GOFLAGS` itself, but only on the Apple path
+    //     (cmd/gomobile/env.go), so for `-target=android` the value survives;
+    //   * it is scoped to this call rather than to the whole script, so `go mod
+    //     tidy` and `go get` keep the environment they were tested with.
+    //
+    // Side effect worth having: source paths stop depending on where the checkout
+    // lives, which is part of what .github/workflows/reproducible-build.yml
+    // compares.
+    { cwd: GO_MODULE, env: { ...env, GOFLAGS: '-trimpath' }, shell: false },
   );
   if (!bound) fail('gomobile bind failed');
 

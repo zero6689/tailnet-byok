@@ -68,6 +68,18 @@ internal class TsnetConnectivityProvider : ConnectivityProvider {
     private val _status = MutableStateFlow<ProviderStatus>(ProviderStatus.Stopped(id))
     override val status: StateFlow<ProviderStatus> = _status.asStateFlow()
 
+    /**
+     * The `x/mobile`-stamped version of the bridge compiled into this APK.
+     *
+     * Read from the native library rather than from `BuildConfig`, because the two
+     * answer different questions: the app's version says which release this is,
+     * and this says which `tailscale.com` revision the embedded node is. A bug
+     * report that carries both can be reproduced; one that carries neither cannot.
+     * Null only if the bridge is missing, which the `R.string.*` fallback handles.
+     */
+    override val libraryVersion: String?
+        get() = runCatching { Mobile.version() }.getOrNull()?.takeIf { it.isNotBlank() }
+
     override suspend fun start(
         config: TailnetConfig,
         credentials: TailnetCredentials,

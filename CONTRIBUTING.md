@@ -18,6 +18,22 @@ that reached a public repository is already scraped.
 CI enforces this on tracked files, but CI only sees what is committed. It cannot help with a
 screenshot.
 
+The same reasoning applies, with less drama, to everything else that identifies a person or a
+machine. Nothing in this table belongs in the repository — not in a file, not in a commit
+message, not in an issue:
+
+| Never commit | Why | Checked by |
+|---|---|---|
+| a credential, `*.keystore`, `*.jks`, `*.p12`, `keystore.properties` | it is the secret itself | `.gitignore`, and the credential-shaped-string scan |
+| a real tailnet address or device name | it is somebody's topology, and a bug report is not improved by it | the address scan (warns; use `100.101.102.103`) |
+| a path from your machine (`C:\Users\…`, `/home/…`) | it names a user, and it travels on into every build artefact | the machine-path scan (fails; use `/home/you`) |
+| a log or a screenshot from a real run | redaction happens in the app, not in your terminal | by eye — CI cannot see an image |
+
+Placeholders are the answer in every row. `scripts/build-bridge.mjs` passes `-trimpath` so that
+compiled source paths stop carrying your checkout's location into the AAR, but that flag does not
+cover everything (the comment where it is set says exactly what it leaves behind), which is why
+the repository-side rule is the one that has to hold.
+
 ---
 
 ## Getting set up

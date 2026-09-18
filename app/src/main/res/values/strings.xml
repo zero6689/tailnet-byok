@@ -171,6 +171,14 @@
     <string name="diag_hardware_keystore">hardware-backed keystore: <xliff:g id="value" example="true">%1$s</xliff:g></string>
     <string name="diag_node">node: <xliff:g id="status">%1$s</xliff:g></string>
     <string name="diag_target">target: <xliff:g id="host" example="100.101.102.103">%1$s</xliff:g>:<xliff:g id="port" example="3080">%2$d</xliff:g> (<xliff:g id="scheme" example="http">%3$s</xliff:g>)</string>
+    <string name="diag_app_version">app version: <xliff:g id="version" example="0.2.5-debug">%1$s</xliff:g></string>
+    <string name="diag_library_version">node library: <xliff:g id="version" example="1.102.4-dev20260918">%1$s</xliff:g></string>
+    <!-- The diagnostics panel is meant to be pasted into a bug report, so the two
+         actions it needs are "give me the current lines" and "copy them". -->
+    <string name="diag_refresh">Refresh</string>
+    <string name="diag_copy">Copy</string>
+    <string name="diag_copied">Diagnostics copied</string>
+    <string name="diag_empty">No diagnostics yet. Run the connection test, or refresh.</string>
 
     <!-- Node status pill -->
     <string name="status_up">up</string>

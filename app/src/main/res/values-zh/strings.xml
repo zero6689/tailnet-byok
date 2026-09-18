@@ -157,6 +157,13 @@
     <string name="diag_hardware_keystore">硬件级 Keystore：<xliff:g id="value" example="true">%1$s</xliff:g></string>
     <string name="diag_node">节点：<xliff:g id="status">%1$s</xliff:g></string>
     <string name="diag_target">目标：<xliff:g id="host" example="100.101.102.103">%1$s</xliff:g>:<xliff:g id="port" example="3080">%2$d</xliff:g>（<xliff:g id="scheme" example="http">%3$s</xliff:g>）</string>
+    <string name="diag_app_version">应用版本：<xliff:g id="version" example="0.2.5-debug">%1$s</xliff:g></string>
+    <string name="diag_library_version">节点库版本：<xliff:g id="version" example="1.102.4-dev20260918">%1$s</xliff:g></string>
+    <!-- 诊断面板是拿来粘进问题报告的，所以它只需要两个动作：给我当前这些行、把它们复制走。 -->
+    <string name="diag_refresh">刷新</string>
+    <string name="diag_copy">复制</string>
+    <string name="diag_copied">诊断已复制</string>
+    <string name="diag_empty">还没有诊断信息。跑一次连接测试，或者点刷新。</string>
 
     <!-- 节点状态徽标 -->
     <string name="status_up">在线</string>
