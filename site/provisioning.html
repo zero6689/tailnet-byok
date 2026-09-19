@@ -82,14 +82,15 @@
     </div>
     <div class="card">
       <h3>The link</h3>
-      <p><code id="link" style="word-break:break-all">dshbyok://setup</code></p>
+      <p><a id="link" href="dshbyok://setup" style="word-break:break-all">dshbyok://setup</a></p>
       <p class="small">
         <button class="btn" type="button" id="copy">Copy the link</button>
       </p>
       <p class="small muted">
         Any camera or QR app will open it: the scheme is <code>dshbyok</code>, so
         Android asks which app should handle it. Nothing installs and nothing changes
-        until the app itself applies it.
+        until the app itself applies it. <strong>Reading this page on the phone
+        itself?</strong> Tap the link above instead of scanning your own screen.
       </p>
     </div>
   </div>
@@ -206,6 +207,11 @@
   function render() {
     var link = buildLink();
     linkOut.textContent = link || 'dshbyok://setup';
+    // Keep the anchor's href in step: on the phone that is the whole interaction —
+    // tap it, Android asks which app handles the scheme, the app shows what the
+    // link would change. A text-only link would make the page useless on the one
+    // device it is for.
+    linkOut.setAttribute('href', link || 'dshbyok://setup');
     if (!link) {
       qrOut.textContent = '—';
       note.textContent = 'Type a target host to make a link and a QR code.';
