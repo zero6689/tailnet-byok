@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en" data-title-zh="配置链接 —— 把配置交给手机 —— tailnet-byok">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,8 @@
 <meta name="description" content="Make a dshbyok://setup link and a QR code for your own target. Configuration only: a link can never carry a credential, and the app asks you to confirm before anything changes.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
+<!-- After <title>, so the title it saves is the English one. -->
+<script src="lang.js"></script>
 </head>
 <body>
 
@@ -14,11 +16,12 @@
   <div class="wrap">
     <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
     <nav class="site">
-      <a href="index.html">Overview</a>
-      <a href="guide.html">Build &amp; use</a>
-      <a href="provisioning.html" aria-current="page">Provisioning</a>
-      <a href="security.html">Security</a>
-      <a href="architecture.html">Architecture</a>
+      <a href="index.html"><span class="i18n-en">Overview</span><span class="i18n-zh">总览</span></a>
+      <a href="guide.html"><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></a>
+      <a href="provisioning.html" aria-current="page"><span class="i18n-en">Provisioning</span><span class="i18n-zh">配置链接</span></a>
+      <a href="security.html"><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></a>
+      <a href="architecture.html"><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></a>
+      <button class="lang" type="button" id="lang-toggle" hidden>中文</button>
     </nav>
   </div>
 </header>
@@ -26,54 +29,63 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1>Hand a phone its configuration.</h1>
+    <h1><span class="i18n-en">Hand a phone its configuration.</span><span class="i18n-zh">把配置交给手机。</span></h1>
     <p class="lead">
-      Type your target below and this page makes two things: a
+      <span class="i18n-en">Type your target below and this page makes two things: a
       <code>dshbyok://setup</code> link, and a QR code for it. Scan the code or open
       the link on the phone, and the app shows what it would change and waits for
-      you to confirm.
+      you to confirm.</span><span class="i18n-zh">在下面填上你的目标，这个页面会做两件事：生成一条
+      <code>dshbyok://setup</code> 链接，以及它的二维码。用手机扫码或直接打开这条链接，
+      App 会先告诉你它将要改动什么，等你确认之后才生效。</span>
     </p>
   </section>
 
   <div class="callout">
-    <span class="label">Generated in your browser</span>
+    <span class="label"><span class="i18n-en">Generated in your browser</span><span class="i18n-zh">在你的浏览器里生成</span></span>
     <p>
-      Nothing here is sent anywhere. There is no analytics, no font, no script from
+      <span class="i18n-en">Nothing here is sent anywhere. There is no analytics, no font, no script from
       another host — the page draws the QR code with a vendored encoder
       (<code>qr.js</code>, MIT). The address field is prefilled from the URL
       <em>fragment</em> (the part after <code>#</code>), which browsers never transmit,
       so a link to this page cannot leak the address it carries to this site or to
-      anyone watching the network.
+      anyone watching the network.</span><span class="i18n-zh">这里的东西不会发送到任何地方。没有统计、没有外部字体、没有来自其它主机的脚本
+      —— 二维码是页面用仓库内自带的编码器（<code>qr.js</code>，MIT）自己画出来的。地址栏的预填值来自
+      URL 的<em>片段</em>（<code>#</code> 之后的部分），浏览器从不发送片段，所以把这个页面的链接转给别人，
+      不会把里面的地址泄露给本站，也不会泄露给任何旁听网络的人。</span>
     </p>
   </div>
 
-  <h2 id="make">Make a link<a class="anchor" href="#make">#</a></h2>
+  <h2 id="make"><span class="i18n-en">Make a link</span><span class="i18n-zh">生成链接</span><a class="anchor" href="#make">#</a></h2>
 
   <div class="card">
     <p class="small">
-      <label for="target"><strong>Target host</strong> — a MagicDNS name or a
-      <code>100.x</code> address, optionally <code>host:port</code>.</label><br>
+      <label for="target"><strong class="i18n-en">Target host</strong><strong class="i18n-zh">目标主机</strong><span class="i18n-en"> — a MagicDNS name or a
+      <code>100.x</code> address, optionally <code>host:port</code>.</span><span class="i18n-zh"> —— MagicDNS 名称或
+      <code>100.x</code> 地址，可写成 <code>host:port</code>。</span></label><br>
       <input id="target" type="text" size="34" spellcheck="false" autocomplete="off"
-             placeholder="phone.tailnet-name.ts.net:3080">
+             placeholder="phone.tailnet-name.ts.net:3080"
+             data-zh-placeholder="phone.tailnet-name.ts.net:3080">
     </p>
     <p class="small">
-      <label for="mode"><strong>Connection method</strong></label><br>
+      <label for="mode"><strong class="i18n-en">Connection method</strong><strong class="i18n-zh">连接方式</strong></label><br>
       <select id="mode">
-        <option value="">(leave the app's own setting alone)</option>
-        <option value="embedded">Embedded tailnet node — needs an auth key</option>
-        <option value="system">System network — the phone's existing VPN</option>
+        <option value="" data-zh="（不改动 App 里已有的设置）">(leave the app's own setting alone)</option>
+        <option value="embedded" data-zh="内嵌 tailnet 节点 —— 需要认证密钥">Embedded tailnet node — needs an auth key</option>
+        <option value="system" data-zh="系统网络 —— 用手机现有的 VPN">System network — the phone's existing VPN</option>
       </select>
     </p>
     <p class="small">
-      <label for="update"><strong>Update source</strong> (optional) — a base URL that
+      <label for="update"><strong class="i18n-en">Update source</strong><strong class="i18n-zh">更新源</strong><span class="i18n-en"> (optional) — a base URL that
       serves <code>dsh.apk.version</code>, <code>dsh.apk</code> and
-      <code>dsh.apk.sha256</code>.</label><br>
+      <code>dsh.apk.sha256</code>.</span><span class="i18n-zh">（可选）—— 一个提供
+      <code>dsh.apk.version</code>、<code>dsh.apk</code> 和 <code>dsh.apk.sha256</code> 的基础
+      URL。</span></label><br>
       <input id="update" type="text" size="34" spellcheck="false" autocomplete="off"
              placeholder="http://192.0.2.10:8089">
     </p>
   </div>
 
-  <h2 id="scan">Scan it<a class="anchor" href="#scan">#</a></h2>
+  <h2 id="scan"><span class="i18n-en">Scan it</span><span class="i18n-zh">扫码</span><a class="anchor" href="#scan">#</a></h2>
 
   <div class="grid">
     <div class="card">
@@ -81,72 +93,86 @@
       <p class="small muted" id="qrnote"></p>
     </div>
     <div class="card">
-      <h3>The link</h3>
+      <h3><span class="i18n-en">The link</span><span class="i18n-zh">链接</span></h3>
       <p><a id="link" href="dshbyok://setup" style="word-break:break-all">dshbyok://setup</a></p>
       <p class="small">
-        <button class="btn" type="button" id="copy">Copy the link</button>
+        <button class="btn" type="button" id="copy" data-zh="复制链接">Copy the link</button>
       </p>
       <p class="small muted">
-        Any camera or QR app will open it: the scheme is <code>dshbyok</code>, so
+        <span class="i18n-en">Any camera or QR app will open it: the scheme is <code>dshbyok</code>, so
         Android asks which app should handle it. Nothing installs and nothing changes
         until the app itself applies it. <strong>Reading this page on the phone
-        itself?</strong> Tap the link above instead of scanning your own screen.
+        itself?</strong> Tap the link above instead of scanning your own screen.</span><span class="i18n-zh">任何相机或扫码 App 都能打开它：协议是 <code>dshbyok</code>，所以
+        Android 会问你要交给哪个 App 处理。在 App 自己应用之前，什么都不会安装、什么都不会改变。
+        <strong>你就是在手机上打开这个页面？</strong> 直接点上面的链接，不用扫自己的屏幕。</span>
       </p>
     </div>
   </div>
 
-  <h2 id="boundary">What a link may say — and what it may never say<a class="anchor" href="#boundary">#</a></h2>
+  <h2 id="boundary"><span class="i18n-en">What a link may say — and what it may never say</span><span class="i18n-zh">链接可以说什么 —— 以及绝不可以说什么</span><a class="anchor" href="#boundary">#</a></h2>
 
   <div class="grid">
     <div class="card">
-      <h3>Configuration only</h3>
+      <h3><span class="i18n-en">Configuration only</span><span class="i18n-zh">只带配置</span></h3>
       <p class="small">
-        A link may carry: <code>target</code>, <code>port</code>, <code>scheme</code>,
+        <span class="i18n-en">A link may carry: <code>target</code>, <code>port</code>, <code>scheme</code>,
         <code>path</code>, <code>mode</code>, <code>update</code>,
         <code>control</code>, <code>node</code>. The app shows the merged result
         before applying it, and refuses a link whose target its address policy would
-        not let you type by hand.
+        not let you type by hand.</span><span class="i18n-zh">链接可以携带：<code>target</code>、<code>port</code>、<code>scheme</code>、
+        <code>path</code>、<code>mode</code>、<code>update</code>、
+        <code>control</code>、<code>node</code>。App 会先显示合并后的结果再应用；
+        如果某条链接的目标连手动输入都不被地址策略允许，它同样会被拒绝。</span>
       </p>
     </div>
     <div class="card">
-      <h3>Never a credential</h3>
+      <h3><span class="i18n-en">Never a credential</span><span class="i18n-zh">绝不带凭据</span></h3>
       <p class="small">
-        If a link contains any field whose name looks like a credential —
+        <span class="i18n-en">If a link contains any field whose name looks like a credential —
         <code>authkey</code>, <code>key</code>, <code>token</code>,
         <code>password</code>, <code>secret</code> — the <strong>whole link is
         refused</strong>, and the app says so. A link can be photographed off a
         screen, so a secret in one is a secret in public. The auth key is typed into
-        the app, or obtained through the control plane's own login.
+        the app, or obtained through the control plane's own login.</span><span class="i18n-zh">只要链接里出现任何名字像凭据的字段 ——
+        <code>authkey</code>、<code>key</code>、<code>token</code>、
+        <code>password</code>、<code>secret</code> —— <strong>整条链接都会被拒绝</strong>，
+        并且 App 会说明原因。链接是可能被从屏幕上拍走的，所以链接里的秘密就等于公开的秘密。
+        认证密钥请在 App 里输入，或通过控制面自己的登录流程取得。</span>
       </p>
     </div>
     <div class="card">
-      <h3>Never silent</h3>
+      <h3><span class="i18n-en">Never silent</span><span class="i18n-zh">绝不悄悄生效</span></h3>
       <p class="small">
-        A link cannot re-point the app by itself. That is the attack worth designing
+        <span class="i18n-en">A link cannot re-point the app by itself. That is the attack worth designing
         against — a QR code that quietly aims the app at a stranger's server, so the
         next thing you type is your key. The app therefore parses, <em>shows</em>, and
-        waits: apply or ignore is your tap.
+        waits: apply or ignore is your tap.</span><span class="i18n-zh">链接本身无法把 App 改指向别处。这正是要防的那条攻击链 —— 一张二维码悄悄把
+        App 指向陌生人的服务器，你接下来输入的就是自己的密钥。所以 App 的做法是：解析、<em>展示</em>、
+        然后等你 —— 应用还是忽略，由你点。</span>
       </p>
     </div>
   </div>
 
-  <h2 id="builds">Baking a target into your own build<a class="anchor" href="#builds">#</a></h2>
+  <h2 id="builds"><span class="i18n-en">Baking a target into your own build</span><span class="i18n-zh">把目标写进你自己的构建</span><a class="anchor" href="#builds">#</a></h2>
 
   <p>
-    The public build carries no address, on purpose. A private or branded build can
-    pre-fill one, and then nobody has to type anything:
+    <span class="i18n-en">The public build carries no address, on purpose. A private or branded build can
+    pre-fill one, and then nobody has to type anything:</span><span class="i18n-zh">公开构建里不带任何地址，这是有意为之。私有构建或定制品牌的构建可以预填一个地址，
+    这样谁都不用再手输：</span>
   </p>
   <pre><code>./gradlew assembleDebug -PdefaultTarget=phone.tailnet-name.ts.net:3080 -PdefaultMode=system</code></pre>
   <p class="small">
-    The value only *defaults* the first screen — it is never a policy, and once the
+    <span class="i18n-en">The value only *defaults* the first screen — it is never a policy, and once the
     user saves anything the stored value wins. Those properties are also run through
     the same parser a link is, so a malformed value degrades to "no default" rather
     than shipping a broken address. Nothing is committed: the public build's values
-    are empty, and CI checks that they stay that way.
+    are empty, and CI checks that they stay that way.</span><span class="i18n-zh">这个值只是首次进入时屏幕上的<em>默认值</em> —— 它永远不是策略；用户一旦保存过任何设置，
+    就以保存的值为准。这些属性同样会走与链接完全相同的解析器，所以写坏的值会退化成「没有默认值」，
+    而不是发布一个坏地址。仓库里什么都不提交：公开构建的这三个值恒为空，CI 也会一直检查它们保持为空。</span>
   </p>
 
   <p class="small muted">
-    More detail, including the full field table and the reasoning: <a href="{{REPO_URL}}/blob/main/docs/PROVISIONING.md">docs/PROVISIONING.md</a>.
+    <span class="i18n-en">More detail, including the full field table and the reasoning: <a href="{{REPO_URL}}/blob/main/docs/PROVISIONING.md">docs/PROVISIONING.md</a>.</span><span class="i18n-zh">更详细的说明（完整字段表与设计理由）见 <a href="{{REPO_URL}}/blob/main/docs/PROVISIONING.md">docs/PROVISIONING.md</a>。</span>
   </p>
 
 </main>
@@ -156,16 +182,19 @@
     <p>
       <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
       <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
-      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
-      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md"><span class="i18n-en">Privacy</span><span class="i18n-zh">隐私</span></a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md"><span class="i18n-en">Security policy</span><span class="i18n-zh">安全策略</span></a>
     </p>
     <p class="small">
-      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      <span class="i18n-en"><strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
       client; the name and the whale artwork are used descriptively, to say what the app
       connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
       owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
       "Tailscale" is their trademark, and this is an independent client for their protocol
-      and for headscale.
+      and for headscale.</span><span class="i18n-zh"><strong>与 DeepSeek 没有隶属关系。</strong>这是一个独立、非官方的客户端；名称与鲸鱼图案只用于
+      说明它连接的是什么。DeepSeek 与 DeepSeek 鲸鱼标志属于其各自所有者，本项目不主张任何相关权利。
+      同样与 Tailscale Inc 没有隶属关系 —— “Tailscale” 是他们的商标，本项目只是其协议与 headscale 的
+      独立客户端。</span>
     </p>
   </div>
 </footer>
@@ -182,6 +211,34 @@
   var qrOut = document.getElementById('qr');
   var note = document.getElementById('qrnote');
   var copy = document.getElementById('copy');
+
+  // Text this page draws itself. Everything else is in the markup, in both
+  // languages; these few strings have to follow the same switch.
+  var TEXT = {
+    en: {
+      copy: 'Copy the link',
+      copied: 'Copied',
+      select: 'Select the link above instead',
+      empty: 'Type a target host to make a link and a QR code.',
+      noEncoder: 'qr.js did not load, so the code cannot be drawn here. The link above still works.',
+      tooLong: 'That link is too long for a QR code. Shorten the update source.',
+      scan: 'Point the phone camera at this.',
+    },
+    zh: {
+      copy: '复制链接',
+      copied: '已复制',
+      select: '请手动选中上面的链接复制',
+      empty: '填写目标主机后，这里会生成链接和二维码。',
+      noEncoder: 'qr.js 没有加载成功，这里画不出二维码。上面的链接仍然可用。',
+      tooLong: '这条链接对二维码来说太长了。请把更新源改短。',
+      scan: '用手机相机对准这里。',
+    },
+  };
+
+  function t(key) {
+    var lang = window.DSHSiteLang && window.DSHSiteLang.get() === 'zh' ? 'zh' : 'en';
+    return TEXT[lang][key];
+  }
 
   // The fragment, not the query: a fragment is never sent to the server, so a
   // deployment can hand out a link to this page without telling this site (or
@@ -205,6 +262,7 @@
   }
 
   function render() {
+    copy.textContent = t('copy');
     var link = buildLink();
     linkOut.textContent = link || 'dshbyok://setup';
     // Keep the anchor's href in step: on the phone that is the whole interaction —
@@ -214,35 +272,39 @@
     linkOut.setAttribute('href', link || 'dshbyok://setup');
     if (!link) {
       qrOut.textContent = '—';
-      note.textContent = 'Type a target host to make a link and a QR code.';
+      note.textContent = t('empty');
       return;
     }
     if (!window.DSHQR) {
       qrOut.textContent = '—';
-      note.textContent = 'qr.js did not load, so the code cannot be drawn here. The link above still works.';
+      note.textContent = t('noEncoder');
       return;
     }
     var svg = window.DSHQR.renderSvg(link, { scale: 5, margin: 4 });
     if (!svg) {
       qrOut.textContent = '—';
-      note.textContent = 'That link is too long for a QR code. Shorten the update source.';
+      note.textContent = t('tooLong');
       return;
     }
     qrOut.innerHTML = svg;
-    note.textContent = 'Point the phone camera at this.';
+    note.textContent = t('scan');
   }
 
   copy.addEventListener('click', function () {
     var link = buildLink();
     if (!link) return;
     navigator.clipboard.writeText(link).then(
-      function () { copy.textContent = 'Copied'; },
-      function () { copy.textContent = 'Select the link above instead'; },
+      function () { copy.textContent = t('copied'); },
+      function () { copy.textContent = t('select'); },
     );
   });
 
   [target, update].forEach(function (el) { el.addEventListener('input', render); });
   mode.addEventListener('change', render);
+
+  // The switch happened in <head>, before this script existed; re-render on every
+  // later switch so the strings above follow it.
+  if (window.DSHSiteLang) window.DSHSiteLang.onApply = render;
 
   fromFragment();
   render();

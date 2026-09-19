@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en" data-title-zh="安全 —— tailnet-byok">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,8 @@
 <meta name="description" content="The threat model for tailnet-byok, including what Android Keystore encryption does and does not protect against.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
+<!-- After <title>, so the title it saves is the English one. -->
+<script src="lang.js"></script>
 </head>
 <body>
 
@@ -14,320 +16,354 @@
   <div class="wrap">
     <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
     <nav class="site">
-      <a href="index.html">Overview</a>
-      <a href="guide.html">Build &amp; use</a>
-      <a href="provisioning.html">Provisioning</a>
-      <a href="security.html" aria-current="page">Security</a>
-      <a href="architecture.html">Architecture</a>
+      <a href="index.html"><span class="i18n-en">Overview</span><span class="i18n-zh">总览</span></a>
+      <a href="guide.html"><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></a>
+      <a href="provisioning.html"><span class="i18n-en">Provisioning</span><span class="i18n-zh">配置链接</span></a>
+      <a href="security.html" aria-current="page"><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></a>
+      <a href="architecture.html"><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></a>
+      <button class="lang" type="button" id="lang-toggle" hidden>中文</button>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
 
-  <h1>Security</h1>
+  <h1><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></h1>
 
   <p class="lead">
-    A key that can join a machine to your tailnet deserves a straight answer about what the
+    <span class="i18n-en">A key that can join a machine to your tailnet deserves a straight answer about what the
     app protects and what it does not. This page is that answer, including the parts that
-    are limitations rather than features.
+    are limitations rather than features.</span><span class="i18n-zh">一把能把机器加入你 tailnet 的密钥，理应得到一个直白的回答：这个 App 保护了什么，
+    没保护什么。本页就是这个回答，也包括那些属于局限而非功能的部分。</span>
   </p>
 
   <div class="callout danger">
-    <span class="label">Reporting a vulnerability</span>
+    <span class="label"><span class="i18n-en">Reporting a vulnerability</span><span class="i18n-zh">报告漏洞</span></span>
     <p>
-      Please do not open a public issue. Use GitHub's private vulnerability reporting on
+      <span class="i18n-en">Please do not open a public issue. Use GitHub's private vulnerability reporting on
       <a href="{{REPO_URL}}/security/advisories/new">{{REPO_NAME}} → Security → Report a vulnerability</a>,
       or open a public issue containing only "security report — please contact me" and no
-      technical detail.
+      technical detail.</span><span class="i18n-zh">请不要开公开的 issue。请使用 GitHub 的私密漏洞报告功能：
+      <a href="{{REPO_URL}}/security/advisories/new">{{REPO_NAME}} → Security → Report a vulnerability</a>；
+      或者开一个公开 issue，里面只写 "security report — please contact me"，不要写任何技术细节。</span>
     </p>
   </div>
 
-  <h2 id="what-keystore-buys">What the encryption actually buys<a class="anchor" href="#what-keystore-buys">#</a></h2>
+  <h2 id="what-keystore-buys"><span class="i18n-en">What the encryption actually buys</span><span class="i18n-zh">加密实际买到了什么</span><a class="anchor" href="#what-keystore-buys">#</a></h2>
 
   <p>
-    The auth key is encrypted with a randomly generated AES-256-GCM key. That key is created
+    <span class="i18n-en">The auth key is encrypted with a randomly generated AES-256-GCM key. That key is created
     inside the Android Keystore and is non-exportable: the app holds a handle, not the bytes.
     On a device with a Trusted Execution Environment or StrongBox, the key material never
-    enters the app's address space at all.
+    enters the app's address space at all.</span><span class="i18n-zh">认证密钥用一个随机生成的 AES-256-GCM 密钥加密。那把密钥在 Android Keystore 内部生成，
+    且不可导出：App 拿到的是一个句柄，而不是密钥字节。在带有可信执行环境或 StrongBox 的设备上，
+    密钥材料根本不会进入 App 的地址空间。</span>
   </p>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Threat</th><th>Protected?</th><th>By what</th></tr>
+      <tr><th><span class="i18n-en">Threat</span><span class="i18n-zh">威胁</span></th><th><span class="i18n-en">Protected?</span><span class="i18n-zh">是否受保护？</span></th><th><span class="i18n-en">By what</span><span class="i18n-zh">靠什么</span></th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>Someone copies the app's data directory — rooted file copy, forensic image,
-            stray backup</td>
-        <td><span class="tag ok">Yes</span></td>
-        <td>Only ciphertext is on disk, and the decrypting key is hardware-bound</td>
+        <td><span class="i18n-en">Someone copies the app's data directory — rooted file copy, forensic image,
+            stray backup</span><span class="i18n-zh">有人拷走了 App 的数据目录 —— root 后的文件拷贝、取证镜像、
+            无意留下的备份</span></td>
+        <td><span class="tag ok"><span class="i18n-en">Yes</span><span class="i18n-zh">是</span></span></td>
+        <td><span class="i18n-en">Only ciphertext is on disk, and the decrypting key is hardware-bound</span><span class="i18n-zh">磁盘上只有密文，而解密密钥与硬件绑定</span></td>
       </tr>
       <tr>
-        <td>The ciphertext reaches a cloud backup</td>
-        <td><span class="tag ok">Yes</span></td>
-        <td><code>allowBackup="false"</code> plus backup rules that exclude every domain</td>
+        <td><span class="i18n-en">The ciphertext reaches a cloud backup</span><span class="i18n-zh">密文进了云备份</span></td>
+        <td><span class="tag ok"><span class="i18n-en">Yes</span><span class="i18n-zh">是</span></span></td>
+        <td><span class="i18n-en"><code>allowBackup="false"</code> plus backup rules that exclude every domain</span><span class="i18n-zh"><code>allowBackup="false"</code>，加上排除所有域的备份规则</span></td>
       </tr>
       <tr>
-        <td>An attacker reads it from logcat</td>
-        <td><span class="tag ok">Yes</span></td>
-        <td>One logging entry point, scrubbed; release builds strip <code>v</code>/<code>d</code>/<code>i</code>;
-            CI fails the build on a bare <code>android.util.Log</code></td>
+        <td><span class="i18n-en">An attacker reads it from logcat</span><span class="i18n-zh">攻击者从 logcat 读到它</span></td>
+        <td><span class="tag ok"><span class="i18n-en">Yes</span><span class="i18n-zh">是</span></span></td>
+        <td><span class="i18n-en">One logging entry point, scrubbed; release builds strip <code>v</code>/<code>d</code>/<code>i</code>;
+            CI fails the build on a bare <code>android.util.Log</code></span><span class="i18n-zh">只有一个日志入口，且做了脱敏；release 构建会剥离 <code>v</code>/<code>d</code>/<code>i</code>；
+            CI 只要看到裸的 <code>android.util.Log</code> 就让构建失败</span></td>
       </tr>
       <tr>
-        <td>The ciphertext is decrypted while the phone is locked</td>
-        <td><span class="tag ok">Yes</span></td>
-        <td><code>setUnlockedDeviceRequired(true)</code> on API 28+</td>
+        <td><span class="i18n-en">The ciphertext is decrypted while the phone is locked</span><span class="i18n-zh">在手机锁屏状态下密文被解密</span></td>
+        <td><span class="tag ok"><span class="i18n-en">Yes</span><span class="i18n-zh">是</span></span></td>
+        <td><span class="i18n-en"><code>setUnlockedDeviceRequired(true)</code> on API 28+</span><span class="i18n-zh">API 28+ 上的 <code>setUnlockedDeviceRequired(true)</code></span></td>
       </tr>
       <tr>
-        <td>The app is used to reach arbitrary internet hosts</td>
-        <td><span class="tag ok">Yes</span></td>
-        <td>Address policy refuses anything outside the tailnet ranges, <em>before</em> the
-            dial</td>
+        <td><span class="i18n-en">The app is used to reach arbitrary internet hosts</span><span class="i18n-zh">有人用这个 App 去访问任意互联网主机</span></td>
+        <td><span class="tag ok"><span class="i18n-en">Yes</span><span class="i18n-zh">是</span></span></td>
+        <td><span class="i18n-en">Address policy refuses anything outside the tailnet ranges, <em>before</em> the
+            dial</span><span class="i18n-zh">地址策略在发起连接<em>之前</em>就拒绝 tailnet 网段之外的一切</span></td>
       </tr>
       <tr>
-        <td>An attacker runs code as this app, on your unlocked device</td>
-        <td><span class="tag bad">No</span></td>
-        <td>Nothing can. The app must be able to read the key to use it.</td>
+        <td><span class="i18n-en">An attacker runs code as this app, on your unlocked device</span><span class="i18n-zh">攻击者在你的解锁设备上以本 App 的身份运行代码</span></td>
+        <td><span class="tag bad"><span class="i18n-en">No</span><span class="i18n-zh">否</span></span></td>
+        <td><span class="i18n-en">Nothing can. The app must be able to read the key to use it.</span><span class="i18n-zh">谁也挡不住。App 要使用密钥，就必须能读到它。</span></td>
       </tr>
       <tr>
-        <td>Someone takes a memory dump of the live process</td>
-        <td><span class="tag bad">No</span></td>
-        <td>See the heap caveat below</td>
+        <td><span class="i18n-en">Someone takes a memory dump of the live process</span><span class="i18n-zh">有人对运行中的进程做了内存转储</span></td>
+        <td><span class="tag bad"><span class="i18n-en">No</span><span class="i18n-zh">否</span></span></td>
+        <td><span class="i18n-en">See the heap caveat below</span><span class="i18n-zh">见下面的堆内存保留</span></td>
       </tr>
       <tr>
-        <td>Your control plane is malicious</td>
-        <td><span class="tag bad">No</span></td>
-        <td>Inherent to the protocol, not to this app</td>
+        <td><span class="i18n-en">Your control plane is malicious</span><span class="i18n-zh">你的控制面是恶意的</span></td>
+        <td><span class="tag bad"><span class="i18n-en">No</span><span class="i18n-zh">否</span></span></td>
+        <td><span class="i18n-en">Inherent to the protocol, not to this app</span><span class="i18n-zh">这是协议本身的问题，不是这个 App 的问题</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h3 id="heap-caveat">The heap caveat, stated plainly<a class="anchor" href="#heap-caveat">#</a></h3>
+  <h3 id="heap-caveat"><span class="i18n-en">The heap caveat, stated plainly</span><span class="i18n-zh">直说堆内存这一点</span><a class="anchor" href="#heap-caveat">#</a></h3>
 
   <p>
-    Kotlin strings are immutable and cannot be zeroed, and the Go bridge takes a string. So
+    <span class="i18n-en">Kotlin strings are immutable and cannot be zeroed, and the Go bridge takes a string. So
     the plaintext auth key exists in the process heap for the window between decryption and
-    the node coming up. The mitigations are real but partial:
+    the node coming up. The mitigations are real but partial:</span><span class="i18n-zh">Kotlin 的字符串不可变、无法清零，而 Go 桥接层接收的是字符串。所以在解密之后、节点起来之前
+    这段时间里，明文认证密钥存在于进程堆中。缓解措施是真实的，但只是部分有效：</span>
   </p>
 
   <ul>
-    <li>it is never persisted in plaintext, so it does not survive a process restart;</li>
-    <li>it is never logged, so it does not reach logcat or a bug report;</li>
-    <li>it is dropped from the UI state as soon as it is saved, so it is not held in
-        Compose state;</li>
-    <li><code>TailnetCredentials.toString()</code> is overridden to print
+    <li><span class="i18n-en">it is never persisted in plaintext, so it does not survive a process restart;</span><span class="i18n-zh">它从不以明文持久化，所以进程重启之后就不复存在；</span></li>
+    <li><span class="i18n-en">it is never logged, so it does not reach logcat or a bug report;</span><span class="i18n-zh">它从不写进日志，所以不会到达 logcat 或问题报告；</span></li>
+    <li><span class="i18n-en">it is dropped from the UI state as soon as it is saved, so it is not held in
+        Compose state;</span><span class="i18n-zh">一旦保存就立刻从 UI 状态里丢弃，所以它不会被留在 Compose 状态中；</span></li>
+    <li><span class="i18n-en"><code>TailnetCredentials.toString()</code> is overridden to print
         <code>present</code>/<code>absent</code>, so an accidental <code>println</code> or
-        a debugger pretty-print cannot leak it.</li>
+        a debugger pretty-print cannot leak it.</span><span class="i18n-zh"><code>TailnetCredentials.toString()</code> 被重写为只打印
+        <code>present</code>/<code>absent</code>，所以一次不小心的 <code>println</code> 或
+        调试器的美化打印都泄露不了它。</span></li>
   </ul>
 
   <p>
-    What none of that fixes: an attacker who can dump the heap of a running, unlocked
+    <span class="i18n-en">What none of that fixes: an attacker who can dump the heap of a running, unlocked
     process can recover the key. This is a limitation of every Android app that holds a
-    credential, including the official clients.
+    credential, including the official clients.</span><span class="i18n-zh">以上这些都没能修好的是：能对运行中且已解锁的进程做堆转储的攻击者，就能恢复出密钥。
+    这是每一个持有凭据的 Android App 都有的局限，官方客户端也不例外。</span>
   </p>
 
-  <h3 id="software-keystore">Software-backed Keystore<a class="anchor" href="#software-keystore">#</a></h3>
+  <h3 id="software-keystore"><span class="i18n-en">Software-backed Keystore</span><span class="i18n-zh">软件实现的 Keystore</span><a class="anchor" href="#software-keystore">#</a></h3>
 
   <p>
-    Many devices — and every emulator — have no TEE. There, the Keystore key is
+    <span class="i18n-en">Many devices — and every emulator — have no TEE. There, the Keystore key is
     software-protected rather than hardware-isolated. The app <strong>tells you which
     situation you are in</strong> on the settings screen rather than implying the stronger
-    guarantee, because a security indicator that is always green is not an indicator.
+    guarantee, because a security indicator that is always green is not an indicator.</span><span class="i18n-zh">很多设备 —— 以及每一个模拟器 —— 都没有 TEE。在那些设备上，Keystore 密钥是软件保护而非
+    硬件隔离的。App 会在设置页<strong>告诉你处在哪种情况</strong>，而不是暗示那个更强的保证，
+    因为永远显示绿色的安全指示器根本算不上指示器。</span>
   </p>
 
-  <h2 id="the-address-policy">The address policy is a security control<a class="anchor" href="#the-address-policy">#</a></h2>
+  <h2 id="the-address-policy"><span class="i18n-en">The address policy is a security control</span><span class="i18n-zh">地址策略是一道安全控制</span><a class="anchor" href="#the-address-policy">#</a></h2>
 
   <p>
-    <code>TailnetAddressPolicy</code> is easy to mistake for input validation. It is not. It
+    <span class="i18n-en"><code>TailnetAddressPolicy</code> is easy to mistake for input validation. It is not. It
     is the boundary that stops a typo, a pasted public hostname, or a malicious shared
     configuration from turning this app into a general-purpose request forwarder that reaches
-    arbitrary internet hosts through the user's node.
+    arbitrary internet hosts through the user's node.</span><span class="i18n-zh"><code>TailnetAddressPolicy</code> 很容易被误认为是输入校验。它不是。它是一道边界，用来阻止一个手误、
+    一个粘贴进来的公网主机名，或一份恶意的分享配置，把这个 App 变成通过用户节点访问任意互联网主机的
+    通用请求转发器。</span>
   </p>
 
-  <p>Allowed:</p>
+  <p><span class="i18n-en">Allowed:</span><span class="i18n-zh">允许：</span></p>
 
   <ul>
-    <li><code>100.64.0.0/10</code> — Tailscale's IPv4 range</li>
-    <li><code>fd7a:115c:a1e0::/48</code> — Tailscale's IPv6 ULA prefix</li>
-    <li>named hosts, with a warning when the name is not a <code>*.ts.net</code> FQDN</li>
+    <li><span class="i18n-en"><code>100.64.0.0/10</code> — Tailscale's IPv4 range</span><span class="i18n-zh"><code>100.64.0.0/10</code> —— Tailscale 的 IPv4 网段</span></li>
+    <li><span class="i18n-en"><code>fd7a:115c:a1e0::/48</code> — Tailscale's IPv6 ULA prefix</span><span class="i18n-zh"><code>fd7a:115c:a1e0::/48</code> —— Tailscale 的 IPv6 ULA 前缀</span></li>
+    <li><span class="i18n-en">named hosts, with a warning when the name is not a <code>*.ts.net</code> FQDN</span><span class="i18n-zh">具名主机；当名字不是 <code>*.ts.net</code> 这样的 FQDN 时会给出警告</span></li>
   </ul>
 
-  <p>Refused, with a reason the user can act on:</p>
+  <p><span class="i18n-en">Refused, with a reason the user can act on:</span><span class="i18n-zh">拒绝，并给出用户可以据以行动的原因：</span></p>
 
   <ul>
-    <li>any IPv4 or IPv6 literal outside those ranges, including <code>127.0.0.1</code>;</li>
-    <li>a pasted URL (the scheme belongs in a separate field);</li>
-    <li>malformed input, including out-of-range ports.</li>
+    <li><span class="i18n-en">any IPv4 or IPv6 literal outside those ranges, including <code>127.0.0.1</code>;</span><span class="i18n-zh">上述网段之外的任何 IPv4 或 IPv6 字面地址，包括 <code>127.0.0.1</code>；</span></li>
+    <li><span class="i18n-en">a pasted URL (the scheme belongs in a separate field);</span><span class="i18n-zh">粘贴进来的 URL（协议应填在单独的字段里）；</span></li>
+    <li><span class="i18n-en">malformed input, including out-of-range ports.</span><span class="i18n-zh">格式错误的输入，包括超出范围的端口。</span></li>
   </ul>
 
   <p class="small muted">
-    The check runs in <code>ConnectionTester</code> before the provider is asked to dial, and
+    <span class="i18n-en">The check runs in <code>ConnectionTester</code> before the provider is asked to dial, and
     <code>TargetAddress</code> — the type the providers accept — can only be constructed with
     a validated host and port. It is not possible to reach a dial without passing through the
-    policy, which is the property that makes it a control rather than a hint.
+    policy, which is the property that makes it a control rather than a hint.</span><span class="i18n-zh">这项检查在 <code>ConnectionTester</code> 里、在要求 provider 发起连接之前执行；而 provider 接受的
+    类型 <code>TargetAddress</code> 只能用一个校验过的主机和端口构造。不经过这道策略就不可能发起
+    连接，正是这个性质让它成为一道控制，而不是一句提示。</span>
   </p>
 
-  <h2 id="cleartext-http">Why cleartext HTTP is permitted<a class="anchor" href="#cleartext-http">#</a></h2>
+  <h2 id="cleartext-http"><span class="i18n-en">Why cleartext HTTP is permitted</span><span class="i18n-zh">为什么允许明文 HTTP</span><a class="anchor" href="#cleartext-http">#</a></h2>
 
   <p>
-    Traffic to a <code>100.x</code> address is encrypted by WireGuard from the app to the
+    <span class="i18n-en">Traffic to a <code>100.x</code> address is encrypted by WireGuard from the app to the
     destination node. There is no point on the path — including the Wi-Fi network the phone
-    is attached to — where a passive observer sees the plaintext.
+    is attached to — where a passive observer sees the plaintext.</span><span class="i18n-zh">发往 <code>100.x</code> 地址的流量，从 App 到目标节点之间由 WireGuard 加密。这条路径上没有任何
+    一点 —— 包括手机所连的 Wi-Fi 网络 —— 会让被动观察者看到明文。</span>
   </p>
 
   <p>
-    Requiring HTTPS on top of that would push users toward self-signed certificates and
+    <span class="i18n-en">Requiring HTTPS on top of that would push users toward self-signed certificates and
     "install this CA" flows, which is a strictly worse security story. Most self-hosted
-    services on a tailnet speak plain HTTP behind the tunnel.
+    services on a tailnet speak plain HTTP behind the tunnel.</span><span class="i18n-zh">在此基础上再强制 HTTPS，只会把用户推向自签名证书和「安装这个 CA」的流程，那在安全上是更差的
+    故事。tailnet 上大多数自建服务在隧道后面说的就是明文 HTTP。</span>
   </p>
 
   <p>
-    So the network security config permits cleartext <strong>only for tailnet
+    <span class="i18n-en">So the network security config permits cleartext <strong>only for tailnet
     destinations</strong> and refuses it by default everywhere else. Point the app at a
-    public hostname and it must use HTTPS.
+    public hostname and it must use HTTPS.</span><span class="i18n-zh">所以网络安全配置<strong>只对 tailnet 目标</strong>放行明文，其它地方一律默认拒绝。
+    把 App 指向一个公网主机名，它就必须使用 HTTPS。</span>
   </p>
 
-  <h2 id="permissions">Permissions, exhaustively<a class="anchor" href="#permissions">#</a></h2>
+  <h2 id="permissions"><span class="i18n-en">Permissions, exhaustively</span><span class="i18n-zh">权限，逐一列出</span><a class="anchor" href="#permissions">#</a></h2>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Permission</th><th>Why</th></tr>
+      <tr><th><span class="i18n-en">Permission</span><span class="i18n-zh">权限</span></th><th><span class="i18n-en">Why</span><span class="i18n-zh">原因</span></th></tr>
     </thead>
     <tbody>
       <tr>
         <td><code>INTERNET</code></td>
-        <td>To reach the control plane and the target.</td>
+        <td><span class="i18n-en">To reach the control plane and the target.</span><span class="i18n-zh">为了访问控制面和目标。</span></td>
       </tr>
       <tr>
         <td><code>ACCESS_NETWORK_STATE</code></td>
-        <td>So "no underlying network" can be reported as a distinct, actionable error. It
-            reads no payload.</td>
+        <td><span class="i18n-en">So "no underlying network" can be reported as a distinct, actionable error. It
+            reads no payload.</span><span class="i18n-zh">这样「没有底层网络」才能被报告为一个独立、可采取行动的错误。它不读取任何载荷。</span></td>
       </tr>
       <tr>
         <td><code>POST_NOTIFICATIONS</code></td>
-        <td>Android 13+, only if the user opts into a persistent "tailnet connected"
-            notification.</td>
+        <td><span class="i18n-en">Android 13+, only if the user opts into a persistent "tailnet connected"
+            notification.</span><span class="i18n-zh">仅 Android 13+，且只有用户主动选择开启常驻的「tailnet 已连接」通知时才需要。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <p>Deliberately absent, and why each one:</p>
+  <p><span class="i18n-en">Deliberately absent, and why each one:</span><span class="i18n-zh">有意不申请的权限，以及每一项的理由：</span></p>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Not requested</th><th>Reason</th></tr>
+      <tr><th><span class="i18n-en">Not requested</span><span class="i18n-zh">未申请</span></th><th><span class="i18n-en">Reason</span><span class="i18n-zh">原因</span></th></tr>
     </thead>
     <tbody>
       <tr>
         <td><code>BIND_VPN_SERVICE</code></td>
         <td>
-          The embedded node dials a single destination inside its own process. It never
+          <span class="i18n-en">The embedded node dials a single destination inside its own process. It never
           intercepts device-wide traffic, so it must not take the VPN slot — and taking it
-          would break any other VPN the user runs.
+          would break any other VPN the user runs.</span><span class="i18n-zh">内嵌节点只在自己进程内连接单个目标。它从不拦截整机流量，所以它不该占用 VPN 槽位 ——
+          占用还会破坏用户在用的其它 VPN。</span>
         </td>
       </tr>
       <tr>
         <td><code>QUERY_ALL_PACKAGES</code></td>
-        <td>Nothing here needs to enumerate other apps.</td>
+        <td><span class="i18n-en">Nothing here needs to enumerate other apps.</span><span class="i18n-zh">这里没有任何东西需要枚举其它 App。</span></td>
       </tr>
       <tr>
         <td><code>FOREGROUND_SERVICE</code></td>
-        <td>There is no long-lived background component. Work happens while you are looking
-            at the screen.</td>
+        <td><span class="i18n-en">There is no long-lived background component. Work happens while you are looking
+            at the screen.</span><span class="i18n-zh">没有任何长寿的后台组件。工作都发生在你看着屏幕的时候。</span></td>
       </tr>
       <tr>
-        <td>Location, storage, camera, contacts, phone</td>
-        <td>None of it is used. Exports, if added, go through the Storage Access Framework,
-            which grants exactly one file.</td>
+        <td><span class="i18n-en">Location, storage, camera, contacts, phone</span><span class="i18n-zh">位置、存储、相机、联系人、电话</span></td>
+        <td><span class="i18n-en">None of it is used. Exports, if added, go through the Storage Access Framework,
+            which grants exactly one file.</span><span class="i18n-zh">这些一个都没用到。将来若加入导出功能，会走 Storage Access Framework，它只授权一个文件。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h2 id="ipc-surface">There is no IPC surface<a class="anchor" href="#ipc-surface">#</a></h2>
+  <h2 id="ipc-surface"><span class="i18n-en">There is no IPC surface</span><span class="i18n-zh">不存在 IPC 攻击面</span><a class="anchor" href="#ipc-surface">#</a></h2>
 
   <p>
-    The app declares exactly one exported component: its launcher activity. No exported
+    <span class="i18n-en">The app declares exactly one exported component: its launcher activity. No exported
     service, receiver or content provider exists, so there is nothing for another app to bind
     to, query, or send an intent to. That is a deliberate structural choice — the cheapest
-    way to secure an attack surface is to not have one.
+    way to secure an attack surface is to not have one.</span><span class="i18n-zh">App 只声明了一个导出组件：它的启动 Activity。不存在任何导出的 service、receiver 或
+    content provider，所以别的 App 没有任何东西可以绑定、查询或发送 intent。这是一个有意的结构选择
+    —— 保护攻击面最便宜的办法，就是根本不存在攻击面。</span>
   </p>
 
-  <h3 id="flag-secure">On not setting FLAG_SECURE<a class="anchor" href="#flag-secure">#</a></h3>
+  <h3 id="flag-secure"><span class="i18n-en">On not setting FLAG_SECURE</span><span class="i18n-zh">关于不设置 FLAG_SECURE</span><a class="anchor" href="#flag-secure">#</a></h3>
 
   <p>
-    Screenshots are permitted. The reasoning: the connection-test output is the main thing a
+    <span class="i18n-en">Screenshots are permitted. The reasoning: the connection-test output is the main thing a
     user needs to share when asking for help, and the only secret on screen is behind a
     password-masked field that requires an explicit tap to reveal. If you fork this and
-    disagree, it is a one-line change in <code>app/src/main/res/values/themes.xml</code>.
+    disagree, it is a one-line change in <code>app/src/main/res/values/themes.xml</code>.</span><span class="i18n-zh">允许截图。理由是：用户求助时最需要分享的就是连接测试的输出，而屏幕上唯一的秘密藏在一个
+    密码掩码字段后面，必须显式点击才会显示。如果你 fork 之后不同意这个决定，改动只有一行，
+    位于 <code>app/src/main/res/values/themes.xml</code>。</span>
   </p>
 
-  <h2 id="revocation">Revocation is your job<a class="anchor" href="#revocation">#</a></h2>
+  <h2 id="revocation"><span class="i18n-en">Revocation is your job</span><span class="i18n-zh">吊销是你自己的事</span><a class="anchor" href="#revocation">#</a></h2>
 
   <div class="callout warn">
-    <span class="label">Important</span>
+    <span class="label"><span class="i18n-en">Important</span><span class="i18n-zh">重要</span></span>
     <p>
-      Deleting the key from the device does <strong>not</strong> revoke it at the control
+      <span class="i18n-en">Deleting the key from the device does <strong>not</strong> revoke it at the control
       plane. If the key was copied anywhere before you deleted it, it still works.
-      Revocation happens in your tailnet's admin console, and only there.
+      Revocation happens in your tailnet's admin console, and only there.</span><span class="i18n-zh">从设备上删除密钥<strong>并不</strong>等于在控制面上吊销它。如果这个密钥在你删除之前被复制到过别处，
+      它依然有效。吊销只发生在你 tailnet 的管理控制台里，也只在那一处。</span>
     </p>
   </div>
 
   <p>
-    <strong>Forget key and reset node</strong> does two things: it deletes the stored
+    <span class="i18n-en"><strong>Forget key and reset node</strong> does two things: it deletes the stored
     ciphertext <em>and</em> destroys the Keystore key, which makes any pre-existing copy of
     the ciphertext permanently unreadable. It also clears the node's state directory, because
     node state carries the identity the old key produced — leaving it behind is exactly what
-    makes a freshly pasted key appear to be ignored.
+    makes a freshly pasted key appear to be ignored.</span><span class="i18n-zh"><strong>忘记密钥并重置节点</strong>做两件事：删除已存的密文，<em>并且</em>销毁 Keystore 密钥，
+    这会让密文此前存在的任何副本永久无法读取。它还会清空节点的状态目录，因为节点状态承载着旧密钥
+    所产生的身份 —— 把它留在那里，正是让新粘贴的密钥看起来被忽略的原因。</span>
   </p>
 
-  <h2 id="hardening">Hardening checklist<a class="anchor" href="#hardening">#</a></h2>
+  <h2 id="hardening"><span class="i18n-en">Hardening checklist</span><span class="i18n-zh">加固清单</span><a class="anchor" href="#hardening">#</a></h2>
 
-  <p>Before you put a key on a device:</p>
+  <p><span class="i18n-en">Before you put a key on a device:</span><span class="i18n-zh">在把密钥放进设备之前：</span></p>
 
   <ul>
-    <li>Use a <strong>tagged, single-use, short-expiry</strong> pre-auth key, and write an ACL
+    <li><span class="i18n-en">Use a <strong>tagged, single-use, short-expiry</strong> pre-auth key, and write an ACL
         that grants the resulting node access to only the service you intend. The app cannot
-        enforce this for you; your ACLs can.</li>
-    <li>Prefer a <code>100.x</code> address when testing, so a failure means the network
-        rather than the resolver.</li>
-    <li>If the device is not one you fully trust, do not store a key on it.</li>
-    <li>Delete the key in your admin console when you stop using the device.</li>
+        enforce this for you; your ACLs can.</span><span class="i18n-zh">使用<strong>带标签、一次性、短有效期</strong>的预授权密钥，并写好 ACL，只让产生的节点访问你打算开放的
+        服务。App 无法替你强制这一点；你的 ACL 可以。</span></li>
+    <li><span class="i18n-en">Prefer a <code>100.x</code> address when testing, so a failure means the network
+        rather than the resolver.</span><span class="i18n-zh">测试时优先用 <code>100.x</code> 地址，这样失败意味着网络问题，而不是解析器问题。</span></li>
+    <li><span class="i18n-en">If the device is not one you fully trust, do not store a key on it.</span><span class="i18n-zh">如果这台设备不是你完全信任的，就不要在上面存密钥。</span></li>
+    <li><span class="i18n-en">Delete the key in your admin console when you stop using the device.</span><span class="i18n-zh">不再使用这台设备时，去管理控制台里删除这个密钥。</span></li>
   </ul>
 
-  <h2 id="contributor-rules">Rules for contributors<a class="anchor" href="#contributor-rules">#</a></h2>
+  <h2 id="contributor-rules"><span class="i18n-en">Rules for contributors</span><span class="i18n-zh">贡献者规则</span><a class="anchor" href="#contributor-rules">#</a></h2>
 
   <ul>
-    <li>No test, fixture, log line, screenshot, issue or commit message may contain a real
+    <li><span class="i18n-en">No test, fixture, log line, screenshot, issue or commit message may contain a real
         auth key. Use obvious dummies such as <code>tskey-auth-EXAMPLE…</code>. CI enforces
-        this on tracked files.</li>
-    <li>Security-relevant changes must add or update a note on this page in the same pull
-        request.</li>
-    <li>Never introduce a new outbound destination. If a change requires one, it needs a
-        documented justification in <code>PRIVACY.md</code> and explicit reviewer sign-off.</li>
-    <li>New logging goes through <code>SafeLog</code>. A bare <code>android.util.Log</code>
-        call is a review-blocking defect, and CI greps for it.</li>
+        this on tracked files.</span><span class="i18n-zh">任何测试、夹具、日志行、截图、issue 或提交信息里都不得出现真实的认证密钥。请使用一眼可辨的
+        假值，例如 <code>tskey-auth-EXAMPLE…</code>。CI 会对纳入版本控制的文件强制执行这一点。</span></li>
+    <li><span class="i18n-en">Security-relevant changes must add or update a note on this page in the same pull
+        request.</span><span class="i18n-zh">与安全相关的改动，必须在同一个 pull request 里新增或更新本页的说明。</span></li>
+    <li><span class="i18n-en">Never introduce a new outbound destination. If a change requires one, it needs a
+        documented justification in <code>PRIVACY.md</code> and explicit reviewer sign-off.</span><span class="i18n-zh">绝不引入新的出站目标。如果某项改动确实需要，就必须在 <code>PRIVACY.md</code> 里有书面理由，
+        并得到审阅者的明确签字。</span></li>
+    <li><span class="i18n-en">New logging goes through <code>SafeLog</code>. A bare <code>android.util.Log</code>
+        call is a review-blocking defect, and CI greps for it.</span><span class="i18n-zh">新增日志一律走 <code>SafeLog</code>。裸的 <code>android.util.Log</code>
+        调用是阻塞审阅的缺陷，CI 会 grep 它。</span></li>
   </ul>
 
-  <h2 id="out-of-scope">Out of scope<a class="anchor" href="#out-of-scope">#</a></h2>
+  <h2 id="out-of-scope"><span class="i18n-en">Out of scope</span><span class="i18n-zh">不在范围内</span><a class="anchor" href="#out-of-scope">#</a></h2>
 
   <ul>
-    <li><strong>A rooted or compromised device.</strong> An attacker running code as this app
-        can read what the app can read.</li>
-    <li><strong>A compromised control plane.</strong> Whoever controls it can re-key your
-        nodes. Inherent to the protocol.</li>
-    <li><strong>Traffic analysis.</strong> The app does not hide that a Tailscale node is
-        running.</li>
-    <li><strong>The security of the target service.</strong> This is a client. If the thing
-        you point it at is insecure, it will be reached insecurely and competently.</li>
-    <li><strong>Physical coercion.</strong> The masked field resists shoulder surfing and
-        nothing more.</li>
+    <li><span class="i18n-en"><strong>A rooted or compromised device.</strong> An attacker running code as this app
+        can read what the app can read.</span><span class="i18n-zh"><strong>已 root 或被攻陷的设备。</strong>以本 App 身份运行代码的攻击者，能读到 App 能读到的一切。</span></li>
+    <li><span class="i18n-en"><strong>A compromised control plane.</strong> Whoever controls it can re-key your
+        nodes. Inherent to the protocol.</span><span class="i18n-zh"><strong>被攻陷的控制面。</strong>控制它的人可以给你的节点重新下密钥。这是协议本身的问题。</span></li>
+    <li><span class="i18n-en"><strong>Traffic analysis.</strong> The app does not hide that a Tailscale node is
+        running.</span><span class="i18n-zh"><strong>流量分析。</strong>本 App 并不隐藏有一个 Tailscale 节点正在运行。</span></li>
+    <li><span class="i18n-en"><strong>The security of the target service.</strong> This is a client. If the thing
+        you point it at is insecure, it will be reached insecurely and competently.</span><span class="i18n-zh"><strong>目标服务自身的安全性。</strong>这是个客户端。如果你指向的东西本身不安全，它就会被不安全地、但很称职地
+        访问到。</span></li>
+    <li><span class="i18n-en"><strong>Physical coercion.</strong> The masked field resists shoulder surfing and
+        nothing more.</span><span class="i18n-zh"><strong>人身胁迫。</strong>掩码字段只能防肩窥，仅此而已。</span></li>
   </ul>
 
 </main>
@@ -337,18 +373,21 @@
     <p>
       <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
       <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
-      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
-      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md"><span class="i18n-en">Privacy</span><span class="i18n-zh">隐私</span></a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md"><span class="i18n-en">Security policy</span><span class="i18n-zh">安全策略</span></a>
     </p>
         <p class="small">
-      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      <span class="i18n-en"><strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
       client; the name and the whale artwork are used descriptively, to say what the app
       connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
       owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
       "Tailscale" is their trademark, and this is an independent client for their protocol
-      and for headscale.
+      and for headscale.</span><span class="i18n-zh"><strong>与 DeepSeek 没有隶属关系。</strong>这是一个独立、非官方的客户端；名称与鲸鱼图案只用于
+      说明它连接的是什么。DeepSeek 与 DeepSeek 鲸鱼标志属于其各自所有者，本项目不主张任何相关权利。
+      同样与 Tailscale Inc 没有隶属关系 —— “Tailscale” 是他们的商标，本项目只是其协议与 headscale 的
+      独立客户端。</span>
     </p>
-<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+<p class="small"><span class="i18n-en">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span><span class="i18n-zh">构建自 <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span></p>
   </div>
 </footer>
 

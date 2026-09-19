@@ -15,7 +15,17 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **The docs site is bilingual.** Every page now ships in English and Chinese at once: the two
+  languages are siblings in the markup
+  (`<span class="i18n-en">…</span><span class="i18n-zh">…</span>`) and `site/styles.css` hides one
+  of them, so a page still reads correctly with JavaScript blocked and a translator can see both
+  halves while editing. `site/lang.js` only decides which half is shown — `?lang=` first, then the
+  saved choice, then the browser's own languages — with a toggle in the header. Nothing is sent
+  anywhere. `site/build.mjs` now fails the build when the two halves are not the same size, because
+  a forgotten half reads as a blank line to whoever has that language selected; `site/README.md`
+  documents the convention and the shared terminology.
 
 ## [0.2.7] — 2026-09-19
 

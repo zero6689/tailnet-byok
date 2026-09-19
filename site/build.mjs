@@ -52,7 +52,7 @@ const REPO_ROOT = join(SITE_DIR, '..');
 const OUT_DIR = join(SITE_DIR, 'dist');
 
 /** Assets copied verbatim into the output. Everything else must be a template. */
-const STATIC_ASSETS = ['styles.css', '.nojekyll', 'qr.js'];
+const STATIC_ASSETS = ['styles.css', '.nojekyll', 'qr.js', 'lang.js'];
 
 const errors = [];
 const warnings = [];
@@ -148,6 +148,38 @@ function checkStructure(pageName, html) {
   }
   if (!/<html[^>]+lang="/.test(html)) {
     warnings.push(`${pageName}: <html> has no lang attribute`);
+  }
+  checkLanguages(pageName, html);
+}
+
+/**
+ * Every page is bilingual, and the two halves live in the markup. A half that
+ * was forgotten — a paragraph translated but its sibling left out, a section
+ * translated in only one direction — reads as a *blank* line to whoever has
+ * that language selected, which is the kind of defect nobody notices until a
+ * reader does. Counting the pairs is what catches it.
+ */
+function checkLanguages(pageName, html) {
+  if (!/<script[^>]+src="lang\.js"/.test(html)) {
+    errors.push(`${pageName}: does not load lang.js — the language switch would do nothing`);
+    return;
+  }
+  if (!/<html[^>]+data-lang=/.test(html)) {
+    errors.push(`${pageName}: <html> has no data-lang — nothing decides which language shows`);
+  }
+  if (!/<html[^>]+data-title-zh="/.test(html)) {
+    errors.push(`${pageName}: <html> has no data-title-zh — the title would stay English`);
+  }
+  if (!/id="lang-toggle"/.test(html)) {
+    errors.push(`${pageName}: missing the #lang-toggle button`);
+  }
+
+  const en = (html.match(/class="[^"]*\bi18n-en\b/g) || []).length;
+  const zh = (html.match(/class="[^"]*\bi18n-zh\b/g) || []).length;
+  if (en === 0 && zh === 0) {
+    errors.push(`${pageName}: carries no i18n-en/i18n-zh pairs — it is not translated`);
+  } else if (en !== zh) {
+    errors.push(`${pageName}: ${en} i18n-en against ${zh} i18n-zh — one half is missing somewhere`);
   }
 }
 

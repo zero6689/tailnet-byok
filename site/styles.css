@@ -151,6 +151,31 @@ nav.site a[aria-current="page"] {
   border-bottom-color: var(--accent);
 }
 
+/* --- Languages ----------------------------------------------------------- */
+
+/* Every page carries both languages; one of them is hidden here rather than by
+   the script, so the page still reads correctly if `lang.js` never loads. With
+   no `data-lang` at all — a page opened with the script blocked — the English
+   half is what a reader gets. */
+html[data-lang="zh"] .i18n-en { display: none !important; }
+html:not([data-lang="zh"]) .i18n-zh { display: none !important; }
+
+button.lang {
+  font: inherit;
+  color: var(--fg-muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem;
+  cursor: pointer;
+}
+
+button.lang:hover,
+button.lang:focus-visible {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
 /* --- Typography --------------------------------------------------------- */
 
 h1 {
