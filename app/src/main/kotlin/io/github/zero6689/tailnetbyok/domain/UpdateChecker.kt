@@ -65,6 +65,47 @@ class UpdateChecker(
         data class Failed(val reason: UpdateFailure) : UpdateCheck
     }
 
+    /** What a version-only check found. See [checkVersionOnly]. */
+    sealed interface VersionCheck {
+
+        /** The source offers something newer than the installed build. */
+        data class Newer(val current: String, val advertised: String) : VersionCheck
+
+        /** The installed build is the newest the source has. */
+        data class UpToDate(val current: String, val advertised: String) : VersionCheck
+
+        data class Failed(val reason: UpdateFailure) : VersionCheck
+    }
+
+    /**
+     * Only the version file, and nothing else.
+     *
+     * This is the check the app runs by itself at start-up, and the difference
+     * from [check] is the whole point: nothing large is fetched, so a check the
+     * user never asked for costs one small text request. Telling them a newer
+     * version exists is the goal; spending their bandwidth on the chance that
+     * they want it is not.
+     */
+    suspend fun checkVersionOnly(baseUrl: String, currentVersion: String): VersionCheck {
+        val base = baseUrl.trim().trimEnd('/')
+        if (base.isEmpty()) return VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+
+        val versionUrl = UpdateProtocol.endpoint(base, UpdateProtocol.VERSION_PATH)
+        val versionText = when (val fetched = fetchChecked(versionUrl, UpdateProtocol.MAX_TEXT_BYTES)) {
+            is Fetched.Ok -> fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
+            Fetched.TooLarge, Fetched.Failed -> return VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+        }
+
+        val advertised = UpdateProtocol.parseAdvertisedVersion(versionText)
+            ?: return VersionCheck.Failed(UpdateFailure.VERSION_UNPARSABLE)
+
+        return if (UpdateProtocol.isNewer(advertised, currentVersion)) {
+            VersionCheck.Newer(current = currentVersion, advertised = advertised)
+        } else {
+            VersionCheck.UpToDate(current = currentVersion, advertised = advertised)
+        }
+    }
+
     /**
      * Checks [baseUrl] and downloads from it when it advertises something newer
      * than [currentVersion].

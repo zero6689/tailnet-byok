@@ -91,6 +91,60 @@ class UpdateCheckerTest {
         assertEquals(listOf("$base/${UpdateProtocol.VERSION_PATH}"), source.requested)
     }
 
+    // -- The check the app runs by itself -------------------------------------
+
+    @Test
+    fun `the version-only check reads one file and stages nothing`() = runTest {
+        // A source that *would* offer a download if it were asked for one: the
+        // assertion that matters is that it is never asked.
+        val source = FakeSource(
+            routes(version = "0.2.9", apk = apkBytes, sidecar = "$apkHash  dsh.apk\n"),
+        )
+        val result = checkerFor(source).checkVersionOnly(base, "0.2.8-debug")
+
+        assertEquals(
+            UpdateChecker.VersionCheck.Newer(current = "0.2.8-debug", advertised = "0.2.9"),
+            result,
+        )
+        assertEquals(listOf("$base/${UpdateProtocol.VERSION_PATH}"), source.requested)
+    }
+
+    @Test
+    fun `the version-only check treats a build suffix as the same version`() = runTest {
+        val source = FakeSource(routes(version = "0.2.8\n"))
+        val result = checkerFor(source).checkVersionOnly(base, "0.2.8-debug")
+
+        assertEquals(
+            UpdateChecker.VersionCheck.UpToDate(current = "0.2.8-debug", advertised = "0.2.8"),
+            result,
+        )
+    }
+
+    @Test
+    fun `the version-only check reports a missing version file`() = runTest {
+        val source = FakeSource(routes())
+        val result = checkerFor(source).checkVersionOnly(base, "0.2.8-debug")
+
+        assertEquals(UpdateChecker.VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE), result)
+    }
+
+    @Test
+    fun `the version-only check reports a version file with no version in it`() = runTest {
+        val source = FakeSource(routes(version = "<html>hello</html>"))
+        val result = checkerFor(source).checkVersionOnly(base, "0.2.8-debug")
+
+        assertEquals(UpdateChecker.VersionCheck.Failed(UpdateFailure.VERSION_UNPARSABLE), result)
+    }
+
+    @Test
+    fun `the version-only check with no source asks for nothing`() = runTest {
+        val source = FakeSource(routes(version = "0.2.9"))
+        val result = checkerFor(source).checkVersionOnly("   ", "0.2.8-debug")
+
+        assertEquals(UpdateChecker.VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE), result)
+        assertTrue(source.requested.isEmpty())
+    }
+
     @Test
     fun `a newer source is downloaded and verified`() = runTest {
         val source = FakeSource(

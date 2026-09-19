@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 8
+        versionCode = 9
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -159,7 +159,17 @@ android {
         // value -- so no page-side patch can notice. The screen now shrinks the
         // WebView by the IME inset itself (`imePadding`), which leaves the page
         // with a viewport that is already correct. See WebScreen.kt.
-        versionName = "0.2.8"
+        //
+        // 0.2.9: the four things that make it usable without a laptop open.
+        //   * uploads can choose several files and can come from the camera;
+        //   * the app checks the update source by itself at start-up (version
+        //     file only) and offers what it finds in a row, not a dialog;
+        //   * the DSH screen has a way back to settings, the failure card offers
+        //     it too, and a first run with no target gets the configuration link
+        //     path (paste it, or open the provisioning page);
+        //   * a session that stops running posts a notification — but only when
+        //     the app is not already in front of the user.
+        versionName = "0.2.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -205,6 +215,16 @@ android {
         buildConfigField("String", "DEFAULT_TARGET", "\"${gradlePropertyOrEmpty("defaultTarget")}\"")
         buildConfigField("String", "DEFAULT_MODE", "\"${gradlePropertyOrEmpty("defaultMode")}\"")
         buildConfigField("String", "DEFAULT_UPDATE_URL", "\"${gradlePropertyOrEmpty("defaultUpdateUrl")}\"")
+        // The docs page that draws a configuration link and its QR code. Empty in
+        // the public build: the *mechanism* ships, the value belongs to a
+        // deployment (see docs/PROVISIONING.md). When it is set, the first-run
+        // card offers it as a tappable link — that is the whole "out of the box"
+        // story, since the app itself has no camera and so cannot scan the code.
+        buildConfigField(
+            "String",
+            "DEFAULT_PROVISIONING_URL",
+            "\"${gradlePropertyOrEmpty("defaultProvisioningUrl")}\"",
+        )
 
         // NOTE (2026-09-12 23:0x): a `resourceConfigurations += setOf("en", "zh")`
         // style filter was tried here to strip the dependencies' translated

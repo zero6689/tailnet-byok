@@ -27,6 +27,55 @@ oversight, and it is worth knowing when you read a security entry below.
   a forgotten half reads as a blank line to whoever has that language selected; `site/README.md`
   documents the convention and the shared terminology.
 
+## [0.2.9] — 2026-09-19
+
+The version the app reports is `0.2.9` (`versionCode` 9). It is the round that makes the phone
+usable without a laptop open: uploads that can come from the camera, an update check the app runs
+by itself, a way back to settings from the DSH screen — and a notification when a task finishes.
+
+### Added
+
+- **Uploads: several files, and the camera.** The page's file input is passed through with its own
+  meaning intact — an `accept` list of concrete types becomes an `EXTRA_MIME_TYPES` filter behind a
+  wildcard type, extension-only hints (`.csv`) are dropped rather than turned into a picker with
+  nothing in it, `multiple` allows several files, and "take a photo" is offered when a photo is
+  something the page can accept (an image-only input, or one that constrains nothing at all, which
+  is the shape the DSH composer's attach button has). The camera writes through the app's
+  FileProvider into a disposable cache file, so the app still holds no storage permission and the
+  page receives an ordinary `content://` URI. No camera permission is requested: the system camera
+  app takes the picture.
+- **A start-up update check that reads one file.** The app asks the configured update source for
+  `dsh.apk.version` once per process and, when it advertises something newer, shows a tappable row
+  at the top of the settings screen. It never downloads on its own: the bytes are fetched only when
+  that row is tapped, which runs the existing verified download. A failed check is silent — a
+  question nobody asked must not be the reason an error appears. Nothing is requested at all until
+  a target exists, because the app talks to nobody but the target it was given.
+- **A way back to settings, and a first run that explains itself.** The DSH screen's top bar has a
+  back arrow and a gear (the same destination, because the DSH UI is a child of the settings
+  screen), and the "page did not load" card now offers *Open settings* next to *Retry* — the
+  question a user has when a page will not load is where that page came from. A first run with no
+  target gets a card with the ways in, including the one that needs no typing: paste a
+  `dshbyok://setup?…` link. It goes through exactly the same parse-show-confirm path as a link that
+  arrives from the operating system, which is the point — the confirmation exists so the *target*
+  is what the user agrees to, not because of where the text came from. A build can point at its
+  provisioning page with `-PdefaultProvisioningUrl=…`; the public build ships it empty and the card
+  hides that line.
+- **"A task finished" notifications.** While the DSH screen is open the app polls the target's own
+  `session/list` RPC through the same loopback route the WebView uses (carrying the WebView's cookie
+  and nothing else) and posts a notification when a session goes from running to not running. It is
+  a transition, so it fires once, a session that was already idle at start-up is not news, and a
+  session that disappears is not reported as finished. `session/list` is an endpoint that has
+  survived several DSH releases, so no part of this reads or patches the page. Notifications are
+  posted **only when the app is not in front of the user**, carry the session title and none of the
+  conversation, and tapping one opens the app. The poll backs off to one every 20s while nothing is
+  running. Android 13+ is asked for `POST_NOTIFICATIONS` the first time the DSH screen opens.
+
+### Fixed
+
+- The DSH screen no longer leaves a staged photo behind when the camera entry is offered and a
+  document is chosen instead; the file is deleted when the request is answered without it, and
+  when the screen goes away.
+
 ## [0.2.8] — 2026-09-19
 
 The version the app reports is `0.2.8` (`versionCode` 8). It fixes the composer disappearing behind the

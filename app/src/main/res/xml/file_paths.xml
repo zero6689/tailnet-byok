@@ -2,18 +2,25 @@
 <!--
   What the FileProvider may serve, and nothing more.
 
-  Exactly one entry: the `updates` directory inside the app's cache directory,
-  which is where a verified download is staged for the package installer. It is
-  deliberately not `files-path`, not `external-path`, and not a catch-all — a
-  provider that can serve everything is a provider that can leak everything, and
-  this one has exactly one job.
+  Two entries, each with exactly one job:
 
-  The download lives in the cache because it is a disposable transfer: Android may
-  reclaim it under pressure, and the app treats "the file is gone" as a normal
-  outcome (re-check for the update) rather than an error.
+    * `updates/` — where a verified download is staged for the package installer.
+    * `capture/` — where the system camera writes the photo an upload asked for,
+      when the page's file input allows one.
+
+  It is deliberately not `files-path`, not `external-path`, and not a catch-all —
+  a provider that can serve everything is a provider that can leak everything.
+
+  Both directories live in the cache because both are disposable transfers:
+  Android may reclaim them under pressure, and the app treats "the file is gone"
+  as a normal outcome (re-check for the update; ask the page to pick again) rather
+  than an error.
 -->
 <paths>
     <cache-path
         name="updates"
         path="updates/" />
+    <cache-path
+        name="capture"
+        path="capture/" />
 </paths>

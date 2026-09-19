@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The notification's small icon: a check mark, drawn as a flat white glyph on
+  transparent, which is what Android expects (the system tints it and masks it to
+  its own shape).
+
+  It is a check rather than the brand mark on purpose: at notification size a
+  detailed silhouette reads as a smudge, and the only thing this notification ever
+  means is "a task finished". A separate drawable, not the launcher icon — a
+  launcher foreground is full-bleed and would arrive as a white square.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9,16.2 L4.8,12 L3.4,13.4 L9,19 L21,7 L19.6,5.6 Z" />
+</vector>

@@ -219,7 +219,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.2.8** (`versionCode` 8) — a working spine, and it compiles.
+Version **0.2.9** (`versionCode` 9) — a working spine, and it compiles.
 
 **Verified by an actual build**, not by inspection: unit tests pass, Lint reports zero errors,
 `assembleDebug` and `assembleRelease` both succeed, and the gomobile bridge produces a

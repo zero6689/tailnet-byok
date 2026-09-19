@@ -148,7 +148,7 @@ jobs:
           # machine. The build-property form in documentation (`-PdefaultTarget=…`)
           # is not what this looks for: only a bare assignment at the start of a
           # properties line.
-          hits=$(git grep -nIE '^[[:space:]]*default(Target|Mode|UpdateUrl)[[:space:]]*=' -- '*.properties' || true)
+          hits=$(git grep -nIE '^[[:space:]]*default(Target|Mode|UpdateUrl|ProvisioningUrl)[[:space:]]*=' -- '*.properties' || true)
           if [ -n "$hits" ]; then
             echo "::error::a default target/mode/update URL is committed in a properties file."
             echo "::error::Pass it on the command line (-PdefaultTarget=…) or in an untracked file instead."
@@ -299,7 +299,7 @@ jobs:
             echo "::error::no generated BuildConfig.java found"
             exit 1
           fi
-          for field in DEFAULT_TARGET DEFAULT_MODE DEFAULT_UPDATE_URL; do
+          for field in DEFAULT_TARGET DEFAULT_MODE DEFAULT_UPDATE_URL DEFAULT_PROVISIONING_URL; do
             if ! grep -qE "$field = \"\";" "$cfg"; then
               echo "::error::$field is not empty in the default build:"
               grep -E "$field =" "$cfg"

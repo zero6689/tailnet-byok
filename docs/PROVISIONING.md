@@ -94,6 +94,21 @@ every install to serve a one-time setup step, and the system camera already does
 the job. That decision is recorded in
 [`SECURITY-MODEL.md`](SECURITY-MODEL.md).
 
+### Pasting it
+
+A code on a screen somewhere else is the common case, and the phone may be the
+only device in the room — so the link can also be **pasted**. A first run with no
+target shows a card with a box for it, and whatever goes in there takes exactly the
+same path a link from the operating system takes: parsed, shown with the target it
+would produce, applied only on a tap. That is deliberate. The confirmation exists
+so that the *target* is what the user agrees to, not because of where the text came
+from, and "the user typed it" is not a reason to skip it.
+
+A build can point at its own provisioning page with
+`-PdefaultProvisioningUrl=https://…` (see [`BUILD.md`](BUILD.md)); the card then
+offers that page as a tappable link. The public build ships the property empty, so
+the card shows only the paste box.
+
 ## Why not a built-in address?
 
 The obvious alternative is to compile a default address into the app. It is not

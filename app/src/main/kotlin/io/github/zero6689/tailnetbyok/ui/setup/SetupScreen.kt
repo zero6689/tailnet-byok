@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -118,7 +120,15 @@ fun SetupRoute(container: AppContainer) {
         // into the WebView. See `net/ConnectivityProvider.kt`: this string may
         // carry the loopback proxy's session token, so it is never logged and
         // never shown.
-        WebScreen(url = webUrl.reveal(), onClose = vm::closeWebUi)
+        WebScreen(
+            url = webUrl.reveal(),
+            onClose = vm::closeWebUi,
+            // Both go to the settings screen, which is where this screen came
+            // from: the DSH UI is a child of it, not a sibling. They stay separate
+            // callbacks because the *intent* differs — one is "leave", one is
+            // "configure" — and that is the seam a future change would use.
+            onOpenSettings = vm::closeWebUi,
+        )
     }
 }
 
@@ -151,6 +161,26 @@ fun SetupScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { IntroCard(state = state, onAcknowledge = actions::acknowledgeSecurityModel) }
+
+            // First, because it is the only thing here that arrived without being
+            // asked for: the start-up check found a newer build.
+            state.availableUpdate?.let { version ->
+                item {
+                    UpdateAvailableCard(version = version, onUpdate = actions::checkForUpdate)
+                }
+            }
+
+            // Nothing is configured yet: this is where the deployment's
+            // configuration link belongs, and it is the one path that needs no
+            // typing.
+            if (state.config.hostInput.isBlank()) {
+                item {
+                    FirstRunCard(
+                        provisioningUrl = state.provisioningUrl,
+                        onUseLink = actions::offerPastedLink,
+                    )
+                }
+            }
 
             state.pendingSetup?.let { link ->
                 item {
@@ -223,6 +253,7 @@ interface SetupActions {
     fun allowInstallSource()
     fun applyPendingSetup()
     fun discardPendingSetup()
+    fun offerPastedLink(text: String)
     fun loadDiagnostics()
     fun acknowledgeSecurityModel()
     fun dismissBanner()
@@ -255,6 +286,7 @@ private fun SetupViewModel.asActions(): SetupActions = object : SetupActions {
     override fun allowInstallSource() = this@asActions.allowInstallSource()
     override fun applyPendingSetup() = this@asActions.applyPendingSetup()
     override fun discardPendingSetup() = this@asActions.discardPendingSetup()
+    override fun offerPastedLink(text: String) = this@asActions.offerPastedLink(text)
     override fun loadDiagnostics() = this@asActions.loadDiagnostics()
     override fun acknowledgeSecurityModel() = this@asActions.acknowledgeSecurityModel()
     override fun dismissBanner() = this@asActions.dismissBanner()
@@ -263,6 +295,96 @@ private fun SetupViewModel.asActions(): SetupActions = object : SetupActions {
 // ---------------------------------------------------------------------------
 // Sections
 // ---------------------------------------------------------------------------
+
+/**
+ * "A newer build exists" — the only thing the start-up check can produce.
+ *
+ * A row, not a dialog: the check runs without being asked for, so it must not be
+ * able to interrupt. Tapping it runs the *manual* check, which is the one that
+ * downloads and verifies; the start-up check read nothing but the version file
+ * and never touched a package.
+ */
+@Composable
+private fun UpdateAvailableCard(version: String, onUpdate: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.SystemUpdate, contentDescription = null)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.update_available_title, version),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(R.string.update_available_body),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = onUpdate) { Text(stringResource(R.string.update_available_action)) }
+        }
+    }
+}
+
+/**
+ * First run: the ways in, and the one this screen can act on directly.
+ *
+ * Shown only while no target has been entered. The configuration link is the fast
+ * path — a deployment hands it over as a link or as a QR code, and it is the only
+ * one of the three that arrives with everything already filled in — but it has to
+ * be *pasteable*: this app has no camera, so it cannot scan the code itself, and
+ * "point your phone at the screen" is not an instruction it can follow. Copy the
+ * link from the page that drew the code, paste it here, and the ordinary
+ * confirmation card takes over from there.
+ */
+@Composable
+private fun FirstRunCard(
+    provisioningUrl: String,
+    onUseLink: (String) -> Unit,
+) {
+    var pasted by remember { mutableStateOf("") }
+
+    SectionCard(R.string.firstrun_title, R.string.firstrun_subtitle) {
+        Text(
+            text = stringResource(R.string.firstrun_body),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        OutlinedTextField(
+            value = pasted,
+            onValueChange = { pasted = it },
+            label = { Text(stringResource(R.string.firstrun_paste_label)) },
+            placeholder = { Text(stringResource(R.string.firstrun_paste_hint)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(onClick = { onUseLink(pasted) }, enabled = pasted.isNotBlank()) {
+            Text(stringResource(R.string.firstrun_use_link))
+        }
+        // Only http(s) is handed to the system's view intent. The value comes from
+        // the build, so this is not about distrusting the user — it is about an
+        // arbitrary scheme launching an arbitrary app from a settings screen.
+        val openable = provisioningUrl.startsWith("http://") || provisioningUrl.startsWith("https://")
+        if (openable) {
+            val uriHandler = LocalUriHandler.current
+            Text(
+                text = stringResource(R.string.firstrun_provisioning),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            TextButton(onClick = { uriHandler.openUri(provisioningUrl) }) {
+                Text(stringResource(R.string.firstrun_open_provisioning))
+            }
+        }
+    }
+}
 
 @Composable
 private fun IntroCard(state: UiState, onAcknowledge: () -> Unit) {
@@ -1020,6 +1142,7 @@ private val noopActions = object : SetupActions {
     override fun allowInstallSource() = Unit
     override fun applyPendingSetup() = Unit
     override fun discardPendingSetup() = Unit
+    override fun offerPastedLink(text: String) = Unit
     override fun loadDiagnostics() = Unit
     override fun acknowledgeSecurityModel() = Unit
     override fun dismissBanner() = Unit
