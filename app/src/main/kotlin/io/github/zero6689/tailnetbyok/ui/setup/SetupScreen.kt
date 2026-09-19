@@ -160,25 +160,31 @@ fun SetupScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { IntroCard(state = state, onAcknowledge = actions::acknowledgeSecurityModel) }
-
-            // First, because it is the only thing here that arrived without being
-            // asked for: the start-up check found a newer build.
-            state.availableUpdate?.let { version ->
-                item {
-                    UpdateAvailableCard(version = version, onUpdate = actions::checkForUpdate)
-                }
-            }
-
-            // Nothing is configured yet: this is where the deployment's
-            // configuration link belongs, and it is the one path that needs no
-            // typing.
-            if (state.config.hostInput.isBlank()) {
+            // A fresh install — or one whose target was cleared — gets the ways in
+            // *before* anything else, including the security note. The note still
+            // follows (nothing here is used before it can be read), but the first
+            // thing a new user needs is how to connect, not an essay.
+            //
+            // The condition is "first run OR nothing configured", not just the
+            // latter: a deployment build arrives with its target already filled in
+            // (see `-PdefaultTarget`), and that must not be the reason the page
+            // with the QR code becomes unreachable from inside the app.
+            if (!state.config.acknowledgedSecurityModel || state.config.hostInput.isBlank()) {
                 item {
                     FirstRunCard(
                         provisioningUrl = state.provisioningUrl,
                         onUseLink = actions::offerPastedLink,
                     )
+                }
+            }
+
+            item { IntroCard(state = state, onAcknowledge = actions::acknowledgeSecurityModel) }
+
+            // The only thing here that arrived without being asked for: the
+            // start-up check found a newer build.
+            state.availableUpdate?.let { version ->
+                item {
+                    UpdateAvailableCard(version = version, onUpdate = actions::checkForUpdate)
                 }
             }
 
