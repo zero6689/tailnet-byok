@@ -68,6 +68,12 @@ gomobile-bound tunnel in a Kotlin app), applied to the single-destination case.
   that is newer, and installs it only when the bytes match `dsh.apk.sha256` and the archive
   declares this app's package name. There is no timer and no background check; the result of
   the last attempt stays on the screen, including after the installer restarts the app.
+- **Provisioning by link or QR code** — a deployment can hand the app its address as
+  `dshbyok://setup?target=…&mode=…`. The app shows what the link would change and waits for a
+  tap; a link that carries a credential-shaped field is refused outright, and one pointing at a
+  host the address policy rejects cannot be applied. There is a generator that renders the QR
+  code in your browser: [`site/provisioning.html`](https://zero6689.github.io/tailnet-byok/provisioning.html).
+  See [`docs/PROVISIONING.md`](docs/PROVISIONING.md).
 
 ### A sample run
 
@@ -201,6 +207,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 | [docs/RELEASING.md](docs/RELEASING.md) | What a release records, and what must be true first |
 | [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) | How the graph is pinned, and what moving it costs |
 | [docs/TSNET.md](docs/TSNET.md) | How the embedded node works, and the traps |
+| [docs/PROVISIONING.md](docs/PROVISIONING.md) | Configuration links, QR codes, and pre-filled builds |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module layout and the decisions behind it |
 | [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) | Threat model, in plain language |
 | [docs/PROVENANCE.md](docs/PROVENANCE.md) | Where the code came from, and how that was checked |
@@ -212,7 +219,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.2.5** (`versionCode` 5) — a working spine, and it compiles.
+Version **0.2.7** (`versionCode` 7) — a working spine, and it compiles.
 
 **Verified by an actual build**, not by inspection: unit tests pass, Lint reports zero errors,
 `assembleDebug` and `assembleRelease` both succeed, and the gomobile bridge produces a

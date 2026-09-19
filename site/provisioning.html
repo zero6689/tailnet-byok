@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provisioning — hand a phone its configuration — tailnet-byok</title>
+<meta name="description" content="Make a dshbyok://setup link and a QR code for your own target. Configuration only: a link can never carry a credential, and the app asks you to confirm before anything changes.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html">Overview</a>
+      <a href="guide.html">Build &amp; use</a>
+      <a href="provisioning.html" aria-current="page">Provisioning</a>
+      <a href="security.html">Security</a>
+      <a href="architecture.html">Architecture</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Hand a phone its configuration.</h1>
+    <p class="lead">
+      Type your target below and this page makes two things: a
+      <code>dshbyok://setup</code> link, and a QR code for it. Scan the code or open
+      the link on the phone, and the app shows what it would change and waits for
+      you to confirm.
+    </p>
+  </section>
+
+  <div class="callout">
+    <span class="label">Generated in your browser</span>
+    <p>
+      Nothing here is sent anywhere. There is no analytics, no font, no script from
+      another host — the page draws the QR code with a vendored encoder
+      (<code>qr.js</code>, MIT). The address field is prefilled from the URL
+      <em>fragment</em> (the part after <code>#</code>), which browsers never transmit,
+      so a link to this page cannot leak the address it carries to this site or to
+      anyone watching the network.
+    </p>
+  </div>
+
+  <h2 id="make">Make a link<a class="anchor" href="#make">#</a></h2>
+
+  <div class="card">
+    <p class="small">
+      <label for="target"><strong>Target host</strong> — a MagicDNS name or a
+      <code>100.x</code> address, optionally <code>host:port</code>.</label><br>
+      <input id="target" type="text" size="34" spellcheck="false" autocomplete="off"
+             placeholder="phone.tailnet-name.ts.net:3080">
+    </p>
+    <p class="small">
+      <label for="mode"><strong>Connection method</strong></label><br>
+      <select id="mode">
+        <option value="">(leave the app's own setting alone)</option>
+        <option value="embedded">Embedded tailnet node — needs an auth key</option>
+        <option value="system">System network — the phone's existing VPN</option>
+      </select>
+    </p>
+    <p class="small">
+      <label for="update"><strong>Update source</strong> (optional) — a base URL that
+      serves <code>dsh.apk.version</code>, <code>dsh.apk</code> and
+      <code>dsh.apk.sha256</code>.</label><br>
+      <input id="update" type="text" size="34" spellcheck="false" autocomplete="off"
+             placeholder="http://192.0.2.10:8089">
+    </p>
+  </div>
+
+  <h2 id="scan">Scan it<a class="anchor" href="#scan">#</a></h2>
+
+  <div class="grid">
+    <div class="card">
+      <div id="qr" style="text-align:center">—</div>
+      <p class="small muted" id="qrnote"></p>
+    </div>
+    <div class="card">
+      <h3>The link</h3>
+      <p><code id="link" style="word-break:break-all">dshbyok://setup</code></p>
+      <p class="small">
+        <button class="btn" type="button" id="copy">Copy the link</button>
+      </p>
+      <p class="small muted">
+        Any camera or QR app will open it: the scheme is <code>dshbyok</code>, so
+        Android asks which app should handle it. Nothing installs and nothing changes
+        until the app itself applies it.
+      </p>
+    </div>
+  </div>
+
+  <h2 id="boundary">What a link may say — and what it may never say<a class="anchor" href="#boundary">#</a></h2>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Configuration only</h3>
+      <p class="small">
+        A link may carry: <code>target</code>, <code>port</code>, <code>scheme</code>,
+        <code>path</code>, <code>mode</code>, <code>update</code>,
+        <code>control</code>, <code>node</code>. The app shows the merged result
+        before applying it, and refuses a link whose target its address policy would
+        not let you type by hand.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Never a credential</h3>
+      <p class="small">
+        If a link contains any field whose name looks like a credential —
+        <code>authkey</code>, <code>key</code>, <code>token</code>,
+        <code>password</code>, <code>secret</code> — the <strong>whole link is
+        refused</strong>, and the app says so. A link can be photographed off a
+        screen, so a secret in one is a secret in public. The auth key is typed into
+        the app, or obtained through the control plane's own login.
+      </p>
+    </div>
+    <div class="card">
+      <h3>Never silent</h3>
+      <p class="small">
+        A link cannot re-point the app by itself. That is the attack worth designing
+        against — a QR code that quietly aims the app at a stranger's server, so the
+        next thing you type is your key. The app therefore parses, <em>shows</em>, and
+        waits: apply or ignore is your tap.
+      </p>
+    </div>
+  </div>
+
+  <h2 id="builds">Baking a target into your own build<a class="anchor" href="#builds">#</a></h2>
+
+  <p>
+    The public build carries no address, on purpose. A private or branded build can
+    pre-fill one, and then nobody has to type anything:
+  </p>
+  <pre><code>./gradlew assembleDebug -PdefaultTarget=phone.tailnet-name.ts.net:3080 -PdefaultMode=system</code></pre>
+  <p class="small">
+    The value only *defaults* the first screen — it is never a policy, and once the
+    user saves anything the stored value wins. Those properties are also run through
+    the same parser a link is, so a malformed value degrades to "no default" rather
+    than shipping a broken address. Nothing is committed: the public build's values
+    are empty, and CI checks that they stay that way.
+  </p>
+
+  <p class="small muted">
+    More detail, including the full field table and the reasoning: <a href="{{REPO_URL}}/blob/main/docs/PROVISIONING.md">docs/PROVISIONING.md</a>.
+  </p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>
+      <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
+      <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+    </p>
+    <p class="small">
+      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      client; the name and the whale artwork are used descriptively, to say what the app
+      connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
+      owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
+      "Tailscale" is their trademark, and this is an independent client for their protocol
+      and for headscale.
+    </p>
+  </div>
+</footer>
+
+<script src="qr.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var target = document.getElementById('target');
+  var mode = document.getElementById('mode');
+  var update = document.getElementById('update');
+  var linkOut = document.getElementById('link');
+  var qrOut = document.getElementById('qr');
+  var note = document.getElementById('qrnote');
+  var copy = document.getElementById('copy');
+
+  // The fragment, not the query: a fragment is never sent to the server, so a
+  // deployment can hand out a link to this page without telling this site (or
+  // anyone on the path) which host it points at.
+  function fromFragment() {
+    var hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+    var params = new URLSearchParams(hash);
+    if (params.get('target')) target.value = params.get('target');
+    if (params.get('mode')) mode.value = params.get('mode');
+    if (params.get('update')) update.value = params.get('update');
+  }
+
+  function buildLink() {
+    var value = target.value.trim();
+    if (!value) return '';
+    var link = 'dshbyok://setup?target=' + encodeURIComponent(value);
+    if (mode.value) link += '&mode=' + encodeURIComponent(mode.value);
+    if (update.value.trim()) link += '&update=' + encodeURIComponent(update.value.trim());
+    return link;
+  }
+
+  function render() {
+    var link = buildLink();
+    linkOut.textContent = link || 'dshbyok://setup';
+    if (!link) {
+      qrOut.textContent = '—';
+      note.textContent = 'Type a target host to make a link and a QR code.';
+      return;
+    }
+    if (!window.DSHQR) {
+      qrOut.textContent = '—';
+      note.textContent = 'qr.js did not load, so the code cannot be drawn here. The link above still works.';
+      return;
+    }
+    var svg = window.DSHQR.renderSvg(link, { scale: 5, margin: 4 });
+    if (!svg) {
+      qrOut.textContent = '—';
+      note.textContent = 'That link is too long for a QR code. Shorten the update source.';
+      return;
+    }
+    qrOut.innerHTML = svg;
+    note.textContent = 'Point the phone camera at this.';
+  }
+
+  copy.addEventListener('click', function () {
+    var link = buildLink();
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(
+      function () { copy.textContent = 'Copied'; },
+      function () { copy.textContent = 'Select the link above instead'; },
+    );
+  });
+
+  [target, update].forEach(function (el) { el.addEventListener('input', render); });
+  mode.addEventListener('change', render);
+
+  fromFragment();
+  render();
+})();
+</script>
+
+</body>
+</html>

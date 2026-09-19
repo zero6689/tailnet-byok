@@ -46,7 +46,39 @@ private val Context.configStore: DataStore<Preferences> by preferencesDataStore(
 class ConfigRepository(
     private val context: Context,
     private val vault: KeystoreSecretVault,
+    /**
+     * What an unconfigured install starts from.
+     *
+     * Empty in the public build. A branded or private build passes values from
+     * `-PdefaultTarget` / `-PdefaultMode` here, so its users have nothing to type —
+     * see `docs/PROVISIONING.md`. It is a *default*, not a policy: the moment the
+     * user saves anything, the stored value wins and this stops mattering.
+     */
+    private val firstRunDefaults: AppConfig = AppConfig(),
 ) {
+
+    /**
+     * The stored configuration, with [firstRunDefaults] filling anything the user
+     * has not saved yet.
+     *
+     * One function rather than two expressions because both readers — the
+     * observable flow and the read-modify-write in [update] — must agree. When they
+     * disagreed, a first save would read "no host", write that back, and silently
+     * erase the build's default target.
+     */
+    private fun read(prefs: Preferences): AppConfig = AppConfig(
+        provider = prefs[KEY_PROVIDER]?.let { ProviderId.fromStorageKey(it) } ?: firstRunDefaults.provider,
+        scheme = prefs[KEY_SCHEME] ?: firstRunDefaults.scheme,
+        hostInput = prefs[KEY_HOST] ?: firstRunDefaults.hostInput,
+        port = prefs[KEY_PORT] ?: firstRunDefaults.port,
+        path = prefs[KEY_PATH] ?: firstRunDefaults.path,
+        updateUrl = prefs[KEY_UPDATE_URL] ?: firstRunDefaults.updateUrl,
+        controlUrl = prefs[KEY_CONTROL_URL] ?: firstRunDefaults.controlUrl,
+        nodeHostname = prefs[KEY_NODE_HOSTNAME] ?: firstRunDefaults.nodeHostname,
+        ephemeral = prefs[KEY_EPHEMERAL] ?: firstRunDefaults.ephemeral,
+        hasStoredKey = prefs[KEY_KEY_PRESENT] ?: false,
+        acknowledgedSecurityModel = prefs[KEY_ACKNOWLEDGED] ?: false,
+    )
 
     val config: Flow<AppConfig> = context.configStore.data
         .catch { e ->
@@ -59,21 +91,7 @@ class ConfigRepository(
                 throw e
             }
         }
-        .map { prefs ->
-            AppConfig(
-                provider = ProviderId.fromStorageKey(prefs[KEY_PROVIDER]),
-                scheme = prefs[KEY_SCHEME] ?: AppConfig.DEFAULT_SCHEME,
-                hostInput = prefs[KEY_HOST] ?: "",
-                port = prefs[KEY_PORT] ?: AppConfig.DEFAULT_PORT,
-                path = prefs[KEY_PATH] ?: AppConfig.DEFAULT_PATH,
-                updateUrl = prefs[KEY_UPDATE_URL] ?: "",
-                controlUrl = prefs[KEY_CONTROL_URL] ?: "",
-                nodeHostname = prefs[KEY_NODE_HOSTNAME] ?: AppConfig.DEFAULT_NODE_HOSTNAME,
-                ephemeral = prefs[KEY_EPHEMERAL] ?: true,
-                hasStoredKey = prefs[KEY_KEY_PRESENT] ?: false,
-                acknowledgedSecurityModel = prefs[KEY_ACKNOWLEDGED] ?: false,
-            )
-        }
+        .map { prefs -> read(prefs) }
 
     /**
      * The outcome of the most recent update attempt, as it was left on disk.
@@ -115,19 +133,7 @@ class ConfigRepository(
      */
     suspend fun update(transform: (AppConfig) -> AppConfig) {
         context.configStore.edit { prefs ->
-            val before = AppConfig(
-                provider = ProviderId.fromStorageKey(prefs[KEY_PROVIDER]),
-                scheme = prefs[KEY_SCHEME] ?: AppConfig.DEFAULT_SCHEME,
-                hostInput = prefs[KEY_HOST] ?: "",
-                port = prefs[KEY_PORT] ?: AppConfig.DEFAULT_PORT,
-                path = prefs[KEY_PATH] ?: AppConfig.DEFAULT_PATH,
-                updateUrl = prefs[KEY_UPDATE_URL] ?: "",
-                controlUrl = prefs[KEY_CONTROL_URL] ?: "",
-                nodeHostname = prefs[KEY_NODE_HOSTNAME] ?: AppConfig.DEFAULT_NODE_HOSTNAME,
-                ephemeral = prefs[KEY_EPHEMERAL] ?: true,
-                hasStoredKey = prefs[KEY_KEY_PRESENT] ?: false,
-                acknowledgedSecurityModel = prefs[KEY_ACKNOWLEDGED] ?: false,
-            )
+            val before = read(prefs)
             val after = transform(before)
             prefs[KEY_PROVIDER] = after.provider.storageKey
             prefs[KEY_SCHEME] = after.scheme

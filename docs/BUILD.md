@@ -55,6 +55,32 @@ The default is `compileSdk 35` / `targetSdk 35`. To build against an older SDK:
 AndroidX 1.15+ requires `compileSdk 35`, so this only helps if you also lower the versions in
 `gradle/libs.versions.toml`.
 
+### Pre-filling a target (your own build only)
+
+The public build ships with no address, and CI checks that it stays that way. A private or
+branded build can pre-fill the first screen so its users have nothing to type:
+
+```bash
+./gradlew assembleDebug \
+  -PdefaultTarget=phone.tailnet-name.ts.net:3080 \
+  -PdefaultMode=system \
+  -PdefaultUpdateUrl=http://192.0.2.10:8089
+```
+
+| Property | Accepted | Empty default means |
+|---|---|---|
+| `defaultTarget` | `host`, `host:port`, or an absolute `http(s)://host:port/path` | nothing is pre-filled |
+| `defaultMode` | `embedded` or `system` | the app's own default (`embedded`) |
+| `defaultUpdateUrl` | a base URL serving `dsh.apk.version`, `dsh.apk`, `dsh.apk.sha256` | the target's own origin |
+
+Two properties of this mechanism are worth knowing before you use it. It is a **default, not a
+policy**: the moment the user saves any setting, the stored value wins and the build property
+stops mattering. And the values go through the same parser a `dshbyok://` link does, so a
+malformed value degrades to "no default" instead of producing an app whose first screen is a
+broken address. The values are never committed — there is nothing in the repository to leak,
+which is the point of the mechanism being upstream and the value being downstream. See
+[`PROVISIONING.md`](PROVISIONING.md).
+
 ---
 
 ## Full build, with the embedded node

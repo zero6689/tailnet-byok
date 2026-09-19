@@ -66,11 +66,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.zero6689.tailnetbyok.BuildConfig
 import io.github.zero6689.tailnetbyok.R
+import io.github.zero6689.tailnetbyok.core.log.Redact
 import io.github.zero6689.tailnetbyok.core.text.TextRef
 import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.AddressMessages
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.SetupLink
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
 import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
 import io.github.zero6689.tailnetbyok.net.ProviderId
@@ -150,6 +152,17 @@ fun SetupScreen(
         ) {
             item { IntroCard(state = state, onAcknowledge = actions::acknowledgeSecurityModel) }
 
+            state.pendingSetup?.let { link ->
+                item {
+                    SetupLinkCard(
+                        state = state,
+                        link = link,
+                        onApply = actions::applyPendingSetup,
+                        onDiscard = actions::discardPendingSetup,
+                    )
+                }
+            }
+
             state.banner?.let { banner ->
                 item { BannerCard(banner = banner, onDismiss = actions::dismissBanner) }
             }
@@ -208,6 +221,8 @@ interface SetupActions {
     fun checkForUpdate()
     fun installUpdate()
     fun allowInstallSource()
+    fun applyPendingSetup()
+    fun discardPendingSetup()
     fun loadDiagnostics()
     fun acknowledgeSecurityModel()
     fun dismissBanner()
@@ -238,6 +253,8 @@ private fun SetupViewModel.asActions(): SetupActions = object : SetupActions {
     override fun checkForUpdate() = this@asActions.checkForUpdate()
     override fun installUpdate() = this@asActions.installUpdate()
     override fun allowInstallSource() = this@asActions.allowInstallSource()
+    override fun applyPendingSetup() = this@asActions.applyPendingSetup()
+    override fun discardPendingSetup() = this@asActions.discardPendingSetup()
     override fun loadDiagnostics() = this@asActions.loadDiagnostics()
     override fun acknowledgeSecurityModel() = this@asActions.acknowledgeSecurityModel()
     override fun dismissBanner() = this@asActions.dismissBanner()
@@ -723,6 +740,100 @@ private fun UpdateSection(state: UiState, actions: SetupActions) {
     }
 }
 
+/**
+ * The confirmation panel for a configuration link.
+ *
+ * It exists because a link is the one piece of configuration this app did not
+ * receive from the user: anyone can write one, and a link that quietly re-pointed
+ * the app at another host is the attack — the user would then type their auth key
+ * into a stranger's server. So the panel shows the *result* of the merge (target,
+ * port, path, method, update source), not the link's own words, and nothing
+ * changes until "Apply" is tapped.
+ *
+ * A link whose merged target the address policy rejects cannot be applied at all:
+ * the button is disabled and the same inline verdict the target field uses explains
+ * why.
+ */
+@Composable
+private fun SetupLinkCard(
+    state: UiState,
+    link: SetupLink,
+    onApply: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    val preview = state.pendingSetupConfig
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                stringResource(R.string.setup_link_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                stringResource(R.string.setup_link_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (preview != null) {
+                if (link.host != null || link.port != null || link.scheme != null || link.path != null) {
+                    Text(
+                        stringResource(
+                            R.string.setup_link_target,
+                            preview.scheme,
+                            Redact.hostLabel(preview.hostInput),
+                            preview.port,
+                            preview.path,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (link.changesProvider) {
+                    Text(
+                        stringResource(
+                            R.string.setup_link_mode,
+                            stringResource(preview.provider.labelRes),
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (link.updateUrl != null) {
+                    Text(
+                        stringResource(R.string.setup_link_update, preview.updateBase),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (link.controlUrl != null) {
+                    Text(
+                        stringResource(R.string.setup_link_control, preview.controlUrl),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (link.nodeHostname != null) {
+                    Text(
+                        stringResource(R.string.setup_link_node, preview.nodeHostname),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            state.pendingSetupVerdict?.let { AddressVerdictLine(it) }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onApply, enabled = state.canApplyPendingSetup) {
+                    Text(stringResource(R.string.setup_link_apply))
+                }
+                OutlinedButton(onClick = onDiscard) {
+                    Text(stringResource(R.string.setup_link_discard))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun StepRow(step: ConnectionTester.StepResult) {
     val tint = when (step.outcome) {
@@ -907,6 +1018,8 @@ private val noopActions = object : SetupActions {
     override fun checkForUpdate() = Unit
     override fun installUpdate() = Unit
     override fun allowInstallSource() = Unit
+    override fun applyPendingSetup() = Unit
+    override fun discardPendingSetup() = Unit
     override fun loadDiagnostics() = Unit
     override fun acknowledgeSecurityModel() = Unit
     override fun dismissBanner() = Unit

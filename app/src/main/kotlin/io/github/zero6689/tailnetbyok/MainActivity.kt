@@ -1,5 +1,6 @@
 package io.github.zero6689.tailnetbyok
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,17 +17,45 @@ import io.github.zero6689.tailnetbyok.ui.theme.TailnetByokTheme
  * one: a single-activity Compose app has no inter-activity navigation to get
  * wrong, no exported components to secure, and no task-affinity surprises. See
  * the note in `AndroidManifest.xml` — this app owns no other IPC surface at all.
+ *
+ * It is also the app's one *entry point from outside*: a `dshbyok://setup` link
+ * (the manifest's VIEW filter) arrives here as an intent. That is forwarded to the
+ * graph rather than acted on — parsing and applying belong to the screen that can
+ * show the user what the link asks for.
  */
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // A cold start from a scan: the intent that launched us.
+        offerSetupLink(intent)
+
         setContent {
             TailnetByokTheme {
                 Root()
             }
         }
+    }
+
+    /**
+     * A link tapped while the app is already open.
+     *
+     * `launchMode="singleTask"` in the manifest is what routes it here rather than
+     * to a second instance, and `setIntent` matters: without it a later
+     * `getIntent()` would still report the intent that started the task, and the
+     * same link would appear to arrive twice.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        offerSetupLink(intent)
+    }
+
+    private fun offerSetupLink(intent: Intent?) {
+        val data = intent?.data?.toString()?.takeIf { it.isNotBlank() } ?: return
+        (applicationContext as TailnetByokApp).container.offerSetupLink(data)
     }
 }
 

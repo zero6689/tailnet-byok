@@ -236,6 +236,22 @@
     <string name="diag_update_source">更新源：<xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g></string>
     <string name="diag_update_result">最近一次更新：<xliff:g id="result">%1$s</xliff:g></string>
 
+    <!-- 配置链接：它只能说哪些东西，以及要用户确认什么 -->
+    <string name="setup_link_title">配置链接</string>
+    <string name="setup_link_subtitle">来自 App 之外。先看清它要改什么，再决定 —— 现在什么都还没变。</string>
+    <string name="setup_link_target">目标：<xliff:g id="scheme" example="http">%1$s</xliff:g>://<xliff:g id="host" example="100.101.102.103">%2$s</xliff:g>:<xliff:g id="port" example="3080">%3$d</xliff:g><xliff:g id="path" example="/">%4$s</xliff:g></string>
+    <string name="setup_link_mode">连接方式：<xliff:g id="mode">%1$s</xliff:g></string>
+    <string name="setup_link_update">更新源：<xliff:g id="url">%1$s</xliff:g></string>
+    <string name="setup_link_control">控制面：<xliff:g id="url">%1$s</xliff:g></string>
+    <string name="setup_link_node">节点名：<xliff:g id="name">%1$s</xliff:g></string>
+    <string name="setup_link_apply">应用</string>
+    <string name="setup_link_discard">忽略</string>
+    <string name="setup_link_applied">配置链接已应用。</string>
+    <string name="setup_link_not_a_link">这不是 dshbyok://setup 链接，什么都没读。</string>
+    <string name="setup_link_credential">这个链接里带着形似凭据的字段。链接只能指定"连到哪里"，绝不能指定"用什么认证" —— 所以整条链接被拒。认证密钥请手动输入。</string>
+    <string name="setup_link_malformed">这个链接里有本 App 用不了的字段，什么都没读。</string>
+    <string name="setup_link_empty">这个链接没有指定任何配置，没有可应用的东西。</string>
+
     <!-- 页脚 -->
     <string name="footer_privacy">无遥测、无账号、没有我们的服务器 —— 你的密钥只会发给你自己配置的控制面。</string>
     <string name="footer_trademark">与 DeepSeek 无关联。这是一个独立、非官方客户端；名称与鲸鱼图标用来说明它连接的是什么，相关商标归各自所有者，不属于本项目。</string>

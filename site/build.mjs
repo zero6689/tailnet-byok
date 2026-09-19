@@ -52,7 +52,7 @@ const REPO_ROOT = join(SITE_DIR, '..');
 const OUT_DIR = join(SITE_DIR, 'dist');
 
 /** Assets copied verbatim into the output. Everything else must be a template. */
-const STATIC_ASSETS = ['styles.css', '.nojekyll'];
+const STATIC_ASSETS = ['styles.css', '.nojekyll', 'qr.js'];
 
 const errors = [];
 const warnings = [];

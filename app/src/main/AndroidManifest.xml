@@ -61,6 +61,29 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+              Configuration links: `dshbyok://setup?target=…&mode=…`.
+
+              This is how a deployment hands the app its address without baking one
+              into the APK: the server prints the link (or a QR code containing it),
+              any camera or scanner app opens it, and this activity receives it.
+
+              Two deliberate limits. It is a *custom scheme*, not an https app link,
+              so no domain ownership is implied and no verification is needed. And it
+              is not exported for anything else: no other action, no other category,
+              so the only way in is an explicit view of this URI.
+
+              What the link may say is enforced in `domain/SetupLink.kt`, and *when*
+              it takes effect is enforced in the UI: a link never applies itself —
+              the user confirms it after seeing the target it points at.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dshbyok" android:host="setup" />
+            </intent-filter>
         </activity>
 
         <!--
