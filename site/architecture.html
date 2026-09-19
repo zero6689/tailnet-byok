@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en" data-title-zh="架构 —— tailnet-byok">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,8 @@
 <meta name="description" content="How tailnet-byok is put together, and the reasoning behind each structural decision — including the dependencies it deliberately does not use.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
+<!-- After <title>, so the title it saves is the English one. -->
+<script src="lang.js"></script>
 </head>
 <body>
 
@@ -14,25 +16,26 @@
   <div class="wrap">
     <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
     <nav class="site">
-      <a href="index.html">Overview</a>
-      <a href="guide.html">Build &amp; use</a>
-      <a href="provisioning.html">Provisioning</a>
-      <a href="security.html">Security</a>
-      <a href="architecture.html" aria-current="page">Architecture</a>
+      <a href="index.html"><span class="i18n-en">Overview</span><span class="i18n-zh">总览</span></a>
+      <a href="guide.html"><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></a>
+      <a href="provisioning.html"><span class="i18n-en">Provisioning</span><span class="i18n-zh">配置链接</span></a>
+      <a href="security.html"><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></a>
+      <a href="architecture.html" aria-current="page"><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></a>
+      <button class="lang" type="button" id="lang-toggle" hidden>中文</button>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
 
-  <h1>Architecture</h1>
+  <h1><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></h1>
 
   <p class="lead">
-    Four layers, one seam that matters, and a short list of popular libraries that are
-    deliberately absent.
+    <span class="i18n-en">Four layers, one seam that matters, and a short list of popular libraries that are
+    deliberately absent.</span><span class="i18n-zh">四个分层、一道真正重要的接缝，以及一份简短的清单：那些被有意不用的流行库。</span>
   </p>
 
-  <h2 id="shape">The shape<a class="anchor" href="#shape">#</a></h2>
+  <h2 id="shape"><span class="i18n-en">The shape</span><span class="i18n-zh">整体形状</span><a class="anchor" href="#shape">#</a></h2>
 
   <div class="diagram">                 ui/setup            Compose screen + view model
                      │
@@ -47,198 +50,226 @@
                                 tailnet/tailnet.go   (Go, tsnet)</div>
 
   <p>
-    The one seam that matters is <code>ConnectivityProvider</code>. The UI never branches on
+    <span class="i18n-en">The one seam that matters is <code>ConnectivityProvider</code>. The UI never branches on
     which implementation is active; it reads a status flow and calls
     <code>start</code>/<code>probe</code>/<code>fetch</code>. That is what makes the embedded
     node genuinely optional — the default build simply has no implementation registered for
     it, and the UI says so instead of crashing — and what would make a third provider (a
-    different mesh, a relay, a mock for tests) a local change.
+    different mesh, a relay, a mock for tests) a local change.</span><span class="i18n-zh">真正重要的那一道接缝是 <code>ConnectivityProvider</code>。UI 从不对当前生效的是哪个实现做分支
+    判断；它读一条状态流，并调用 <code>start</code>/<code>probe</code>/<code>fetch</code>。正因如此，
+    内嵌节点才是真正可选的 —— 默认构建干脆没有为它注册任何实现，UI 会如实说明而不是崩溃 ——
+    也正因如此，再加第三个 provider（另一种网状网络、一个中继、一个测试用的 mock）只会是一处局部改动。</span>
   </p>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Layer</th><th>Package</th><th>Responsibility</th></tr>
+      <tr><th><span class="i18n-en">Layer</span><span class="i18n-zh">分层</span></th><th><span class="i18n-en">Package</span><span class="i18n-zh">包</span></th><th><span class="i18n-en">Responsibility</span><span class="i18n-zh">职责</span></th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>UI</td>
+        <td><span class="i18n-en">UI</span><span class="i18n-zh">UI</span></td>
         <td><code>ui/setup</code>, <code>ui/theme</code></td>
-        <td>Compose screen, one <code>UiState</code>, one view model. No business rules.</td>
+        <td><span class="i18n-en">Compose screen, one <code>UiState</code>, one view model. No business rules.</span><span class="i18n-zh">Compose 页面、一个 <code>UiState</code>、一个 view model。不含业务规则。</span></td>
       </tr>
       <tr>
-        <td>Domain</td>
+        <td><span class="i18n-en">Domain</span><span class="i18n-zh">领域</span></td>
         <td><code>domain</code></td>
-        <td>What may be dialled, and the ordered test. Pure Kotlin: no Android types, so it
-            is testable on the JVM without Robolectric.</td>
+        <td><span class="i18n-en">What may be dialled, and the ordered test. Pure Kotlin: no Android types, so it
+            is testable on the JVM without Robolectric.</span><span class="i18n-zh">什么可以被连接，以及那套有序的测试。纯 Kotlin：不含 Android 类型，所以不用
+            Robolectric 也能在 JVM 上测试。</span></td>
       </tr>
       <tr>
-        <td>Network</td>
+        <td><span class="i18n-en">Network</span><span class="i18n-zh">网络</span></td>
         <td><code>net</code>, <code>net/tsnet</code></td>
-        <td>Two ways to reach the target, behind one interface.</td>
+        <td><span class="i18n-en">Two ways to reach the target, behind one interface.</span><span class="i18n-zh">两种到达目标的方式，藏在同一个接口后面。</span></td>
       </tr>
       <tr>
-        <td>Data</td>
+        <td><span class="i18n-en">Data</span><span class="i18n-zh">数据</span></td>
         <td><code>data/config</code>, <code>data/crypto</code></td>
-        <td>Persistence, and the Keystore-backed vault.</td>
+        <td><span class="i18n-en">Persistence, and the Keystore-backed vault.</span><span class="i18n-zh">持久化，以及由 Keystore 支撑的保险库。</span></td>
       </tr>
       <tr>
-        <td>Native</td>
+        <td><span class="i18n-en">Native</span><span class="i18n-zh">原生</span></td>
         <td><code>tailnet/</code> (Go)</td>
-        <td>The embedded node, and the only code that talks to the control plane.</td>
+        <td><span class="i18n-en">The embedded node, and the only code that talks to the control plane.</span><span class="i18n-zh">内嵌节点，也是唯一与控制面通信的代码。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h2 id="why-http-in-go">Why the HTTP happens in Go<a class="anchor" href="#why-http-in-go">#</a></h2>
+  <h2 id="why-http-in-go"><span class="i18n-en">Why the HTTP happens in Go</span><span class="i18n-zh">为什么 HTTP 发生在 Go 侧</span><a class="anchor" href="#why-http-in-go">#</a></h2>
 
   <p>
-    This is the least obvious decision in the codebase, so it is worth stating.
+    <span class="i18n-en">This is the least obvious decision in the codebase, so it is worth stating.</span><span class="i18n-zh">这是整个代码库里最不显然的一个决定，所以值得说清楚。</span>
   </p>
 
   <p>
-    The socket has to be created by the tailnet's own network stack — that is what makes the
+    <span class="i18n-en">The socket has to be created by the tailnet's own network stack — that is what makes the
     traffic go through the tunnel. But a Go <code>net.Conn</code> has no Java representation,
-    so no JNI binding can hand it back. The options were:
+    so no JNI binding can hand it back. The options were:</span><span class="i18n-zh">套接字必须由 tailnet 自己的网络栈创建 —— 正是这一点让流量走隧道。但 Go 的
+    <code>net.Conn</code> 没有 Java 表示形式，所以任何 JNI 绑定都无法把它交回来。可选方案有：</span>
   </p>
 
   <ol>
-    <li>run a SOCKS5 proxy on loopback and have OkHttp dial through it;</li>
-    <li>give the Go side a request-shaped API and return the response bytes.</li>
+    <li><span class="i18n-en">run a SOCKS5 proxy on loopback and have OkHttp dial through it;</span><span class="i18n-zh">在回环上跑一个 SOCKS5 代理，让 OkHttp 通过它发起连接；</span></li>
+    <li><span class="i18n-en">give the Go side a request-shaped API and return the response bytes.</span><span class="i18n-zh">给 Go 侧一个「请求形状」的 API，把响应字节返回回来。</span></li>
   </ol>
 
   <p>
-    Option 2 was chosen. It removes a listening socket from the process, removes a credential
+    <span class="i18n-en">Option 2 was chosen. It removes a listening socket from the process, removes a credential
     for that proxy, and keeps the whole path in one place. The cost is that HTTP lives in two
     implementations rather than one — which is a real cost, and the reason
     <code>ConnectivityProvider.fetch()</code> takes a request object rather than exposing a
-    client.
+    client.</span><span class="i18n-zh">选了方案 2。它让进程里少了一个监听套接字，少了这个代理所需的凭据，并把整条路径收在一处。
+    代价是 HTTP 存在于两套实现而不是一套 —— 这是真实的代价，也是
+    <code>ConnectivityProvider.fetch()</code> 接收一个请求对象、而不是暴露一个 client 的原因。</span>
   </p>
 
-  <h3 id="binding-rules">The binding rules<a class="anchor" href="#binding-rules">#</a></h3>
+  <h3 id="binding-rules"><span class="i18n-en">The binding rules</span><span class="i18n-zh">绑定规则</span><a class="anchor" href="#binding-rules">#</a></h3>
 
   <p>
-    <code>tailnet/tailnet.go</code> follows one rule: <strong>every exported function takes
+    <span class="i18n-en"><code>tailnet/tailnet.go</code> follows one rule: <strong>every exported function takes
     and returns only <code>String</code>, <code>Int</code>, <code>Bool</code> or
     <code>error</code></strong>. Structured data crosses as JSON; byte payloads are base64
-    inside that JSON.
+    inside that JSON.</span><span class="i18n-zh"><code>tailnet/tailnet.go</code> 只遵守一条规则：<strong>每个导出函数只接受并只返回
+    <code>String</code>、<code>Int</code>、<code>Bool</code> 或 <code>error</code></strong>。
+    结构化数据以 JSON 过界；字节载荷是那份 JSON 里的 base64。</span>
   </p>
 
   <p>
-    That is not stylistic. gomobile cannot express a Go interface or a
+    <span class="i18n-en">That is not stylistic. gomobile cannot express a Go interface or a
     <code>net.Conn</code>, and multi-value returns bind differently across gomobile
     revisions. Keeping the surface primitive means the generated Java is stable, reviewable,
-    and independent of the binding generator's mood.
+    and independent of the binding generator's mood.</span><span class="i18n-zh">这不是风格问题。gomobile 无法表达 Go 的 interface 或 <code>net.Conn</code>，而多返回值在不同
+    gomobile 修订版之间绑定的方式不一样。把接口面保持为原始类型，意味着生成的 Java 是稳定的、
+    可审阅的，也不受绑定生成器心情的影响。</span>
   </p>
 
-  <h2 id="why-reflection">Why one provider is loaded reflectively<a class="anchor" href="#why-reflection">#</a></h2>
+  <h2 id="why-reflection"><span class="i18n-en">Why one provider is loaded reflectively</span><span class="i18n-zh">为什么有一个 provider 用反射加载</span><a class="anchor" href="#why-reflection">#</a></h2>
 
   <p>
-    <code>TsnetConnectivityProvider</code> compiles against classes that only exist after
+    <span class="i18n-en"><code>TsnetConnectivityProvider</code> compiles against classes that only exist after
     <code>gomobile bind</code>. The default build — a fresh clone, and CI without a Go
     toolchain — has no such classes. A direct reference from shared code would break the
-    build for everyone who is not shipping the native bridge.
+    build for everyone who is not shipping the native bridge.</span><span class="i18n-zh"><code>TsnetConnectivityProvider</code> 编译时依赖的类只在 <code>gomobile bind</code> 之后才存在。
+    默认构建 —— 刚 clone 下来的仓库，以及没有 Go 工具链的 CI —— 没有这些类。从共享代码里直接引用，
+    会让所有不发布原生桥接层的人的构建都挂掉。</span>
   </p>
 
   <p>
-    <code>ProviderRegistry</code> therefore resolves the installer with
+    <span class="i18n-en"><code>ProviderRegistry</code> therefore resolves the installer with
     <code>Class.forName</code> and a single <code>install</code> method, only when
     <code>BuildConfig.TSNET_ENABLED</code> is true. A separate Gradle module per provider does
     not remove the problem — the consumer still has to name the class — it only moves the
-    failure.
+    failure.</span><span class="i18n-zh">所以 <code>ProviderRegistry</code> 用 <code>Class.forName</code> 加一个 <code>install</code>
+    方法来解析安装器，而且只在 <code>BuildConfig.TSNET_ENABLED</code> 为真时这么做。给每个 provider
+    单独一个 Gradle 模块并不能消除这个问题 —— 使用方仍然要写出类名 —— 它只是把失败点挪了个地方。</span>
   </p>
 
   <div class="callout warn">
-    <span class="label">Consequence</span>
+    <span class="label"><span class="i18n-en">Consequence</span><span class="i18n-zh">后果</span></span>
     <p>
-      R8 cannot see the reference, so <code>app/proguard-rules.pro</code> keeps
+      <span class="i18n-en">R8 cannot see the reference, so <code>app/proguard-rules.pro</code> keeps
       <code>**.net.tsnet.**</code> explicitly. Without that rule the failure is release-only
       and presents as "the embedded node feature silently disappeared" — the worst kind of
-      bug to chase. If you add a provider, add its keep rule too.
+      bug to chase. If you add a provider, add its keep rule too.</span><span class="i18n-zh">R8 看不到这个引用，所以 <code>app/proguard-rules.pro</code> 显式保留
+      <code>**.net.tsnet.**</code>。没有这条规则，故障只在 release 出现，表现是「内嵌节点功能悄悄消失了」
+      —— 最难追的那类 bug。如果你要新增 provider，也别忘了给它加 keep 规则。</span>
     </p>
   </div>
 
-  <h2 id="what-is-not-there">What is deliberately not there<a class="anchor" href="#what-is-not-there">#</a></h2>
+  <h2 id="what-is-not-there"><span class="i18n-en">What is deliberately not there</span><span class="i18n-zh">有意不放在那里的东西</span><a class="anchor" href="#what-is-not-there">#</a></h2>
 
   <div class="grid">
     <div class="card">
-      <h3>No Hilt</h3>
+      <h3><span class="i18n-en">No Hilt</span><span class="i18n-zh">不用 Hilt</span></h3>
       <p class="small">
-        Four objects, one scope. A framework would add an annotation processor, a plugin, a
+        <span class="i18n-en">Four objects, one scope. A framework would add an annotation processor, a plugin, a
         generated component, and a second way to construct every object — to remove four
-        lines of wiring in <code>AppContainer.kt</code> that a reader can follow at a glance.
+        lines of wiring in <code>AppContainer.kt</code> that a reader can follow at a glance.</span><span class="i18n-zh">四个对象，一个作用域。引入框架会带来一个注解处理器、一个插件、一个生成的组件，以及构造每个
+        对象的第二种方式 —— 只为了省掉 <code>AppContainer.kt</code> 里四行接线代码，而那四行读者一眼
+        就能看懂。</span>
       </p>
       <p class="small muted">
-        This is a judgement, not a principle. Add a background component or a second graph
-        and the trade flips; the wiring is in one file precisely so the swap is one file.
+        <span class="i18n-en">This is a judgement, not a principle. Add a background component or a second graph
+        and the trade flips; the wiring is in one file precisely so the swap is one file.</span><span class="i18n-zh">这是判断，不是原则。加一个后台组件或第二张依赖图，这笔交易就会反过来；接线集中在一个文件里，
+        正是为了让替换也只需改一个文件。</span>
       </p>
     </div>
     <div class="card">
-      <h3>No Retrofit</h3>
+      <h3><span class="i18n-en">No Retrofit</span><span class="i18n-zh">不用 Retrofit</span></h3>
       <p class="small">
-        The app makes one kind of request to exactly one host, and it has to go through the
+        <span class="i18n-en">The app makes one kind of request to exactly one host, and it has to go through the
         provider seam anyway. Retrofit's value is managing a large typed API surface; there
-        is no such surface here.
+        is no such surface here.</span><span class="i18n-zh">这个 App 只对唯一一个主机发一种请求，而且无论如何都要经过 provider 那道接缝。Retrofit 的价值
+        在于管理庞大的强类型 API 表面；这里没有这样的表面。</span>
       </p>
     </div>
     <div class="card">
-      <h3>No Room</h3>
+      <h3><span class="i18n-en">No Room</span><span class="i18n-zh">不用 Room</span></h3>
       <p class="small">
-        Eleven scalar preferences in DataStore. A relational store would be ceremony around
-        a key-value workload.
+        <span class="i18n-en">Eleven scalar preferences in DataStore. A relational store would be ceremony around
+        a key-value workload.</span><span class="i18n-zh">DataStore 里存放十一个标量偏好设置。关系型存储在这样一个键值型负载周围只是繁文缛节。</span>
       </p>
     </div>
     <div class="card">
-      <h3>No navigation library</h3>
+      <h3><span class="i18n-en">No navigation library</span><span class="i18n-zh">不用导航库</span></h3>
       <p class="small">
-        One screen. Adding a back stack to a single destination is a graph with one node.
+        <span class="i18n-en">One screen. Adding a back stack to a single destination is a graph with one node.</span><span class="i18n-zh">只有一个页面。给单一目的地加一个回退栈，就是一张只有一个节点的图。</span>
       </p>
     </div>
     <div class="card">
-      <h3>No Timber</h3>
+      <h3><span class="i18n-en">No Timber</span><span class="i18n-zh">不用 Timber</span></h3>
       <p class="small">
-        One fewer dependency to audit in the code path that handles the credential.
-        <code>SafeLog</code> is forty lines and does the redaction Timber would not.
+        <span class="i18n-en">One fewer dependency to audit in the code path that handles the credential.
+        <code>SafeLog</code> is forty lines and does the redaction Timber would not.</span><span class="i18n-zh">在处理凭据的那条代码路径上，少一个要审计的依赖。<code>SafeLog</code> 只有四十行，
+        而且做了 Timber 不会做的脱敏。</span>
       </p>
     </div>
     <div class="card">
-      <h3>No analytics, no crash reporter</h3>
+      <h3><span class="i18n-en">No analytics, no crash reporter</span><span class="i18n-zh">不接统计，也不接崩溃上报</span></h3>
       <p class="small">
-        Not a cost decision. A crash reporter is a network destination that sees your
-        configuration, and this app's whole claim is that it has no such destination.
+        <span class="i18n-en">Not a cost decision. A crash reporter is a network destination that sees your
+        configuration, and this app's whole claim is that it has no such destination.</span><span class="i18n-zh">这不是成本考量。崩溃上报是一个能看到你配置的网络目标，而这个 App 的全部主张就是它没有
+        这样的目标。</span>
       </p>
     </div>
   </div>
 
-  <h2 id="state">State and lifetime<a class="anchor" href="#state">#</a></h2>
+  <h2 id="state"><span class="i18n-en">State and lifetime</span><span class="i18n-zh">状态与生命周期</span><a class="anchor" href="#state">#</a></h2>
 
   <p>
-    Three rules, each with a reason:
+    <span class="i18n-en">Three rules, each with a reason:</span><span class="i18n-zh">三条规则，每条都有理由：</span>
   </p>
 
   <ul>
     <li>
-      <strong>The plaintext key is never part of <code>UiState</code>.</strong> It lives in
+      <span class="i18n-en"><strong>The plaintext key is never part of <code>UiState</code>.</strong> It lives in
       <code>keyDraft</code> only while being typed, is written to the vault on save, and is
       read back only for the duration of a connection test. So a state dump, a test
       assertion, or a screenshot cannot contain it — the state object holds a boolean,
-      <code>hasStoredKey</code>.
+      <code>hasStoredKey</code>.</span><span class="i18n-zh"><strong>明文密钥永远不是 <code>UiState</code> 的一部分。</strong>它只在输入期间存在于
+      <code>keyDraft</code>，保存时写入保险库，且只在一次连接测试的持续时间内被读回。所以状态转储、
+      测试断言或截图都不可能包含它 —— 状态对象里只有一个布尔值 <code>hasStoredKey</code>。</span>
     </li>
     <li>
-      <strong>The object graph is owned by <code>Application</code>.</strong> The root
+      <span class="i18n-en"><strong>The object graph is owned by <code>Application</code>.</strong> The root
       composable reads it from the application context rather than receiving it, which makes
       a configuration change structurally unable to produce a second graph — and therefore a
-      second embedded node fighting over one state directory.
+      second embedded node fighting over one state directory.</span><span class="i18n-zh"><strong>对象图由 <code>Application</code> 持有。</strong>根 composable 从 application context
+      读取它，而不是通过参数接收，这使得配置变更在结构上无法产生第二张对象图 —— 也就不会出现第二个
+      内嵌节点争抢同一个状态目录。</span>
     </li>
     <li>
-      <strong>One provider instance per <code>ProviderId</code>, created on first
+      <span class="i18n-en"><strong>One provider instance per <code>ProviderId</code>, created on first
       request.</strong> Nothing eagerly loads the native library, so a build with the bridge
-      in which the user never enables it pays nothing at cold start.
+      in which the user never enables it pays nothing at cold start.</span><span class="i18n-zh"><strong>每个 <code>ProviderId</code> 一个 provider 实例，在首次请求时创建。</strong>没有任何东西
+      会急着加载原生库，所以一个带了桥接层、但用户从未启用它的构建，在冷启动时不付任何代价。</span>
     </li>
   </ul>
 
-  <h2 id="repository-layout">Repository layout<a class="anchor" href="#repository-layout">#</a></h2>
+  <h2 id="repository-layout"><span class="i18n-en">Repository layout</span><span class="i18n-zh">仓库结构</span><a class="anchor" href="#repository-layout">#</a></h2>
 
   <div class="diagram">app/
   src/main/kotlin/…/           the app: ui, domain, net, data, di
@@ -252,71 +283,77 @@ site/                          the docs site published to GitHub Pages
 docs/                          the same material as Markdown, for GitHub browsing
 .github/workflows/             ci · tailnet-bridge · release · docs-pages · sync-personal-site</div>
 
-  <h2 id="why-two-source-sets">Why <code>src/tsnet</code> is a separate source set<a class="anchor" href="#why-two-source-sets"></a></h2>
+  <h2 id="why-two-source-sets"><span class="i18n-en">Why <code>src/tsnet</code> is a separate source set</span><span class="i18n-zh">为什么 <code>src/tsnet</code> 是单独的 source set</span><a class="anchor" href="#why-two-source-sets"></a></h2>
 
   <p>
-    <code>app/build.gradle.kts</code> adds <code>src/tsnet/kotlin</code> to the main source
+    <span class="i18n-en"><code>app/build.gradle.kts</code> adds <code>src/tsnet/kotlin</code> to the main source
     set only when <code>-PwithTsnet=true</code> and <code>app/libs/tailnet.aar</code> exists.
     If the property is set and the AAR is missing, the build fails immediately with the
     command to produce it — rather than with the ten thousand lines of "unresolved reference:
-    mobile" that a naive configuration produces.
+    mobile" that a naive configuration produces.</span><span class="i18n-zh"><code>app/build.gradle.kts</code> 只在 <code>-PwithTsnet=true</code> 且
+    <code>app/libs/tailnet.aar</code> 存在时，才把 <code>src/tsnet/kotlin</code> 加入主 source set。
+    如果设置了该属性却缺少这个 AAR，构建会立刻失败，并给出生成它的命令 —— 而不是像天真配置那样
+    产出上万行「unresolved reference: mobile」。</span>
   </p>
 
-  <h2 id="known-gaps">Known gaps<a class="anchor" href="#known-gaps"></a></h2>
+  <h2 id="known-gaps"><span class="i18n-en">Known gaps</span><span class="i18n-zh">已知缺口</span><a class="anchor" href="#known-gaps"></a></h2>
 
-  <p>Listed so that they are not discovered by you:</p>
+  <p><span class="i18n-en">Listed so that they are not discovered by you:</span><span class="i18n-zh">列在这里，是为了不让你自己去发现它们：</span></p>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Gap</th><th>Impact</th></tr>
+      <tr><th><span class="i18n-en">Gap</span><span class="i18n-zh">缺口</span></th><th><span class="i18n-en">Impact</span><span class="i18n-zh">影响</span></th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>No instrumented tests</td>
-        <td>Anything needing a real device — Keystore behaviour, the native bridge — is
-            verified by hand, not by CI.</td>
+        <td><span class="i18n-en">No instrumented tests</span><span class="i18n-zh">没有 instrumentation 测试</span></td>
+        <td><span class="i18n-en">Anything needing a real device — Keystore behaviour, the native bridge — is
+            verified by hand, not by CI.</span><span class="i18n-zh">任何需要真机的东西 —— Keystore 行为、原生桥接层 —— 都是手工验证，不是 CI 验证。</span></td>
       </tr>
       <tr>
-        <td>UI strings are not extracted</td>
-        <td>The app cannot be translated without moving copy out of the Compose sources into
+        <td><span class="i18n-en">UI strings are not extracted</span><span class="i18n-zh">UI 字符串没有抽取出来</span></td>
+        <td><span class="i18n-en">The app cannot be translated without moving copy out of the Compose sources into
             resources. This is a deliberate trade: each warning currently sits next to the
-            condition that triggers it.</td>
+            condition that triggers it.</span><span class="i18n-zh">不把文案从 Compose 源码搬进资源文件，就无法翻译这个 App。这是有意的取舍：
+            目前每条警告就挨着触发它的那个条件。</span></td>
       </tr>
       <tr>
-        <td>Per-ABI AAR size is unmeasured</td>
-        <td>An embedded <code>tsnet</code> node adds a Go runtime. It is not small, and
-            <code>abiFilters</code> is not configured.</td>
+        <td><span class="i18n-en">Per-ABI AAR size is unmeasured</span><span class="i18n-zh">各 ABI 的 AAR 体积没有测量</span></td>
+        <td><span class="i18n-en">An embedded <code>tsnet</code> node adds a Go runtime. It is not small, and
+            <code>abiFilters</code> is not configured.</span><span class="i18n-zh">一个内嵌的 <code>tsnet</code> 节点会带上 Go 运行时。它不小，而
+            <code>abiFilters</code> 没有配置。</span></td>
       </tr>
       <tr>
-        <td>No reproducible-build guarantee</td>
-        <td>Release APKs are signed in CI but not verified bit-for-bit reproducible.</td>
+        <td><span class="i18n-en">No reproducible-build guarantee</span><span class="i18n-zh">没有可复现构建的保证</span></td>
+        <td><span class="i18n-en">Release APKs are signed in CI but not verified bit-for-bit reproducible.</span><span class="i18n-zh">release APK 在 CI 里签名，但没有逐比特验证其可复现性。</span></td>
       </tr>
       <tr>
-        <td>The bridge is compiled, not audited</td>
-        <td><code>tsnet</code> is a large dependency. This project neither vendors nor reviews
-            it.</td>
+        <td><span class="i18n-en">The bridge is compiled, not audited</span><span class="i18n-zh">桥接层只是被编译，没有被审计</span></td>
+        <td><span class="i18n-en"><code>tsnet</code> is a large dependency. This project neither vendors nor reviews
+            it.</span><span class="i18n-zh"><code>tsnet</code> 是个大依赖。本项目既不把它 vendor 进来，也不审阅它。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h2 id="extending">Extending it<a class="anchor" href="#extending"></a></h2>
+  <h2 id="extending"><span class="i18n-en">Extending it</span><span class="i18n-zh">扩展它</span><a class="anchor" href="#extending"></a></h2>
 
-  <p>A third provider, in four steps:</p>
+  <p><span class="i18n-en">A third provider, in four steps:</span><span class="i18n-zh">加第三个 provider，分四步：</span></p>
 
   <ol>
-    <li>Add a value to <code>ProviderId</code>.</li>
-    <li>Implement <code>ConnectivityProvider</code>.</li>
-    <li>Register it in <code>ProviderRegistry.initialise()</code>.</li>
-    <li>If it needs a heavy dependency, put it in its own source set and add a
+    <li><span class="i18n-en">Add a value to <code>ProviderId</code>.</span><span class="i18n-zh">给 <code>ProviderId</code> 加一个值。</span></li>
+    <li><span class="i18n-en">Implement <code>ConnectivityProvider</code>.</span><span class="i18n-zh">实现 <code>ConnectivityProvider</code>。</span></li>
+    <li><span class="i18n-en">Register it in <code>ProviderRegistry.initialise()</code>.</span><span class="i18n-zh">在 <code>ProviderRegistry.initialise()</code> 里注册它。</span></li>
+    <li><span class="i18n-en">If it needs a heavy dependency, put it in its own source set and add a
         <code>Class.forName</code> hook plus a ProGuard keep rule — the pattern
-        <code>tsnet</code> uses.</li>
+        <code>tsnet</code> uses.</span><span class="i18n-zh">如果它需要一个重量级依赖，就把它放进自己的 source set，并加一个 <code>Class.forName</code> 钩子
+        以及一条 ProGuard keep 规则 —— 即 <code>tsnet</code> 用的那套模式。</span></li>
   </ol>
 
   <p>
-    No UI change is required. The provider selector is driven by
-    <code>ProviderId.entries</code> and the registry's availability list.
+    <span class="i18n-en">No UI change is required. The provider selector is driven by
+    <code>ProviderId.entries</code> and the registry's availability list.</span><span class="i18n-zh">不需要改 UI。provider 选择器由 <code>ProviderId.entries</code> 和注册表的可用性列表驱动。</span>
   </p>
 
 </main>
@@ -326,18 +363,21 @@ docs/                          the same material as Markdown, for GitHub browsin
     <p>
       <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
       <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
-      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
-      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md"><span class="i18n-en">Privacy</span><span class="i18n-zh">隐私</span></a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md"><span class="i18n-en">Security policy</span><span class="i18n-zh">安全策略</span></a>
     </p>
         <p class="small">
-      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+      <span class="i18n-en"><strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
       client; the name and the whale artwork are used descriptively, to say what the app
       connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
       owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
       "Tailscale" is their trademark, and this is an independent client for their protocol
-      and for headscale.
+      and for headscale.</span><span class="i18n-zh"><strong>与 DeepSeek 没有隶属关系。</strong>这是一个独立、非官方的客户端；名称与鲸鱼图案只用于
+      说明它连接的是什么。DeepSeek 与 DeepSeek 鲸鱼标志属于其各自所有者，本项目不主张任何相关权利。
+      同样与 Tailscale Inc 没有隶属关系 —— “Tailscale” 是他们的商标，本项目只是其协议与 headscale 的
+      独立客户端。</span>
     </p>
-<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+<p class="small"><span class="i18n-en">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span><span class="i18n-zh">构建自 <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span></p>
   </div>
 </footer>
 

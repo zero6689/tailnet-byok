@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-lang="en" data-title-zh="构建与使用 —— tailnet-byok">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build &amp; use — tailnet-byok</title>
+<!-- After <title>, so the title it saves is the English one. -->
+<script src="lang.js"></script>
 <meta name="description" content="How to build tailnet-byok, including the gomobile native bridge, and how to configure it.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
@@ -14,35 +16,39 @@
   <div class="wrap">
     <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
     <nav class="site">
-      <a href="index.html">Overview</a>
-      <a href="guide.html" aria-current="page">Build &amp; use</a>
-      <a href="provisioning.html">Provisioning</a>
-      <a href="security.html">Security</a>
-      <a href="architecture.html">Architecture</a>
+      <a href="index.html"><span class="i18n-en">Overview</span><span class="i18n-zh">总览</span></a>
+      <a href="guide.html" aria-current="page"><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></a>
+      <a href="provisioning.html"><span class="i18n-en">Provisioning</span><span class="i18n-zh">配置链接</span></a>
+      <a href="security.html"><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></a>
+      <a href="architecture.html"><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></a>
+      <button class="lang" type="button" id="lang-toggle" hidden>中文</button>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
 
-  <h1>Build &amp; use</h1>
+  <h1><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></h1>
 
   <p class="lead">
-    Two build modes. One needs JDK 17 and an Android SDK; the other additionally needs Go,
-    gomobile and the NDK, and gives you the embedded node.
+    <span class="i18n-en">Two build modes. One needs JDK 17 and an Android SDK; the other additionally needs Go,
+    gomobile and the NDK, and gives you the embedded node.</span><span class="i18n-zh">两种构建模式。一种只需要 JDK 17 和 Android SDK；另一种还需要 Go、gomobile 和 NDK，
+    并且会给你内嵌节点。</span>
   </p>
 
   <div class="callout">
-    <span class="label">The honest summary</span>
+    <span class="label"><span class="i18n-en">The honest summary</span><span class="i18n-zh">诚实的总结</span></span>
     <p>
-      A fresh clone builds and runs <strong>without Go</strong>. It will tell you the embedded
+      <span class="i18n-en">A fresh clone builds and runs <strong>without Go</strong>. It will tell you the embedded
       provider is not compiled in and offer the system-network fallback. If the whole point
       for you is the auth-key field, you need the second mode — and about two gigabytes of
-      toolchain, which one script will fetch.
+      toolchain, which one script will fetch.</span><span class="i18n-zh">刚克隆下来的代码<strong>不需要 Go</strong> 就能构建并运行。它会告诉你内嵌提供方没有编译进去，
+      并提供系统网络作为回退方案。如果你要的正是那个认证密钥输入框，就需要第二种模式 ——
+      以及大约 2 GB 的工具链，一个脚本就能把它拉下来。</span>
     </p>
   </div>
 
-  <h2 id="fast-path">Fast path<a class="anchor" href="#fast-path">#</a></h2>
+  <h2 id="fast-path"><span class="i18n-en">Fast path</span><span class="i18n-zh">快速路径</span><a class="anchor" href="#fast-path">#</a></h2>
 
   <pre><code>git clone {{REPO_URL}}.git
 cd {{REPO_NAME}}
@@ -54,12 +60,13 @@ node scripts/make-wrapper.mjs                 # generates gradlew / gradlew.bat
 .\gradlew.bat assembleDebug                    # Windows</code></pre>
 
   <p>
-    That produces an APK in <code>app/build/outputs/apk/debug/</code>. It runs, and the
+    <span class="i18n-en">That produces an APK in <code>app/build/outputs/apk/debug/</code>. It runs, and the
     embedded provider will be reported as unavailable — with the reason shown in the UI
-    rather than as a crash.
+    rather than as a crash.</span><span class="i18n-zh">这样会在 <code>app/build/outputs/apk/debug/</code> 下生成一个 APK。它能跑，只是内嵌
+    提供方会被报为不可用 —— 原因会显示在 UI 上，而不是直接崩溃。</span>
   </p>
 
-  <h2 id="full-build">Full build, with the embedded node<a class="anchor" href="#full-build">#</a></h2>
+  <h2 id="full-build"><span class="i18n-en">Full build, with the embedded node</span><span class="i18n-zh">完整构建：带内嵌节点</span><a class="anchor" href="#full-build">#</a></h2>
 
   <pre><code>node scripts/fetch-toolchain.mjs go ndk   # Go + Android NDK
 node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aar
@@ -67,258 +74,296 @@ node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aa
 ./gradlew assembleDebug -PwithTsnet=true</code></pre>
 
   <p>
-    <code>scripts/build-bridge.mjs --check</code> reports the toolchain it can see without
-    building anything, which is the fastest way to find out what is missing.
+    <span class="i18n-en"><code>scripts/build-bridge.mjs --check</code> reports the toolchain it can see without
+    building anything, which is the fastest way to find out what is missing.</span><span class="i18n-zh"><code>scripts/build-bridge.mjs --check</code> 会报告它能看到的工具链，而不实际构建任何东西，
+    这是最快查出缺什么的方法。</span>
   </p>
 
-  <h3 id="why-the-bridge-is-not-committed">Why the AAR is not committed<a class="anchor" href="#why-the-bridge-is-not-committed">#</a></h3>
+  <h3 id="why-the-bridge-is-not-committed"><span class="i18n-en">Why the AAR is not committed</span><span class="i18n-zh">为什么 AAR 不提交进仓库</span><a class="anchor" href="#why-the-bridge-is-not-committed">#</a></h3>
 
   <p>
-    Because there is no prebuilt one to commit. Neither
+    <span class="i18n-en">Because there is no prebuilt one to commit. Neither
     <a href="https://github.com/tailscale/libtailscale">tailscale/libtailscale</a> (which is
     a C library, and produces no Android artifact at all) nor
     <a href="https://github.com/tailscale/tailscale-android">tailscale/tailscale-android</a>
     (whose GitHub releases ship only APKs) publishes one on Maven Central or JitPack. The
-    AAR has to be built from source, which is what the script does.
+    AAR has to be built from source, which is what the script does.</span><span class="i18n-zh">因为根本没有现成的可以提交。无论是
+    <a href="https://github.com/tailscale/libtailscale">tailscale/libtailscale</a>（它是一个
+    C 库，完全不产出 Android 构件），还是
+    <a href="https://github.com/tailscale/tailscale-android">tailscale/tailscale-android</a>
+    （它的 GitHub release 只发布 APK），都没有在 Maven Central 或 JitPack 上发布过 AAR。
+    AAR 只能从源码构建，脚本做的就是这件事。</span>
   </p>
 
-  <h3 id="why-not-the-official-aar">Why not just reuse Tailscale's AAR?<a class="anchor" href="#why-not-the-official-aar">#</a></h3>
+  <h3 id="why-not-the-official-aar"><span class="i18n-en">Why not just reuse Tailscale's AAR?</span><span class="i18n-zh">为什么不直接复用 Tailscale 的 AAR？</span><a class="anchor" href="#why-not-the-official-aar">#</a></h3>
 
   <p>
-    Two reasons, and the second is the important one.
+    <span class="i18n-en">Two reasons, and the second is the important one.</span><span class="i18n-zh">有两个原因，第二个才是关键。</span>
   </p>
 
   <ol>
     <li>
-      <strong>It does not expose what this app needs.</strong> The binding has no typed
+      <span class="i18n-en"><strong>It does not expose what this app needs.</strong> The binding has no typed
       <code>Dial</code> and no <code>GetIP</code>; all control flows through a local HTTP API
-      over JNI.
+      over JNI.</span><span class="i18n-zh"><strong>它没有暴露这个 App 需要的东西。</strong>绑定里没有带类型的
+      <code>Dial</code>，也没有 <code>GetIP</code>；所有控制都通过 JNI 走一个本地 HTTP API。</span>
     </li>
     <li>
-      <strong>Using it commits you to the system VPN slot.</strong> Its Kotlin side
+      <span class="i18n-en"><strong>Using it commits you to the system VPN slot.</strong> Its Kotlin side
       implements <code>IPNService</code> (a <code>VpnService</code>) and an
       <code>AppContext</code>; the Go side calls back into them. You would be building the
       official app's architecture — device-wide routing, split-tunnel policy, a foreground
-      service — to open one socket.
+      service — to open one socket.</span><span class="i18n-zh"><strong>用它就意味着你要占用系统 VPN 槽位。</strong>它的 Kotlin 侧实现了
+      <code>IPNService</code>（一个 <code>VpnService</code>）和 <code>AppContext</code>；
+      Go 侧会回调它们。为了打开一个套接字，你就得照搬官方 App 的架构 ——
+      设备级路由、拆分隧道策略、前台服务。</span>
     </li>
   </ol>
 
   <p>
-    So this project binds <code>tsnet</code> directly, with a deliberately tiny surface:
+    <span class="i18n-en">So this project binds <code>tsnet</code> directly, with a deliberately tiny surface:
     every exported Go function takes and returns only <code>String</code>,
     <code>Int</code>, <code>Bool</code> or <code>error</code>. Structured data crosses as
     JSON. That avoids both the interface-binding problem (a Go <code>net.Conn</code> has no
-    Java representation) and the version sensitivity of multi-value returns.
+    Java representation) and the version sensitivity of multi-value returns.</span><span class="i18n-zh">所以这个项目直接绑定 <code>tsnet</code>，接口面刻意做得很小：
+    每个导出的 Go 函数只接收和返回 <code>String</code>、<code>Int</code>、<code>Bool</code>
+    或 <code>error</code>。结构化数据以 JSON 传递。这样既避开了接口绑定的问题（Go 的
+    <code>net.Conn</code> 没有对应的 Java 表示），也避开了多返回值对版本敏感的问题。</span>
   </p>
 
-  <h2 id="toolchain-versions">Toolchain versions<a class="anchor" href="#toolchain-versions">#</a></h2>
+  <h2 id="toolchain-versions"><span class="i18n-en">Toolchain versions</span><span class="i18n-zh">工具链版本</span><a class="anchor" href="#toolchain-versions">#</a></h2>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Component</th><th>Version</th><th>Needed for</th></tr>
+      <tr><th><span class="i18n-en">Component</span><span class="i18n-zh">组件</span></th><th><span class="i18n-en">Version</span><span class="i18n-zh">版本</span></th><th><span class="i18n-en">Needed for</span><span class="i18n-zh">用途</span></th></tr>
     </thead>
     <tbody>
-      <tr><td>JDK</td><td>17</td><td>everything</td></tr>
-      <tr><td>Gradle</td><td>8.11.1</td><td>the wrapper</td></tr>
-      <tr><td>Android SDK</td><td>platform 35, build-tools 35.0.0</td><td>the app</td></tr>
-      <tr><td>Go</td><td>resolved from <code>go.dev</code> (1.23+ required)</td><td>the bridge</td></tr>
-      <tr><td>Android NDK</td><td>r26d (26.3.11579264)</td><td>the bridge</td></tr>
-      <tr><td>gomobile / gobind</td><td>same <code>x/mobile</code> revision</td><td>the bridge</td></tr>
+      <tr><td>JDK</td><td>17</td><td><span class="i18n-en">everything</span><span class="i18n-zh">全部</span></td></tr>
+      <tr><td>Gradle</td><td>8.11.1</td><td><span class="i18n-en">the wrapper</span><span class="i18n-zh">wrapper</span></td></tr>
+      <tr><td>Android SDK</td><td>platform 35, build-tools 35.0.0</td><td><span class="i18n-en">the app</span><span class="i18n-zh">App</span></td></tr>
+      <tr><td>Go</td><td><span class="i18n-en">resolved from <code>go.dev</code> (1.23+ required)</span><span class="i18n-zh">从 <code>go.dev</code> 解析（要求 1.23+）</span></td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
+      <tr><td>Android NDK</td><td>r26d (26.3.11579264)</td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
+      <tr><td>gomobile / gobind</td><td><span class="i18n-en">same <code>x/mobile</code> revision</span><span class="i18n-zh">与 <code>x/mobile</code> 同一 revision</span></td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
     </tbody>
   </table>
   </div>
 
   <div class="callout warn">
-    <span class="label">gomobile and gobind must match</span>
+    <span class="label"><span class="i18n-en">gomobile and gobind must match</span><span class="i18n-zh">gomobile 与 gobind 必须版本一致</span></span>
     <p>
-      Install them from the same <code>golang.org/x/mobile</code> revision. Different
+      <span class="i18n-en">Install them from the same <code>golang.org/x/mobile</code> revision. Different
       revisions produce bindings that describe an ABI the runtime library does not implement,
       and the failure appears at the first call rather than at build time — which is a
       genuinely miserable thing to debug. <code>build-bridge.mjs</code> installs both from
       one <code>--gomobile-version</code>, and prints the resolved versions so you can pin
-      them.
+      them.</span><span class="i18n-zh">请从同一个 <code>golang.org/x/mobile</code> revision 安装它们。revision 不同，生成的绑定
+      所描述的 ABI 就不是运行库实现的那一个，而失败会在第一次调用时才出现，而不是在构建时 ——
+      这调试起来非常难受。<code>build-bridge.mjs</code> 会用同一个 <code>--gomobile-version</code>
+      安装这两者，并打印出解析后的版本，方便你固定下来。</span>
     </p>
   </div>
 
-  <h2 id="build-modes">SDK level overrides<a class="anchor" href="#build-modes">#</a></h2>
+  <h2 id="build-modes"><span class="i18n-en">SDK level overrides</span><span class="i18n-zh">覆盖 SDK 版本</span><a class="anchor" href="#build-modes">#</a></h2>
 
   <p>
-    The default is <code>compileSdk 35</code> / <code>targetSdk 35</code>, which is what a
-    Play submission needs. If your local SDK is older, override both:
+    <span class="i18n-en">The default is <code>compileSdk 35</code> / <code>targetSdk 35</code>, which is what a
+    Play submission needs. If your local SDK is older, override both:</span><span class="i18n-zh">默认是 <code>compileSdk 35</code> / <code>targetSdk 35</code>，这是提交到 Google Play 所需要的。
+    如果你本地的 SDK 更旧，就把这两个都覆盖掉：</span>
   </p>
 
   <pre><code>./gradlew assembleDebug -PcompileSdk=34 -PtargetSdk=34</code></pre>
 
   <p class="small muted">
-    Note that AndroidX 1.15+ requires <code>compileSdk 35</code>, so this override is only
+    <span class="i18n-en">Note that AndroidX 1.15+ requires <code>compileSdk 35</code>, so this override is only
     useful if you also lower the dependency versions in
-    <code>gradle/libs.versions.toml</code>.
+    <code>gradle/libs.versions.toml</code>.</span><span class="i18n-zh">注意 AndroidX 1.15+ 要求 <code>compileSdk 35</code>，所以只有在你也把
+    <code>gradle/libs.versions.toml</code> 里的依赖版本调低时，这个覆盖才有用。</span>
   </p>
 
-  <h2 id="using-it">Using it<a class="anchor" href="#using-it">#</a></h2>
+  <h2 id="using-it"><span class="i18n-en">Using it</span><span class="i18n-zh">使用它</span><a class="anchor" href="#using-it">#</a></h2>
 
-  <h3 id="step-1-key">1. Create a pre-auth key<a class="anchor" href="#step-1-key">#</a></h3>
+  <h3 id="step-1-key"><span class="i18n-en">1. Create a pre-auth key</span><span class="i18n-zh">1. 创建预认证密钥</span><a class="anchor" href="#step-1-key">#</a></h3>
 
   <p>
-    In your tailnet's admin console: <strong>Settings → Keys → Generate auth key</strong>.
+    <span class="i18n-en">In your tailnet's admin console: <strong>Settings → Keys → Generate auth key</strong>.</span><span class="i18n-zh">在你 tailnet 的管理控制台里：<strong>Settings → Keys → Generate auth key</strong>。</span>
   </p>
 
   <ul>
-    <li>Prefer <strong>single-use</strong>: one device, one key.</li>
-    <li>Prefer a <strong>tag</strong> (for example <code>tag:phone</code>) so your ACLs can
-        grant that tag access to exactly the service you intend.</li>
-    <li>Set an <strong>expiry</strong> you will actually notice.</li>
+    <li><span class="i18n-en">Prefer <strong>single-use</strong>: one device, one key.</span><span class="i18n-zh">优先选 <strong>单次使用（single-use）</strong>：一台设备，一把密钥。</span></li>
+    <li><span class="i18n-en">Prefer a <strong>tag</strong> (for example <code>tag:phone</code>) so your ACLs can
+        grant that tag access to exactly the service you intend.</span><span class="i18n-zh">优先打一个 <strong>标签（tag）</strong>（例如 <code>tag:phone</code>），这样你的 ACL
+        就能只把这个标签授予你真正想开放的那个服务。</span></li>
+    <li><span class="i18n-en">Set an <strong>expiry</strong> you will actually notice.</span><span class="i18n-zh">设置一个你确实会注意到的 <strong>有效期</strong>。</span></li>
   </ul>
 
   <p class="small muted">
-    The app cannot enforce any of that for you. It is the difference between a key that is a
-    credential and a key that is a capability.
+    <span class="i18n-en">The app cannot enforce any of that for you. It is the difference between a key that is a
+    credential and a key that is a capability.</span><span class="i18n-zh">这些都没法由 App 替你来保证。这正是「一把密钥只是凭据」与「一把密钥是一种能力」
+    之间的区别。</span>
   </p>
 
-  <h3 id="step-2-host">2. Enter the target host<a class="anchor" href="#step-2-host">#</a></h3>
+  <h3 id="step-2-host"><span class="i18n-en">2. Enter the target host</span><span class="i18n-zh">2. 填写目标主机</span><a class="anchor" href="#step-2-host">#</a></h3>
 
-  <p>Accepted forms, in order of how likely they are to just work:</p>
+  <p><span class="i18n-en">Accepted forms, in order of how likely they are to just work:</span><span class="i18n-zh">可接受的写法，按「一填就能用」的可能性从高到低排列：</span></p>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Input</th><th>Verdict</th><th>Notes</th></tr>
+      <tr><th><span class="i18n-en">Input</span><span class="i18n-zh">输入</span></th><th><span class="i18n-en">Verdict</span><span class="i18n-zh">结论</span></th><th><span class="i18n-en">Notes</span><span class="i18n-zh">说明</span></th></tr>
     </thead>
     <tbody>
       <tr>
         <td><code>100.101.102.103:3080</code></td>
-        <td><span class="tag ok">best</span></td>
-        <td>No DNS in the path. If this fails, the network is wrong, not the resolver.</td>
+        <td><span class="tag ok"><span class="i18n-en">best</span><span class="i18n-zh">最佳</span></span></td>
+        <td><span class="i18n-en">No DNS in the path. If this fails, the network is wrong, not the resolver.</span><span class="i18n-zh">链路上没有 DNS。如果这样也失败，那是网络的问题，不是解析器的问题。</span></td>
       </tr>
       <tr>
         <td><code>host.tailnet.ts.net:3080</code></td>
-        <td><span class="tag ok">good</span></td>
-        <td>MagicDNS FQDN. Resolved by the node's own network stack.</td>
+        <td><span class="tag ok"><span class="i18n-en">good</span><span class="i18n-zh">良好</span></span></td>
+        <td><span class="i18n-en">MagicDNS FQDN. Resolved by the node's own network stack.</span><span class="i18n-zh">MagicDNS 全限定域名，由节点自己的网络栈解析。</span></td>
       </tr>
       <tr>
         <td><code>100.101.102.103</code></td>
-        <td><span class="tag warn">warns</span></td>
-        <td>Port defaults to 3080, and the app says so.</td>
+        <td><span class="tag warn"><span class="i18n-en">warns</span><span class="i18n-zh">有警告</span></span></td>
+        <td><span class="i18n-en">Port defaults to 3080, and the app says so.</span><span class="i18n-zh">端口默认为 3080，App 会明确告诉你这一点。</span></td>
       </tr>
       <tr>
         <td><code>myhost</code></td>
-        <td><span class="tag warn">warns</span></td>
+        <td><span class="tag warn"><span class="i18n-en">warns</span><span class="i18n-zh">有警告</span></span></td>
         <td>
-          A bare short name needs the tailnet search domain. An embedded node is not
-          guaranteed to have it. Use the FQDN or the IP if this fails.
+          <span class="i18n-en">A bare short name needs the tailnet search domain. An embedded node is not
+          guaranteed to have it. Use the FQDN or the IP if this fails.</span><span class="i18n-zh">裸短名需要 tailnet 的搜索域，而内嵌节点不保证有它。如果失败，
+          请改用 FQDN 或 IP。</span>
         </td>
       </tr>
       <tr>
         <td><code>http://100.101.102.103:3080</code></td>
-        <td><span class="tag bad">refused</span></td>
-        <td>Drop the scheme; there is a separate selector for it.</td>
+        <td><span class="tag bad"><span class="i18n-en">refused</span><span class="i18n-zh">拒绝</span></span></td>
+        <td><span class="i18n-en">Drop the scheme; there is a separate selector for it.</span><span class="i18n-zh">去掉 scheme，它有单独的选择项。</span></td>
       </tr>
       <tr>
         <td><code>93.184.216.34</code></td>
-        <td><span class="tag bad">refused</span></td>
+        <td><span class="tag bad"><span class="i18n-en">refused</span><span class="i18n-zh">拒绝</span></span></td>
         <td>
-          A public address is not reachable through a tailnet. This is a security boundary,
-          not a UX preference.
+          <span class="i18n-en">A public address is not reachable through a tailnet. This is a security boundary,
+          not a UX preference.</span><span class="i18n-zh">公网地址无法通过 tailnet 访问。这是安全边界，不是交互偏好。</span>
         </td>
       </tr>
       <tr>
         <td><code>127.0.0.1</code></td>
-        <td><span class="tag bad">refused</span></td>
-        <td>That is the phone, not your server.</td>
+        <td><span class="tag bad"><span class="i18n-en">refused</span><span class="i18n-zh">拒绝</span></span></td>
+        <td><span class="i18n-en">That is the phone, not your server.</span><span class="i18n-zh">那是手机自己，不是你的服务器。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h3 id="step-3-test">3. Test<a class="anchor" href="#step-3-test">#</a></h3>
+  <h3 id="step-3-test"><span class="i18n-en">3. Test</span><span class="i18n-zh">3. 测试</span><a class="anchor" href="#step-3-test">#</a></h3>
 
   <p>
-    The button runs six checks and stops at the first hard failure. Read the first
+    <span class="i18n-en">The button runs six checks and stops at the first hard failure. Read the first
     <span class="tag bad">✗</span> — that is the thing to fix. Everything below it is marked
-    skipped rather than failed, because a skipped step tells you nothing.
+    skipped rather than failed, because a skipped step tells you nothing.</span><span class="i18n-zh">这个按钮会跑六项检查，遇到第一个硬失败就停。先看第一个
+    <span class="tag bad">✗</span> —— 那才是要修的东西。它下面的每一步都会被标成「跳过」而不是「失败」，
+    因为被跳过的步骤说明不了任何问题。</span>
   </p>
 
-  <h3 id="self-hosted">Using headscale instead of Tailscale<a class="anchor" href="#self-hosted">#</a></h3>
+  <h3 id="self-hosted"><span class="i18n-en">Using headscale instead of Tailscale</span><span class="i18n-zh">用 headscale 代替 Tailscale</span><a class="anchor" href="#self-hosted">#</a></h3>
 
   <p>
-    Fill in the <strong>Control server</strong> field with your headscale base URL, for
+    <span class="i18n-en">Fill in the <strong>Control server</strong> field with your headscale base URL, for
     example <code>https://headscale.example.com</code>, and create the pre-auth key with
-    headscale rather than Tailscale:
+    headscale rather than Tailscale:</span><span class="i18n-zh">把 <strong>Control server</strong> 字段填成你的 headscale 基础 URL，例如
+    <code>https://headscale.example.com</code>，并用 headscale 而不是 Tailscale 来创建
+    预认证密钥：</span>
   </p>
 
   <pre><code>headscale preauthkeys create --user &lt;USER_ID&gt;
 headscale preauthkeys create --tags tag:phone --expiration 1h</code></pre>
 
   <p>
-    Leaving the field empty means Tailscale's hosted control plane. Note that passing that
+    <span class="i18n-en">Leaving the field empty means Tailscale's hosted control plane. Note that passing that
     hosted URL <em>explicitly</em> is not the same as leaving it empty — <code>tsnet</code>
-    treats a non-empty value as a custom server. The app normalises this for you.
+    treats a non-empty value as a custom server. The app normalises this for you.</span><span class="i18n-zh">把该字段留空表示使用 Tailscale 托管的控制面。注意，<em>显式</em>填入那个托管 URL
+    与留空并不等价 —— <code>tsnet</code> 会把非空值当成自定义服务器。App 会替你把这层差异
+    抹平。</span>
   </p>
 
   <div class="callout danger">
-    <span class="label">Trap</span>
+    <span class="label"><span class="i18n-en">Trap</span><span class="i18n-zh">陷阱</span></span>
     <p>
-      <code>tsnet</code> ignores the auth key you supply when usable node state already exists
+      <span class="i18n-en"><code>tsnet</code> ignores the auth key you supply when usable node state already exists
       on disk, <em>unless</em> <code>TSNET_FORCE_LOGIN=1</code> is set. This produces the
       single most confusing symptom in the whole project: "I pasted a new key and nothing
-      changed."
+      changed."</span><span class="i18n-zh"><code>tsnet</code> 在磁盘上已存在可用节点状态时会忽略你提供的认证密钥，<em>除非</em>
+      设置了 <code>TSNET_FORCE_LOGIN=1</code>。这会产生整个项目里最让人困惑的一个现象：
+      「我粘贴了新密钥，结果什么都没变。」</span>
     </p>
     <p class="small">
-      The app handles it: <strong>Forget key and reset node</strong> clears both the stored
+      <span class="i18n-en">The app handles it: <strong>Forget key and reset node</strong> clears both the stored
       ciphertext and the node's state directory, and the Go bridge exposes an explicit
-      <code>forceLogin</code> parameter.
+      <code>forceLogin</code> parameter.</span><span class="i18n-zh">App 处理了这一点：<strong>Forget key and reset node</strong> 会同时清掉已保存的密文和
+      节点的状态目录，Go 桥接也暴露了一个显式的 <code>forceLogin</code> 参数。</span>
     </p>
   </div>
 
-  <h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting">#</a></h2>
+  <h2 id="troubleshooting"><span class="i18n-en">Troubleshooting</span><span class="i18n-zh">故障排查</span><a class="anchor" href="#troubleshooting">#</a></h2>
 
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Symptom</th><th>Cause and fix</th></tr>
+      <tr><th><span class="i18n-en">Symptom</span><span class="i18n-zh">现象</span></th><th><span class="i18n-en">Cause and fix</span><span class="i18n-zh">原因与修法</span></th></tr>
     </thead>
     <tbody>
       <tr>
         <td>"not compiled into this build"</td>
-        <td>You built without the bridge. Run <code>scripts/build-bridge.mjs</code>, then
-            rebuild with <code>-PwithTsnet=true</code>.</td>
+        <td><span class="i18n-en">You built without the bridge. Run <code>scripts/build-bridge.mjs</code>, then
+            rebuild with <code>-PwithTsnet=true</code>.</span><span class="i18n-zh">你在构建时没有带上桥接。先运行 <code>scripts/build-bridge.mjs</code>，
+            再用 <code>-PwithTsnet=true</code> 重新构建。</span></td>
       </tr>
       <tr>
         <td>"no native library for this device ABI"</td>
-        <td>The AAR is present but lacks your ABI — usually an x86_64 emulator with an
-            arm64-only build. Rebind without trimming ABIs.</td>
+        <td><span class="i18n-en">The AAR is present but lacks your ABI — usually an x86_64 emulator with an
+            arm64-only build. Rebind without trimming ABIs.</span><span class="i18n-zh">AAR 在，但缺少你的 ABI —— 通常是 x86_64 模拟器配上了只含 arm64 的构建。
+            重新绑定，不要裁剪 ABI。</span></td>
       </tr>
       <tr>
-        <td>Node starts, TCP times out</td>
-        <td>Usually the port, or a service that is not listening. "Connection refused" means
-            the host answered; "timed out" means it did not.</td>
+        <td><span class="i18n-en">Node starts, TCP times out</span><span class="i18n-zh">节点启动成功，TCP 超时</span></td>
+        <td><span class="i18n-en">Usually the port, or a service that is not listening. "Connection refused" means
+            the host answered; "timed out" means it did not.</span><span class="i18n-zh">通常是端口问题，或者服务没有在监听。「Connection refused」说明主机有应答；
+            「timed out」说明它没应答。</span></td>
       </tr>
       <tr>
-        <td>MagicDNS name does not resolve</td>
-        <td>Use the <code>100.x</code> address. Bare short names are the least reliable form;
-            even full FQDNs depend on the control plane having published the suffix.</td>
+        <td><span class="i18n-en">MagicDNS name does not resolve</span><span class="i18n-zh">MagicDNS 名称解析不了</span></td>
+        <td><span class="i18n-en">Use the <code>100.x</code> address. Bare short names are the least reliable form;
+            even full FQDNs depend on the control plane having published the suffix.</span><span class="i18n-zh">请改用 <code>100.x</code> 地址。裸短名是最不可靠的形式；
+            即使是完整的 FQDN，也取决于控制面是否发布了那个后缀。</span></td>
       </tr>
       <tr>
         <td>"the encryption key was invalidated"</td>
-        <td>The device's lock screen or credentials changed, which destroys Keystore keys.
-            Re-enter the auth key. This is expected behaviour, not a bug.</td>
+        <td><span class="i18n-en">The device's lock screen or credentials changed, which destroys Keystore keys.
+            Re-enter the auth key. This is expected behaviour, not a bug.</span><span class="i18n-zh">设备的锁屏方式或凭据变了，这会导致 Keystore 密钥被销毁。重新输入认证密钥即可。
+            这是预期行为，不是 bug。</span></td>
       </tr>
       <tr>
-        <td>Auth key rejected</td>
-        <td>Check the key's tags against your ACLs, and that it has not expired. A key from
-            Tailscale will not work against headscale, or the reverse.</td>
+        <td><span class="i18n-en">Auth key rejected</span><span class="i18n-zh">认证密钥被拒绝</span></td>
+        <td><span class="i18n-en">Check the key's tags against your ACLs, and that it has not expired. A key from
+            Tailscale will not work against headscale, or the reverse.</span><span class="i18n-zh">检查这把密钥的标签与你的 ACL 是否匹配，以及它是否已过期。来自 Tailscale 的密钥
+            不能用于 headscale，反过来也一样。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
   <div class="callout">
-    <span class="label">Diagnostics</span>
+    <span class="label"><span class="i18n-en">Diagnostics</span><span class="i18n-zh">诊断</span></span>
     <p>
-      The <em>Diagnostics</em> button shows the provider, whether the Keystore key is
+      <span class="i18n-en">The <em>Diagnostics</em> button shows the provider, whether the Keystore key is
       hardware-backed, the node's state and address, the target with the host partially
-      masked, and the tailnet node's own recent log lines — all redacted before display.
+      masked, and the tailnet node's own recent log lines — all redacted before display.</span><span class="i18n-zh"><em>Diagnostics</em> 按钮会显示：当前使用的提供方、Keystore 密钥是否由硬件背书、
+      节点的状态与地址、把主机名部分打码后的目标，以及 tailnet 节点自己最近的日志行 ——
+      全部在显示前完成脱敏。</span>
     </p>
   </div>
 
@@ -329,18 +374,21 @@ headscale preauthkeys create --tags tag:phone --expiration 1h</code></pre>
     <p>
       <a href="{{REPO_URL}}">{{REPO_NAME}}</a> ·
       <a href="{{REPO_URL}}/blob/main/LICENSE">MIT</a> ·
-      <a href="{{REPO_URL}}/blob/main/PRIVACY.md">Privacy</a> ·
-      <a href="{{REPO_URL}}/blob/main/SECURITY.md">Security policy</a>
+      <a href="{{REPO_URL}}/blob/main/PRIVACY.md"><span class="i18n-en">Privacy</span><span class="i18n-zh">隐私</span></a> ·
+      <a href="{{REPO_URL}}/blob/main/SECURITY.md"><span class="i18n-en">Security policy</span><span class="i18n-zh">安全策略</span></a>
     </p>
-        <p class="small">
-      <strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
+    <p class="small">
+      <span class="i18n-en"><strong>Not affiliated with DeepSeek.</strong> This is an independent, unofficial
       client; the name and the whale artwork are used descriptively, to say what the app
       connects to. DeepSeek and the DeepSeek whale are trademarks of their respective
       owner, and no claim to them is made. Likewise not affiliated with Tailscale Inc --
       "Tailscale" is their trademark, and this is an independent client for their protocol
-      and for headscale.
+      and for headscale.</span><span class="i18n-zh"><strong>与 DeepSeek 没有隶属关系。</strong>这是一个独立、非官方的客户端；名称与鲸鱼图案只用于
+      说明它连接的是什么。DeepSeek 与 DeepSeek 鲸鱼标志属于其各自所有者，本项目不主张任何相关权利。
+      同样与 Tailscale Inc 没有隶属关系 —— “Tailscale” 是他们的商标，本项目只是其协议与 headscale 的
+      独立客户端。</span>
     </p>
-<p class="small">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</p>
+    <p class="small"><span class="i18n-en">Built from <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span><span class="i18n-zh">构建自 <code>{{BUILD_SHA}}</code> · v{{VERSION}} · {{BUILD_DATE}}</span></p>
   </div>
 </footer>
 
