@@ -251,6 +251,22 @@
     <string name="diag_update_source">update source: <xliff:g id="url" example="http://100.101.102.103:3080">%1$s</xliff:g></string>
     <string name="diag_update_result">last update: <xliff:g id="result">%1$s</xliff:g></string>
 
+    <!-- Configuration links: what one may say, and what the user is asked to confirm -->
+    <string name="setup_link_title">Configuration link</string>
+    <string name="setup_link_subtitle">From outside the app. Read it, then decide — nothing has changed yet.</string>
+    <string name="setup_link_target">Target: <xliff:g id="scheme" example="http">%1$s</xliff:g>://<xliff:g id="host" example="100.101.102.103">%2$s</xliff:g>:<xliff:g id="port" example="3080">%3$d</xliff:g><xliff:g id="path" example="/">%4$s</xliff:g></string>
+    <string name="setup_link_mode">Connection method: <xliff:g id="mode">%1$s</xliff:g></string>
+    <string name="setup_link_update">Update source: <xliff:g id="url">%1$s</xliff:g></string>
+    <string name="setup_link_control">Control plane: <xliff:g id="url">%1$s</xliff:g></string>
+    <string name="setup_link_node">Node name: <xliff:g id="name">%1$s</xliff:g></string>
+    <string name="setup_link_apply">Apply</string>
+    <string name="setup_link_discard">Ignore</string>
+    <string name="setup_link_applied">Configuration link applied.</string>
+    <string name="setup_link_not_a_link">That is not a dshbyok://setup link, so nothing was read from it.</string>
+    <string name="setup_link_credential">That link carries a credential-shaped field. A link may set where to connect, never what to authenticate with — so the whole link was refused. Enter the auth key by hand.</string>
+    <string name="setup_link_malformed">That link has a field this app cannot use, so nothing was read from it.</string>
+    <string name="setup_link_empty">That link names no configuration, so there is nothing to apply.</string>
+
     <!-- Footer -->
     <string name="footer_privacy">No telemetry. No account. No server of ours — your key is only ever sent to the control plane you configure.</string>
     <string name="footer_trademark">Not affiliated with DeepSeek. This is an independent, unofficial client; the name and the whale artwork describe what it connects to and are trademarks of their respective owner, not this project\'s.</string>

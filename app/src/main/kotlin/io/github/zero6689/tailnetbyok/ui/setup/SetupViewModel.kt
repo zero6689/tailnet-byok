@@ -12,6 +12,10 @@ import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.SetupLink
+import io.github.zero6689.tailnetbyok.domain.SetupLinkParse
+import io.github.zero6689.tailnetbyok.domain.SetupLinkParser
+import io.github.zero6689.tailnetbyok.domain.SetupLinkRejection
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
 import io.github.zero6689.tailnetbyok.domain.UpdateChecker
 import io.github.zero6689.tailnetbyok.domain.UpdateFailure
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -76,6 +81,16 @@ data class UiState(
     val updateOutcome: UpdateOutcome = UpdateOutcome.Unknown,
     /** True when Android is waiting for the user to allow installs from this app. */
     val needsInstallPermission: Boolean = false,
+    /**
+     * A configuration link that arrived from outside and has not been decided on.
+     *
+     * It sits here — parsed, shown, *not applied* — because that is the whole
+     * security model of the feature: a link can be printed by anyone, so the user
+     * sees where it points before anything changes. See `domain/SetupLink.kt`.
+     */
+    val pendingSetup: SetupLink? = null,
+    /** Why the last configuration link was refused, if it was. */
+    val setupLinkRejection: SetupLinkRejection? = null,
     /** Set when the embedded provider is unavailable, to explain why. */
     val embeddedUnavailableReason: TextRef? = null,
     val banner: Banner? = null,
@@ -138,6 +153,25 @@ data class UiState(
                 R.string.update_base_invalid
             }
         }
+
+    /**
+     * The configuration the [pendingSetup] link would produce, for display and for
+     * the address check — the same `TailnetAddressPolicy` question the live
+     * configuration is asked, so a link cannot talk the app into a target the user
+     * could not have typed themselves.
+     */
+    val pendingSetupConfig: AppConfig?
+        get() = pendingSetup?.applyTo(config)
+
+    val pendingSetupVerdict: TailnetAddressPolicy.Verdict?
+        get() = pendingSetupConfig?.let {
+            TailnetAddressPolicy.classify(it.hostInput, it.port, it.scheme)
+        }
+
+    /** Whether "Apply" should be tappable: a link the address policy rejects is not. */
+    val canApplyPendingSetup: Boolean
+        get() = pendingSetupVerdict != null &&
+            pendingSetupVerdict !is TailnetAddressPolicy.Verdict.Rejected
 
     /** Why the test is disabled, as a message id, or null when it is enabled. */
     val testBlockedReasonRes: Int?
@@ -231,6 +265,59 @@ class SetupViewModel(
             }
             .onEach { outcome -> _state.value = _state.value.copy(updateOutcome = outcome) }
             .launchIn(viewModelScope)
+
+        // Configuration links arrive whenever the operating system feels like it:
+        // before this view model exists (a cold start from a scan) or hours into a
+        // session (a tap on a link in a chat). Collecting a flow covers both, and
+        // the activity does not have to know whether anyone is listening.
+        container.setupLinks
+            .filterNotNull()
+            .onEach { raw -> onSetupLink(raw) }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Takes a configuration link apart and puts it in front of the user.
+     *
+     * Nothing is applied here, and nothing is applied without
+     * [applyPendingSetup]: a link is untrusted input, and the user confirming the
+     * target it names is the control that makes the whole feature safe. The raw
+     * string is cleared immediately so a configuration change cannot replay it.
+     */
+    private fun onSetupLink(raw: String) {
+        container.offerSetupLink(null)
+        when (val result = SetupLinkParser.parse(raw)) {
+            is SetupLinkParse.Parsed ->
+                _state.value = _state.value.copy(
+                    pendingSetup = result.link,
+                    setupLinkRejection = null,
+                    banner = null,
+                )
+
+            is SetupLinkParse.Rejected ->
+                _state.value = _state.value.copy(
+                    pendingSetup = null,
+                    setupLinkRejection = result.reason,
+                    banner = UiState.Banner(TextRef.of(result.reason.messageRes()), isError = true),
+                )
+        }
+    }
+
+    /** Applies the confirmed link, merging it onto the stored configuration. */
+    fun applyPendingSetup() {
+        val link = _state.value.pendingSetup ?: return
+        if (!_state.value.canApplyPendingSetup) return
+        persist { link.applyTo(it) }
+        _state.value = _state.value.copy(
+            pendingSetup = null,
+            setupLinkRejection = null,
+            banner = UiState.Banner(TextRef.of(R.string.setup_link_applied), isError = false),
+        )
+    }
+
+    /** Throws the pending link away. The configuration is untouched. */
+    fun discardPendingSetup() {
+        _state.value = _state.value.copy(pendingSetup = null, setupLinkRejection = null)
     }
 
     /** Keeps [UiState.providerStatus] in step with whichever provider is active. */

@@ -111,12 +111,34 @@ Not declared, and why:
 | `FOREGROUND_SERVICE` | No long-lived background component. |
 | Location, storage, camera, contacts, phone | Unused. A future export must go through the Storage Access Framework, which grants exactly one file. |
 
+**No camera, and therefore no in-app QR scanner.** This is a choice, not an
+omission. A scanner exists to serve one setup step, and it would cost the camera
+permission on every install forever; the system camera (or any QR application)
+already opens a `dshbyok://` link, because that is what a custom URI scheme is for.
+Setup codes are scanned by the app the user already trusts with the camera, and
+this app never sees a frame.
+
 ## No IPC surface
 
 Exactly one exported component: the launcher activity. The only content provider is the updater's
 `FileProvider`, which is `exported="false"` and may serve exactly one directory under `cacheDir`
 to a URI that this app put in an intent it sent. There is no exported service or receiver, so there
 is nothing for another app to bind to, query, or send an intent to.
+
+The activity does answer one kind of inbound intent besides its launcher entry: a
+`dshbyok://setup` VIEW (`domain/SetupLink.kt`). That is a real door into the app, so it is worth
+being precise about what can come through it.
+
+| A configuration link can | A configuration link cannot |
+|---|---|
+| set the target, port, scheme, path, connection method, update source, control-plane URL, or node name — after the user confirms the merged result on screen | carry a credential, in any form: a field name that looks like one (`authkey`, `key`, `token`, `password`, `secret`, …) makes the app refuse the whole link, and the user is told why |
+| point at a host the user could have typed | reach a host the address policy rejects — the merged configuration gets the same `TailnetAddressPolicy` verdict a hand-typed one does, and the Apply button is disabled when it is negative |
+| be ignored: the link is parsed and *shown*, never applied | change anything by itself: applying is an explicit tap, which is what turns "a QR code silently aims the app at a stranger's server, and the next thing the user types is their key" into a visible question |
+| be replayed by anyone who has it (it is not a secret) | touch the stored auth key, which no link can read, set or clear |
+
+Links are the one place this app takes instructions from outside itself, and the
+design rule is the same one the rest of the app follows: refuse what cannot be
+proven, and show the user what is about to happen.
 
 ## On not setting `FLAG_SECURE`
 

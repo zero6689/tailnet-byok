@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 6
+        versionCode = 7
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -143,7 +143,15 @@ android {
         // install anything whose bytes do not match /dsh.apk.sha256 -- a missing
         // or mismatched sidecar is a failure, never a silent pass. The update
         // source defaults to the target's own origin and is user-configurable.
-        versionName = "0.2.6"
+        //
+        // 0.2.7: provisioning. A deployment can hand the app its configuration as
+        // a dshbyok://setup link (or a QR code containing one), and the app shows
+        // what it would change and waits for a tap. A link may carry configuration
+        // and never a credential -- a credential-shaped field refuses the whole
+        // link -- and a target the address policy rejects cannot be applied. A
+        // private build can pre-fill a target with -PdefaultTarget; the public
+        // build's default stays empty, and CI checks that it does.
+        versionName = "0.2.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -165,6 +173,30 @@ android {
             "\"${providers.gradleProperty("defaultControlUrl").orNull ?: "https://controlplane.tailscale.com"}\"",
         )
         buildConfigField("boolean", "TSNET_ENABLED", withTsnet.toString())
+
+        // ---------------------------------------------------------------------
+        // Build-time configuration defaults, for a branded or private build.
+        //
+        // The values are NEVER committed: they come from -P properties, and the
+        // defaults below are empty on purpose, because the public build promises
+        // that this app has no server of its own and no address baked in. A
+        // downstream build (a company's own shell, a household's own phone) can
+        // pass -PdefaultTarget=host:port -PdefaultMode=system and ship an app whose
+        // users have nothing to type. The mechanism is upstream; the value is not.
+        //
+        //   ./gradlew assembleDebug -PdefaultTarget=100.64.0.1:3080 -PdefaultMode=system
+        //
+        // Values go through the same parser a dshbyok:// link does (see
+        // SetupLinkParser.parseDefaults), so a malformed property degrades to "no
+        // default" instead of producing an app whose first screen is broken — and a
+        // credential-shaped value is refused there too.
+        // ---------------------------------------------------------------------
+        fun gradlePropertyOrEmpty(name: String): String =
+            providers.gradleProperty(name).orNull?.trim().orEmpty()
+
+        buildConfigField("String", "DEFAULT_TARGET", "\"${gradlePropertyOrEmpty("defaultTarget")}\"")
+        buildConfigField("String", "DEFAULT_MODE", "\"${gradlePropertyOrEmpty("defaultMode")}\"")
+        buildConfigField("String", "DEFAULT_UPDATE_URL", "\"${gradlePropertyOrEmpty("defaultUpdateUrl")}\"")
 
         // NOTE (2026-09-12 23:0x): a `resourceConfigurations += setOf("en", "zh")`
         // style filter was tried here to strip the dependencies' translated

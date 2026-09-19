@@ -41,6 +41,43 @@ import io.github.zero6689.tailnetbyok.net.ProviderRegistry
 class AppContainer(private val appContext: Context) {
 
     /**
+     * Raw configuration links handed to the app from outside, newest last.
+     *
+     * A flow rather than a callback because the two ends live on different clocks:
+     * an intent can arrive before the screen's view model exists (a cold start from
+     * a scan) or long after it does (a tap on a link while the app is open). The
+     * view model collects this, so neither case needs the activity to know whether
+     * anyone is listening yet.
+     *
+     * The string is the raw URI, not a parsed [io.github.zero6689.tailnetbyok.domain.SetupLink]:
+     * parsing is a decision, and decisions belong with the state that shows them.
+     * ([io.github.zero6689.tailnetbyok.MainActivity] is the only writer.)
+     */
+    private val _setupLinks = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val setupLinks: kotlinx.coroutines.flow.StateFlow<String?> = _setupLinks
+
+    /** Offers a link for the screen to parse, show and confirm. Null clears it. */
+    fun offerSetupLink(raw: String?) {
+        _setupLinks.value = raw
+    }
+
+    /**
+     * The configuration a link-less first run starts from.
+     *
+     * From `-PdefaultTarget` / `-PdefaultMode` at build time, empty in the default
+     * build: this app ships with no server of its own, and the public build must
+     * keep that true. A private or branded build can pre-fill a target so its users
+     * have nothing to type — the mechanism lives upstream, the value does not.
+     */
+    val firstRunDefaults: AppConfig =
+        io.github.zero6689.tailnetbyok.domain.SetupLinkParser
+            .parseDefaults(
+                target = io.github.zero6689.tailnetbyok.BuildConfig.DEFAULT_TARGET,
+                mode = io.github.zero6689.tailnetbyok.BuildConfig.DEFAULT_MODE,
+                updateUrl = io.github.zero6689.tailnetbyok.BuildConfig.DEFAULT_UPDATE_URL,
+            )
+
+    /**
      * The application context, exposed for the one job that legitimately needs
      * it outside a composable: resolving resource ids to text when building
      * *data* rather than UI (the diagnostics lines). It is the application
@@ -51,7 +88,7 @@ class AppContainer(private val appContext: Context) {
     val vault: KeystoreSecretVault by lazy { KeystoreSecretVault() }
 
     val configRepository: ConfigRepository by lazy {
-        ConfigRepository(appContext, vault)
+        ConfigRepository(appContext, vault, firstRunDefaults)
     }
 
     val tester: ConnectionTester by lazy { ConnectionTester() }

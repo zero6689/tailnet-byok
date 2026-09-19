@@ -17,6 +17,59 @@ oversight, and it is worth knowing when you read a security entry below.
 
 _Nothing yet._
 
+## [0.2.7] — 2026-09-19
+
+The version the app reports is `0.2.7` (`versionCode` 7). It adds provisioning — and the first
+thing provisioning does is refuse most of what it is offered.
+
+### Added
+
+- **Configuration links: `dshbyok://setup?target=…&mode=…`.** A deployment can hand the app its
+  address instead of asking a user to type one, which is the difference between an app someone
+  uses and an app someone puts down. The link carries the target, port, scheme, path, connection
+  method, update source, control-plane URL and node name — and each field is optional, so a
+  link that only switches the connection method leaves the target alone.
+- **A QR generator that runs in the browser**, on the docs site:
+  `site/provisioning.html`. Type a target, get a code and the link; it can also be prefilled from
+  the URL fragment (`#target=…`), which browsers never transmit. The encoder is vendored
+  (`site/qr.js`, MIT, Kazuhiro Arase's `qrcode.js` via the copy npm ships in `qrcode-terminal`)
+  rather than loaded from a CDN, because the page that hands out an address must not need the
+  network. `scripts/vendor-qr.mjs` builds it and **checks it against the upstream encoder** over a
+  corpus of real links, so a bad flattening cannot ship as a QR code that no scanner reads.
+- **`-PdefaultTarget` / `-PdefaultMode` / `-PdefaultUpdateUrl`**, so a private or branded build can
+  pre-fill the first screen. The mechanism is upstream; the value is not — the public build's
+  defaults are empty and CI enforces that.
+- `docs/PROVISIONING.md` — the field table, the three rules, how to make a QR code, and why this
+  app has no built-in address.
+
+### Security
+
+- **A link may carry configuration, never a credential.** If any field name looks like one
+  (`authkey`, `key`, `token`, `password`, `secret`, `credential`, `bearer`, `otp`, `pin`) the
+  **whole link is refused** — not quietly stripped — and the user is told which rule fired. A
+  link can be photographed off a screen or pasted into a group chat, so a secret in one is a
+  secret in public. Unknown *non-credential* fields are still ignored, so a newer link format
+  stays usable on an older build.
+- **A link never applies itself.** It is parsed, shown (target, port, path, method, update
+  source) and waited on; applying is an explicit tap. The attack this designs against is a QR
+  code that silently re-points the app at a stranger's server so the next thing the user types is
+  their auth key — a confirmation step turns that into a visible question.
+- **The address policy still applies to the merged configuration**, with the same inline verdict
+  a hand-typed target gets, and the Apply button is disabled when the verdict is negative. A link
+  cannot reach a host the user could not have typed.
+- **No camera permission, and therefore no in-app scanner.** A scanner would cost the camera on
+  every install to serve one setup step; the system camera already opens a `dshbyok://` link.
+  The manifest's new `VIEW` filter is the only new inbound path into the app, and
+  `docs/SECURITY-MODEL.md` now states what may and may not come through it.
+- **Build-time defaults are parsed by the same parser**, so a malformed `-PdefaultTarget`
+  degrades to "no default" rather than shipping a broken first screen, and a value that tries to
+  smuggle a second field (`host&authkey=…`) lands as a malformed target.
+
+### Fixed
+
+- **The README claimed version 0.2.5 while the app reported 0.2.6.** Caught while writing this
+  entry; the Status line is now part of the release checklist rather than something to remember.
+
 ## [0.2.6] — 2026-09-19
 
 The version the app reports is `0.2.6` (`versionCode` 6). It adds an update checker, and the
@@ -337,7 +390,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.7
 [0.2.6]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.6
 [0.2.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.5
 [0.1.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.1.0
