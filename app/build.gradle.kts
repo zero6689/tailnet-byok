@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 7
+        versionCode = 8
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -151,7 +151,15 @@ android {
         // link -- and a target the address policy rejects cannot be applied. A
         // private build can pre-fill a target with -PdefaultTarget; the public
         // build's default stays empty, and CI checks that it does.
-        versionName = "0.2.7"
+        //
+        // 0.2.8: the keyboard stops covering the composer. The DSH screen left
+        // the IME inset to the page, and this engine (Chromium 116 WebView on
+        // Android 14) sometimes never tells the page the keyboard is up -- both
+        // `innerHeight` and `visualViewport.height` keep the keyboard-closed
+        // value -- so no page-side patch can notice. The screen now shrinks the
+        // WebView by the IME inset itself (`imePadding`), which leaves the page
+        // with a viewport that is already correct. See WebScreen.kt.
+        versionName = "0.2.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

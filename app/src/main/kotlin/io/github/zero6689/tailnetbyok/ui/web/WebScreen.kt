@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -208,7 +210,24 @@ fun WebScreen(
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                // The WebView must not extend under the keyboard.
+                //
+                // Measured on the maintainer's phone (HONOR ALT-AN00 / Android 14 /
+                // Chromium 116 WebView), 2026-09-19: the page was laid out for a
+                // 442px-tall viewport while the IME covered the bottom of it, so the
+                // composer was drawn behind the keyboard -- and on some opens the
+                // engine told the page nothing at all (`innerHeight` and
+                // `visualViewport.height` both stayed at the keyboard-closed value),
+                // which leaves the page with no way to notice. The page-side patches
+                // can only react to a viewport that shrinks; the real inset is known
+                // here, so the shrink is done here and the page simply gets a
+                // viewport that is already correct.
+                //
+                // `consumeWindowInsets(padding)` first, so the Scaffold's own system-bar
+                // padding is subtracted instead of being counted twice.
+                .consumeWindowInsets(padding)
+                .imePadding(),
         ) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),

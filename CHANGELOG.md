@@ -27,6 +27,23 @@ oversight, and it is worth knowing when you read a security entry below.
   a forgotten half reads as a blank line to whoever has that language selected; `site/README.md`
   documents the convention and the shared terminology.
 
+## [0.2.8] — 2026-09-19
+
+The version the app reports is `0.2.8` (`versionCode` 8). It fixes the composer disappearing behind the
+keyboard on the DSH screen.
+
+### Fixed
+
+- **The keyboard no longer covers the composer.** The DSH screen left the soft-keyboard inset to the
+  page, and this engine (Chromium 116 WebView on Android 14) sometimes never tells the page that the
+  keyboard came up: both `innerHeight` and `visualViewport.height` keep their keyboard-closed value, so
+  a page-side layout fix has nothing to react to and the composer is drawn behind the keyboard. Even
+  when the engine does report, the layout only gave up 287px of a keyboard that covers ~325px, which
+  left the composer under the last ~42px of it. The screen now shrinks the WebView by the IME inset
+  itself (`Modifier.imePadding()`, with the Scaffold's system-bar padding consumed first), so the page
+  is handed a viewport that is already correct. Nothing about the page's own keyboard handling changed;
+  it simply has a measurement it can trust now.
+
 ## [0.2.7] — 2026-09-19
 
 The version the app reports is `0.2.7` (`versionCode` 7). It adds provisioning — and the first
