@@ -4,6 +4,7 @@ import android.app.Application
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
+import io.github.zero6689.tailnetbyok.notify.AppForeground
 
 /**
  * Process entry point.
@@ -33,6 +34,10 @@ class TailnetByokApp : Application() {
         super.onCreate()
 
         container = AppContainer(applicationContext)
+
+        // Foreground state is what keeps the "a task finished" notification from
+        // interrupting someone who is already looking at the screen it is about.
+        AppForeground.register(this)
 
         // Registration never throws: a missing bridge is recorded as a reason
         // string and surfaced in the UI. An app that cannot start because an

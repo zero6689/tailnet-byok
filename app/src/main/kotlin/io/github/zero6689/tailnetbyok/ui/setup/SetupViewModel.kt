@@ -17,6 +17,7 @@ import io.github.zero6689.tailnetbyok.domain.SetupLinkParse
 import io.github.zero6689.tailnetbyok.domain.SetupLinkParser
 import io.github.zero6689.tailnetbyok.domain.SetupLinkRejection
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
+import io.github.zero6689.tailnetbyok.domain.TurnWatch
 import io.github.zero6689.tailnetbyok.domain.UpdateChecker
 import io.github.zero6689.tailnetbyok.domain.UpdateFailure
 import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
@@ -29,6 +30,8 @@ import io.github.zero6689.tailnetbyok.net.ProviderStatus
 import io.github.zero6689.tailnetbyok.net.WebAccess
 import io.github.zero6689.tailnetbyok.net.WebUrl
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +39,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -79,6 +83,23 @@ data class UiState(
      * without the user having to ask for diagnostics.
      */
     val updateOutcome: UpdateOutcome = UpdateOutcome.Unknown,
+    /**
+     * A version the update source advertised when the app checked by itself.
+     *
+     * Only the version file is read for this (see
+     * [UpdateChecker.checkVersionOnly]): a newer build is worth *saying*, and not
+     * worth downloading until the user agrees. Nothing is shown when the check
+     * could not be made — a silent check that fails is not news.
+     */
+    val availableUpdate: String? = null,
+    /**
+     * The page a deployment points at for generating a configuration link or QR
+     * code, when this build was given one.
+     *
+     * Empty in the public build: the mechanism ships, the value comes from the
+     * deployment. See `docs/PROVISIONING.md`.
+     */
+    val provisioningUrl: String = BuildConfig.DEFAULT_PROVISIONING_URL,
     /** True when Android is waiting for the user to allow installs from this app. */
     val needsInstallPermission: Boolean = false,
     /**
@@ -227,6 +248,96 @@ class SetupViewModel(
      */
     private var webRoute: ConnectivityProvider? = null
 
+    /** The start-up update check runs at most once per process; see [autoCheckForUpdate]. */
+    private var autoCheckedUpdate = false
+
+    /** The session poller, alive only while the DSH screen is; see [startTurnWatch]. */
+    private var turnWatchJob: Job? = null
+    private var turnWatch = TurnWatch()
+
+    /**
+     * Watches for a session stopping, while the DSH screen is open.
+     *
+     * Polling rather than subscribing: the gateway's event stream is the page's own
+     * private channel, while `session/list` is an endpoint that has survived
+     * several DSH releases, and what is being detected is a *transition* — there is
+     * nothing to react to during a turn, only to its end.
+     *
+     * The interval backs off while nothing is running. A poll every few seconds is
+     * worth its battery only when there is something that can finish; when the
+     * target is idle this is a heartbeat, not a watch.
+     */
+    private fun startTurnWatch(baseUrl: String) {
+        turnWatchJob?.cancel()
+        turnWatch = TurnWatch()
+        turnWatchJob = viewModelScope.launch {
+            val watcher = container.sessionWatcher(baseUrl)
+            while (isActive) {
+                val sessions = watcher.sessions()
+                if (sessions != null) {
+                    turnWatch.observe(sessions).forEach { finished ->
+                        container.notifyTurnFinished(finished.title)
+                    }
+                }
+                delay(if (sessions?.any { it.running } == true) TURN_POLL_BUSY_MS else TURN_POLL_IDLE_MS)
+            }
+        }
+    }
+
+    private fun stopTurnWatch() {
+        turnWatchJob?.cancel()
+        turnWatchJob = null
+    }
+
+    /**
+     * One silent update check per process, and never before a target exists.
+     *
+     * The app's promise is that it talks to nobody but the target the user
+     * configured, so with no usable target there is nothing to ask — and asking a
+     * source the user never chose is exactly what this app does not do. Once per
+     * process is enough: the answer cannot change while the process lives, and
+     * re-checking on every configuration change would turn typing into requests.
+     *
+     * Failure is deliberately silent. A check nobody asked for must never be the
+     * reason an error appears on a screen where nothing is wrong; [checkForUpdate]
+     * is the one that reports, because that is the one the user pressed.
+     */
+    private fun autoCheckForUpdate(config: AppConfig) {
+        if (autoCheckedUpdate) return
+        val current = _state.value
+        if (!current.canCheckForUpdate) return
+        autoCheckedUpdate = true
+
+        viewModelScope.launch {
+            val provider = container.provider(config.provider) ?: return@launch
+            val report = container.tester.run(
+                config = config,
+                nodeStateDir = container.nodeStateDir,
+                provider = provider,
+                readCredentials = { readCredentials() },
+                onStep = { },
+                scope = ConnectionTester.Scope.BRING_UP,
+            )
+            if (!report.succeeded) return@launch
+
+            // No package ceiling is passed: this path never fetches a package.
+            val checker = UpdateChecker(fetch = { spec -> provider.fetch(spec) })
+            val result = withContext(Dispatchers.IO) {
+                checker.checkVersionOnly(config.updateBase, BuildConfig.VERSION_NAME)
+            }
+            when (result) {
+                is UpdateChecker.VersionCheck.Newer ->
+                    _state.value = _state.value.copy(availableUpdate = result.advertised)
+
+                is UpdateChecker.VersionCheck.UpToDate ->
+                    _state.value = _state.value.copy(availableUpdate = null)
+
+                // Silent by design: see the note above.
+                is UpdateChecker.VersionCheck.Failed -> Unit
+            }
+        }
+    }
+
     init {
         _state.value = _state.value.copy(
             hardwareBackedKeystore = repository.isHardwareBacked(),
@@ -251,6 +362,7 @@ class SetupViewModel(
                     },
                 )
                 observeProvider(config.provider)
+                autoCheckForUpdate(config)
             }
             .launchIn(viewModelScope)
 
@@ -274,6 +386,21 @@ class SetupViewModel(
             .filterNotNull()
             .onEach { raw -> onSetupLink(raw) }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * A configuration link the user pasted into the first-run card.
+     *
+     * It goes through exactly the same door as a link that arrived from the
+     * operating system — parsed, shown, applied only on a tap — because "the user
+     * typed it" is not a reason to trust it. The confirmation step exists to make
+     * the *target* something the user agrees to, and that argument does not care
+     * where the text came from.
+     */
+    fun offerPastedLink(raw: String) {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return
+        container.offerSetupLink(trimmed)
     }
 
     /**
@@ -825,6 +952,9 @@ class SetupViewModel(
                         report = report,
                         webUrl = access.url,
                     )
+                    // Only now is there a route to poll, and a page that can be
+                    // finished with.
+                    startTurnWatch(access.url.reveal())
                 }
                 is WebAccess.Refused -> {
                     _state.value = _state.value.copy(
@@ -847,6 +977,9 @@ class SetupViewModel(
      */
     fun closeWebUi() {
         if (_state.value.webUrl == null) return
+        // The watcher polls the route that is about to be released, and the cookie
+        // it was reading is dropped with the screen: it stops before either.
+        stopTurnWatch()
         _state.value = _state.value.copy(webUrl = null)
         releaseWebRoute()
     }
@@ -903,6 +1036,16 @@ class SetupViewModel(
 
     companion object {
         private const val TAG = "SetupVM"
+
+        /**
+         * How often the session watch polls.
+         *
+         * Fast while something is running, because that is when the user is
+         * waiting on an answer they will not see until they come back; slow
+         * otherwise, where the poll only exists to notice the next turn starting.
+         */
+        private const val TURN_POLL_BUSY_MS = 5_000L
+        private const val TURN_POLL_IDLE_MS = 20_000L
 
         fun factory(container: AppContainer): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

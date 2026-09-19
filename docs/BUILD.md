@@ -64,7 +64,8 @@ branded build can pre-fill the first screen so its users have nothing to type:
 ./gradlew assembleDebug \
   -PdefaultTarget=phone.tailnet-name.ts.net:3080 \
   -PdefaultMode=system \
-  -PdefaultUpdateUrl=http://192.0.2.10:8089
+  -PdefaultUpdateUrl=http://192.0.2.10:8089 \
+  -PdefaultProvisioningUrl=https://example.invalid/byok/provisioning.html
 ```
 
 | Property | Accepted | Empty default means |
@@ -72,6 +73,7 @@ branded build can pre-fill the first screen so its users have nothing to type:
 | `defaultTarget` | `host`, `host:port`, or an absolute `http(s)://host:port/path` | nothing is pre-filled |
 | `defaultMode` | `embedded` or `system` | the app's own default (`embedded`) |
 | `defaultUpdateUrl` | a base URL serving `dsh.apk.version`, `dsh.apk`, `dsh.apk.sha256` | the target's own origin |
+| `defaultProvisioningUrl` | an `http(s)` page that draws a configuration link and its QR code | the first-run card offers no page (only the paste box and the fields below it) |
 
 Two properties of this mechanism are worth knowing before you use it. It is a **default, not a
 policy**: the moment the user saves any setting, the stored value wins and the build property

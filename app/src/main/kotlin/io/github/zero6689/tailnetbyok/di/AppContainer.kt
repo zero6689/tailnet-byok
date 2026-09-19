@@ -1,6 +1,7 @@
 package io.github.zero6689.tailnetbyok.di
 
 import android.content.Context
+import io.github.zero6689.tailnetbyok.data.SessionWatcher
 import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.data.crypto.KeystoreSecretVault
@@ -9,6 +10,7 @@ import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 import io.github.zero6689.tailnetbyok.net.ConnectivityProvider
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
+import io.github.zero6689.tailnetbyok.notify.TurnNotifications
 
 /**
  * Manual dependency wiring.
@@ -92,6 +94,23 @@ class AppContainer(private val appContext: Context) {
     }
 
     val tester: ConnectionTester by lazy { ConnectionTester() }
+
+    /**
+     * The poller that notices a session stopping, over the route the DSH screen uses.
+     *
+     * Built per route and never kept: the base URL is a capability — on the
+     * embedded route it carries a loopback session token — and the cookie is read
+     * from the WebView's own jar on every request rather than copied here, so there
+     * is no second copy of a credential with a longer life than the screen.
+     */
+    fun sessionWatcher(baseUrl: String): SessionWatcher = SessionWatcher(
+        baseUrl = baseUrl,
+        cookie = { android.webkit.CookieManager.getInstance().getCookie(baseUrl) },
+    )
+
+    /** Posts "a task finished". The foreground check lives in [TurnNotifications]. */
+    fun notifyTurnFinished(sessionTitle: String?) =
+        TurnNotifications.turnFinished(appContext, sessionTitle)
 
     /**
      * Stages a verified update and asks the system to install it.

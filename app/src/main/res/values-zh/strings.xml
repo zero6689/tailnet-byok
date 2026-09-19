@@ -195,6 +195,28 @@
     <string name="web_title">DSH 界面</string>
     <string name="web_close">关闭</string>
     <string name="web_retry">重试</string>
+    <string name="web_pick_file">选择要上传的内容</string>
+    <string name="web_back_to_settings">返回设置</string>
+    <string name="web_open_settings">打开设置</string>
+
+    <!-- 0.2.9：启动时的自动检查，以及首次使用卡片。 -->
+    <string name="update_available_title">有新版本 <xliff:g id="version" example="0.2.9">%1$s</xliff:g></string>
+    <string name="update_available_body">这是启动时自动检查发现的。它只读了版本文件，什么都还没下载。</string>
+    <string name="update_available_action">更新</string>
+    <string name="firstrun_title">第一次使用</string>
+    <string name="firstrun_subtitle">三条路，其中一条不用打字</string>
+    <string name="firstrun_body">手上有配置链接？粘贴到下面。它带着目标地址、连接方式和更新源，并且会先给你看、再等你点。没有链接就在下面「目标服务」里手输主机。以 dshbyok:// 开头的链接也可以直接点开，本应用接收这种链接。</string>
+    <string name="firstrun_paste_label">配置链接</string>
+    <string name="firstrun_paste_hint">dshbyok://setup?target=…</string>
+    <string name="firstrun_use_link">使用这条链接</string>
+    <string name="firstrun_provisioning">还没有链接？配置页会画出链接和它的二维码。二维码给另一台手机扫，链接粘到上面那一格。</string>
+    <string name="firstrun_open_provisioning">打开配置页</string>
+
+    <!-- 0.2.9：会话跑完时发的通知。 -->
+    <string name="notify_channel_name">任务完成</string>
+    <string name="notify_channel_description">你的 DSH 服务器上有任务跑完时告诉你，这样就不用一直开着界面盯着。</string>
+    <string name="notify_turn_title">有任务跑完了</string>
+    <string name="notify_turn_fallback">你的 DSH 服务器上有一个会话停止了运行。</string>
     <string name="web_proxy_failed">无法打开 DSH 界面：<xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
     <string name="web_proxy_unavailable">打开 DSH 界面需要内嵌 tailnet 节点，这个构建里没有。</string>
     <string name="web_error_title">页面没有加载出来</string>

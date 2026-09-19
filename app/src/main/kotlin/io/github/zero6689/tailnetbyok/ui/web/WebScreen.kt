@@ -1,9 +1,17 @@
 package io.github.zero6689.tailnetbyok.ui.web
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
+import android.os.Parcelable
+import android.provider.MediaStore
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
@@ -28,8 +36,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,17 +53,23 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import io.github.zero6689.tailnetbyok.R
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
+import io.github.zero6689.tailnetbyok.domain.FileUploadRequest
+import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 
 /**
  * The target's own web interface, in a WebView.
@@ -86,6 +101,7 @@ import io.github.zero6689.tailnetbyok.core.log.SafeLog
 fun WebScreen(
     url: String,
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Held as MutableState objects rather than `by` delegates because the clients
@@ -93,15 +109,45 @@ fun WebScreen(
     // MutableState is a stable reference to the same cell for the life of the
     // screen, which is exactly what a callback that outlives a recomposition
     // needs.
+    val context = LocalContext.current
     val load = remember { mutableStateOf<LoadState>(LoadState.Loading) }
     val webView = remember { mutableStateOf<WebView?>(null) }
     val pendingFileChooser = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    // The staged photo target for the request in flight, when that request offered
+    // the camera. Held as a file *and* its URI: the file is what has to be cleaned
+    // up when the user picks a document instead of taking a photo.
+    val capture = remember { mutableStateOf<CaptureTarget?>(null) }
+    val pickerTitle = stringResource(R.string.web_pick_file)
 
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        // Cancelling the picker answers with null, which is the "user chose
+    // Android 13+ wants the user to agree before anything can be posted. This
+    // screen is where background work starts, so it is where the question belongs;
+    // it is asked once (a refusal is remembered by the system, and the app treats
+    // "no permission" as "no notification" rather than as an error).
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        // Cancelling answers with a non-OK result, which is the "user chose
         // nothing" result the page is waiting for. Either way the callback is
         // answered exactly once — see [answerFileChooser].
-        answerFileChooser(pendingFileChooser, uri?.let { arrayOf(it) })
+        val uris = if (result.resultCode == Activity.RESULT_OK) urisFrom(result.data, capture.value?.uri) else null
+        // A staged photo nobody used is ours to remove. The one the page did
+        // receive stays until the screen goes away, because the WebView reads it
+        // asynchronously and a delete-now would race that read.
+        if (capture.value != null && uris?.any { it == capture.value?.uri } != true) {
+            capture.value?.file?.delete()
+        }
+        capture.value = null
+        answerFileChooser(pendingFileChooser, uris?.toTypedArray())
     }
 
     val chrome = remember {
@@ -118,14 +164,50 @@ fun WebScreen(
                 if (filePathCallback == null) return false
                 pendingFileChooser.value = filePathCallback
 
+                val request = FileUploadRequest.of(
+                    acceptTypes = fileChooserParams?.acceptTypes,
+                    allowMultiple = fileChooserParams?.mode ==
+                        WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE,
+                    captureEnabled = fileChooserParams?.isCaptureEnabled == true,
+                )
+
                 return try {
                     // The Storage Access Framework: the app never sees a path and
                     // holds no file permission — the user grants one document.
-                    filePicker.launch(acceptedMimeType(fileChooserParams))
+                    val pick = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = request.pickerType
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, request.allowMultiple)
+                        if (request.extraMimeTypes.isNotEmpty()) {
+                            putExtra(Intent.EXTRA_MIME_TYPES, request.extraMimeTypes.toTypedArray())
+                        }
+                    }
+                    // "Take a photo" rides in the same system sheet as an extra
+                    // source, so the user answers one question instead of two. A
+                    // device with no camera app simply never shows the entry.
+                    val staged = if (request.offersCamera) newCaptureTarget(context) else null
+                    capture.value = staged
+                    val chooser = Intent.createChooser(pick, pickerTitle).apply {
+                        // EXTRA_INITIAL_INTENTS rather than the three-argument
+                        // createChooser: that overload is ambiguous in Kotlin
+                        // (there is an IntentSender one with the same shape), and
+                        // this extra is the same mechanism without the ambiguity.
+                        if (staged != null) {
+                            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                                putExtra(MediaStore.EXTRA_OUTPUT, staged.uri)
+                                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf<Parcelable>(cameraIntent))
+                        }
+                    }
+                    filePicker.launch(chooser)
                     true
                 } catch (e: ActivityNotFoundException) {
                     // A device with no document picker is rare, a hung file input
                     // is not recoverable. Answering null is what unblocks the page.
+                    capture.value?.file?.delete()
+                    capture.value = null
                     answerFileChooser(pendingFileChooser, null)
                     SafeLog.w(TAG, "no activity can return content for the page's file input", e)
                     true
@@ -197,10 +279,25 @@ fun WebScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.web_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    // Both this and the gear below land on the settings screen.
+                    // That duplication is the point: the arrow is what the
+                    // platform's leave-this-screen gesture looks like, and the
+                    // gear is what someone who has met the settings screen once
+                    // goes looking for. There is no third destination — the DSH
+                    // UI *is* a child of the settings screen, so "leave" and
+                    // "settings" are the same place.
+                    IconButton(onClick = onOpenSettings) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.web_close),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.web_back_to_settings),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.web_back_to_settings),
                         )
                     }
                 },
@@ -275,7 +372,12 @@ fun WebScreen(
                         .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    LoadFailedCard(failure = state, onRetry = retry, onClose = onClose)
+                    LoadFailedCard(
+                        failure = state,
+                        onRetry = retry,
+                        onClose = onClose,
+                        onOpenSettings = onOpenSettings,
+                    )
                 }
             }
         }
@@ -286,6 +388,12 @@ fun WebScreen(
             // A file chooser still open here can never be answered, and an
             // unanswered callback leaves the page's input spinning forever.
             answerFileChooser(pendingFileChooser, null)
+
+            // A staged photo that this screen still owns goes with it. The bytes
+            // are already in the page's hands by then (it read them when the
+            // upload ran), so this only reclaims the cache copy.
+            capture.value?.file?.delete()
+            capture.value = null
 
             // The target's session cookie is a credential, and Android's WebView
             // jar persists it to disk: leaving the screen must abandon the
@@ -342,6 +450,7 @@ private fun LoadFailedCard(
     failure: LoadState.Failed,
     onRetry: () -> Unit,
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -378,6 +487,10 @@ private fun LoadFailedCard(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onRetry) { Text(stringResource(R.string.web_retry)) }
+                // The page could not be reached, so "where does this page come
+                // from" is the question the user now has — and that answer lives
+                // on the settings screen.
+                Button(onClick = onOpenSettings) { Text(stringResource(R.string.web_open_settings)) }
                 TextButton(onClick = onClose) { Text(stringResource(R.string.web_close)) }
             }
         }
@@ -403,16 +516,43 @@ private fun answerFileChooser(
 }
 
 /**
- * The MIME type to hand the document picker.
+ * The URIs a file-chooser result carries.
  *
- * The wildcard type unless the page named a real MIME type. Extension-only hints
- * (`accept=".csv"`) are dropped rather than passed through: `GetContent` takes a
- * MIME type, and an intent whose type is `.csv` matches no provider at all —
- * which the user experiences as a picker that opens with nothing in it.
+ * Three shapes arrive here and all three are normal: a `clipData` list when the
+ * page allowed several files, a single `data` URI when it did not, and *nothing
+ * at all* when the photo came from the camera we handed an `EXTRA_OUTPUT` URI to.
+ * That last one is why the staged capture target is passed in — without it, a
+ * photo would read as "the user chose nothing" and the upload would silently do
+ * nothing.
  */
-private fun acceptedMimeType(params: WebChromeClient.FileChooserParams?): String {
-    val acceptTypes: Array<out String>? = params?.acceptTypes
-    return acceptTypes?.firstOrNull { it.contains('/') } ?: "*/*"
+private fun urisFrom(data: Intent?, captureUri: Uri?): List<Uri>? {
+    val clip = data?.clipData
+    if (clip != null && clip.itemCount > 0) {
+        return (0 until clip.itemCount).map { clip.getItemAt(it).uri }
+    }
+    data?.data?.let { return listOf(it) }
+    return captureUri?.let { listOf(it) }
+}
+
+/** A staged photo destination: the file to clean up, and the URI the camera writes. */
+private data class CaptureTarget(val file: java.io.File, val uri: Uri)
+
+/**
+ * A destination for a photo, inside the app's own cache.
+ *
+ * The camera writes through the FileProvider for the same reason the update
+ * download does: the app holds no storage permission, and the page receives an
+ * ordinary `content://` URI it can read without knowing where the bytes live.
+ * The file is disposable — the cache may reclaim it, and it is deleted as soon as
+ * the request it was staged for is answered without it.
+ */
+private fun newCaptureTarget(context: Context): CaptureTarget? = try {
+    val dir = java.io.File(context.cacheDir, "capture").apply { mkdirs() }
+    val file = java.io.File.createTempFile("photo-", ".jpg", dir)
+    CaptureTarget(file, FileProvider.getUriForFile(context, UpdateInstaller.authority(context), file))
+} catch (e: java.io.IOException) {
+    SafeLog.w(TAG, "could not stage a photo target; the camera entry is omitted", e)
+    null
 }
 
 private const val TAG = "WebScreen"

@@ -102,13 +102,25 @@ The file itself is staged in `cacheDir` and handed over as a one-shot read grant
 `FileProvider`, and before the intent is sent the archive's declared package name is compared with
 this app's: a verified download that turns out to be a different application is not offered at all.
 
+`POST_NOTIFICATIONS` (Android 13+, asked for the first time the DSH screen opens) exists for one
+thing: saying that a session on the target stopped running. What that notification carries is part
+of the security model, not a detail — it holds the session's *title* and none of the conversation,
+because a notification is read on a lock screen, which is a place the user does not control. Tapping
+it opens this app; it holds no content of its own, and a refusal is treated as "no notification"
+rather than as an error.
+
+The screen also polls the target's `session/list` RPC while it is open. That is a request to the
+target the user configured, over the route the page itself is using, carrying the WebView's own
+cookie and nothing else — it is not a channel to anywhere else, and it is the reason no server of
+ours and no push service is involved.
+
 Not declared, and why:
 
 | Permission | Reason |
 |---|---|
 | `BIND_VPN_SERVICE` | The embedded node dials one destination inside its own process. It never intercepts device-wide traffic, so it must not take the VPN slot — which would also break any other VPN the user runs. |
 | `QUERY_ALL_PACKAGES` | Nothing needs to enumerate other apps. |
-| `FOREGROUND_SERVICE` | No long-lived background component. |
+| `FOREGROUND_SERVICE` | No long-lived background component. The session watch lives inside the app's own process, while the DSH screen is open, and dies with it — so it costs no permanent notification and cannot outlive the screen. The honest consequence: if Android reclaims the process, notifications stop until the app is opened again. |
 | Location, storage, camera, contacts, phone | Unused. A future export must go through the Storage Access Framework, which grants exactly one file. |
 
 **No camera, and therefore no in-app QR scanner.** This is a choice, not an

@@ -210,6 +210,28 @@
     <string name="web_title">DSH UI</string>
     <string name="web_close">Close</string>
     <string name="web_retry">Retry</string>
+    <string name="web_pick_file">Choose what to upload</string>
+    <string name="web_back_to_settings">Back to settings</string>
+    <string name="web_open_settings">Open settings</string>
+
+    <!-- 0.2.9: the start-up update check, and the first-run card. -->
+    <string name="update_available_title">Version <xliff:g id="version" example="0.2.9">%1$s</xliff:g> is available</string>
+    <string name="update_available_body">Found by the check this app runs at start-up. It read the version file and nothing else — no package has been downloaded yet.</string>
+    <string name="update_available_action">Update</string>
+    <string name="firstrun_title">First run</string>
+    <string name="firstrun_subtitle">Three ways in, and one of them needs no typing</string>
+    <string name="firstrun_body">Have a configuration link? Paste it below. It carries the target, the connection method and the update source, and it is shown to you before anything changes. No link? Type the host under Target. A "dshbyok://" link can also be tapped directly — this app accepts those.</string>
+    <string name="firstrun_paste_label">Configuration link</string>
+    <string name="firstrun_paste_hint">dshbyok://setup?target=…</string>
+    <string name="firstrun_use_link">Use this link</string>
+    <string name="firstrun_provisioning">No link yet? The provisioning page draws one, together with its QR code. The code is for another phone to scan; the link is what goes in the box above.</string>
+    <string name="firstrun_open_provisioning">Open the provisioning page</string>
+
+    <!-- 0.2.9: the notification posted when a session stops running. -->
+    <string name="notify_channel_name">Finished tasks</string>
+    <string name="notify_channel_description">Says when a task on your DSH server stops running, so you do not have to keep the screen open to find out.</string>
+    <string name="notify_turn_title">A task finished</string>
+    <string name="notify_turn_fallback">A session on your DSH server stopped running.</string>
     <string name="web_proxy_failed">Could not open the DSH UI: <xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
     <string name="web_proxy_unavailable">The DSH UI needs the embedded tailnet node, which this build cannot provide.</string>
     <string name="web_error_title">The page did not load</string>
