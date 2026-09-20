@@ -34,13 +34,24 @@
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 
+/**
+ * What counts as a build-machine path.
+ *
+ * These are patterns, not substrings, because the first version of this file
+ * searched for the substring `.toolchain` and the release build failed on
+ * `tailscale.toolchain.rev` — a Go symbol name, not a path. A marker has to look
+ * like a path or it will eventually match an identifier.
+ */
 const MARKERS = [
-  ':\\Users\\',
-  ':/Users/',
-  '.toolchain',
-  'AppData\\Local\\Temp',
-  'AppData/Local/Temp',
-  'gomobile-work-',
+  // A Windows or macOS user profile: the user name lives in there.
+  { name: ':\\Users\\', re: /:\\Users\\/ },
+  { name: ':/Users/', re: /:\/Users\// },
+  // This project's own fetched toolchain, so the marker appears whenever the
+  // SDK/NDK/Go toolchain travelled with the checkout.
+  { name: '.toolchain/', re: /\.toolchain[\\/]/ },
+  // `gomobile`'s temporary work directory, recorded before -trimpath gets a say.
+  { name: 'AppData/Local/Temp', re: /AppData[\\/]Local[\\/]Temp/ },
+  { name: 'gomobile-work-', re: /gomobile-work-/ },
 ];
 
 /** Every entry in a zip, read the way the format actually says to read it. */
@@ -99,17 +110,18 @@ if (!file) {
 const found = new Map();
 for (const entry of entries(fs.readFileSync(file))) {
   const text = entry.body.toString('latin1');
-  for (const marker of MARKERS) {
-    const at = text.indexOf(marker);
-    if (at < 0) continue;
-    const where = found.get(marker) ?? { entries: new Set(), sample: '' };
+  for (const { name, re } of MARKERS) {
+    const match = re.exec(text);
+    if (!match) continue;
+    const at = match.index;
+    const where = found.get(name) ?? { entries: new Set(), sample: '' };
     where.entries.add(entry.name);
     if (!where.sample) {
       where.sample = text
         .slice(Math.max(0, at - 48), at + 48)
         .replace(/[^\x20-\x7e]/g, '.');
     }
-    found.set(marker, where);
+    found.set(name, where);
   }
 }
 
