@@ -128,7 +128,27 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease -PwithTsnet=true
+        # One ABI, and no R8, and both are deliberate:
+        #
+        #   * `arm64-v8a` only: a four-ABI release is ~164 MiB, and the download
+        #     button on `site/provisioning.html` is aimed at a phone. The page says
+        #     arm64, so the asset is arm64.
+        #   * `-PnoMinify=true`: see docs/RELEASING.md. The keep rules look
+        #     complete, but the only builds this project has ever run are ones it
+        #     could install, and the first public artefact is not the place to bet
+        #     on them. It costs about 10 MB.
+        run: ./gradlew --no-daemon assembleRelease -PwithTsnet=true -PabiFilters=arm64-v8a -PnoMinify=true
+
+      - name: Rename the asset to the published name
+        # The download link on the provisioning page is
+        # `/releases/latest/download/tailnet-byok-arm64.apk`, so the name has to be
+        # the same for every release. Renaming here rather than configuring Gradle
+        # keeps the build's own output name alone.
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/release -name '*.apk' | head -n1)
+          [ -n "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
+          mv "$apk" app/build/outputs/apk/release/tailnet-byok-arm64.apk
 
       - name: Verify the APK is signed
         run: |

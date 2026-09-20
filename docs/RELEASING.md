@@ -20,6 +20,73 @@ exists to make those two sentences true.
 The AAR is **not** committed (it is tens of megabytes and cannot be reviewed in a diff).
 The record is what stands in for it.
 
+## The signing identity
+
+This project has its **own** key, separate from the DSH shell's. It is not in the
+repository and never will be:
+
+| | |
+|---|---|
+| Keystore | `.cache/keys/tailnet-byok-release.keystore` (PKCS12, RSA 4096, alias `tailnetbyok`), outside the tree |
+| Certificate SHA-256 | `4D:7F:05:E2:4A:FD:70:91:79:63:AD:21:3A:B3:82:B6:B0:AC:91:3F:00:93:3D:1F:52:6F:23:E3:B5:81:97:90` |
+| How the build reads it | `KEYSTORE_FILE` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`, or a git-ignored `keystore.properties` — see [`BUILD.md`](BUILD.md) |
+| Where the passwords live | `.cache/keys/tailnet-byok-keystore.properties`, outside the tree, 0600-equivalent |
+
+The fingerprint above is public on purpose: it is how a user checks that the next
+release will install over the one they have (see the rule below). The keystore is
+not: anyone holding it can sign an update that Android will accept.
+
+## Publishing what users actually download
+
+Two things are published, and they are different files:
+
+1. **The release asset.** Every release attaches the APK under the **same asset
+   name**, `tailnet-byok-arm64.apk`, so that
+   `https://github.com/zero6689/tailnet-byok/releases/latest/download/tailnet-byok-arm64.apk`
+   is a permanent link. `site/provisioning.html` links exactly there; renaming the
+   asset breaks the download button on the page, silently, for everyone.
+2. **The deployment build.** A private build with a target pre-filled
+   (`-PdefaultTarget=…`, `-PdefaultProvisioningUrl=…`, `-PdefaultUpdateUrl=…`) is for
+   one server's own users. It is **never** the release asset: it names a real
+   machine, and the public build's defaults are empty on purpose, with CI asserting
+   that they stay empty.
+
+### The release asset must not name the build machine
+
+A Go binary records the paths it was compiled from, and `libgojni.so` is a Go
+binary. `build-bridge.mjs` passes `GOFLAGS=-trimpath`, which rewrites source-file
+paths to module-relative form — but it does **not** rewrite the C toolchain's
+include paths or the main module's directory in the build info. Those are absolute
+paths taken from wherever the NDK and the module happen to live.
+
+Measured on 2026-09-20: an AAR bound on the maintainer's machine carried
+`<checkout>\…` 65 times (module directory + NDK include paths),
+and an older one carried the Windows user name as well (`C:/Users/<name>/AppData/…`,
+from `gomobile`'s temporary work directory). A CI runner's equivalents read
+`/home/runner/…` and `/usr/local/lib/android/…`, which name nobody.
+
+So: **build the native library where the paths are neutral, then check.** The
+`Tailnet bridge` workflow already does the first half and uploads the AAR as an
+artefact; the check is a scan of the APK before it is published:
+
+```powershell
+# No address, user name, host name or build-machine path may appear anywhere in the APK.
+node .cache/scan-apk-privacy.mjs app/build/outputs/apk/release/app-release.apk
+```
+
+`CLEAN` is the only acceptable result for a public artefact. A hit inside
+`libgojni.so` means the AAR came from a machine whose toolchain paths are not
+neutral; rebuild it in CI and rebuild the APK with that AAR.
+
+### Why the first public release is not minified
+
+`assembleRelease` shrinks and obfuscates by default, and that is the right default.
+It is also a bet on the keep rules being complete, and the only builds this project
+has ever **run** are the ones it could install. For the first public release the bet
+was not worth taking: `-PnoMinify=true` turns R8 and resource shrinking off, which
+costs about 10 MB and makes the shipped code the same code path as the verified
+debug build. Revisit once a minified build has been run on a device.
+
 ## The record
 
 Every release notes file carries these, in this order. They are the answers to "what is
@@ -51,6 +118,11 @@ cd tailnet && go test ./... && cd ..            # the bridge's own tests
 ```
 
 Then, and only then, `git tag -a vX.Y.Z` and push the tag.
+
+Better, for anything that will be downloaded by someone else: take the AAR from the
+`Tailnet bridge` workflow (Actions → the run → `tailnet-aar-<sha>`) rather than from
+this machine, so the native library carries neutral paths, then build the APK with
+that AAR and run the privacy scan above before attaching anything to a release.
 
 ## Rules that exist because the alternative is worse
 
