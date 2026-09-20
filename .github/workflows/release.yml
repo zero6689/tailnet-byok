@@ -150,24 +150,75 @@ jobs:
           [ -n "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
           mv "$apk" app/build/outputs/apk/release/tailnet-byok-arm64.apk
 
+      - name: Refuse to publish a build that names this machine
+        # The native library is a Go binary, and Go records the paths it was
+        # compiled from. On a runner those paths name nobody; on a workstation they
+        # name a user profile. This is the gate, not a habit: see
+        # scripts/scan-apk-paths.mjs and docs/RELEASING.md.
+        run: node scripts/scan-apk-paths.mjs app/build/outputs/apk/release/tailnet-byok-arm64.apk
+
       - name: Verify the APK is signed
         run: |
           set -euo pipefail
-          apk=$(find app/build/outputs/apk/release -name '*.apk' | head -n1)
-          [ -n "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
+          apk=app/build/outputs/apk/release/tailnet-byok-arm64.apk
+          [ -f "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
           echo "signed: $apk"
 
-      - name: Record what went into the build
+      - name: Write the release notes and their record
+        # The record is what stands in for the AAR, which is never committed: it is
+        # the answer to "what is actually inside this binary". docs/RELEASING.md
+        # lists the fields; this step is where they come from.
         run: |
           set -euo pipefail
+          APK=app/build/outputs/apk/release/tailnet-byok-arm64.apk
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          CERT=$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/SHA-256 digest/{print $2; exit}')
+          AAR_SHA=$(sha256sum app/libs/tailnet.aar | cut -d' ' -f1)
+          APK_SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          MOBILE=$(node scripts/build-bridge.mjs --check 2>/dev/null | grep -oE 'v0\.0\.0-[0-9]{14}-[0-9a-f]{12}' | head -n1 || true)
+          TS=$(cd tailnet && go list -m tailscale.com | awk '{print $2}')
           {
-            echo "tag: ${{ inputs.tag || github.ref_name }}"
-            echo "commit: ${{ github.sha }}"
-            echo "go: $(go version)"
-            echo "gradle: $(./gradlew --version | grep -E '^Gradle' || true)"
-          } > "$RUNNER_TEMP/build-info.txt"
-          cat "$RUNNER_TEMP/build-info.txt"
+            echo "## Install"
+            echo
+            echo "Download \`tailnet-byok-arm64.apk\` below (Android 8.0+, arm64) and install it. Android"
+            echo "warns about installing from outside the Play Store; that warning is correct, because"
+            echo "this app is not distributed through it."
+            echo
+            echo "Then open the app: a fresh install shows how to connect it. The short version is that"
+            echo "somebody who runs a DSH server hands over a target — its own page can draw the link and"
+            echo "its QR code — and you sign in against that server. Nothing here talks to a server of ours."
+            echo
+            echo "## What is in this build"
+            echo
+            echo "This build includes the embedded Tailscale node. Your auth key is entered in the app"
+            echo "and stored encrypted by the Android Keystore; it is not present in this APK in any form."
+            echo "See [docs/SECURITY-MODEL.md](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/SECURITY-MODEL.md)"
+            echo "before trusting it with a key that can join a machine to your tailnet."
+            echo
+            echo "## Verify what you downloaded"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Tag | \`${{ github.ref_name }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Go toolchain | \`$(go version | awk '{print $3, $4}')\` |"
+            echo "| golang.org/x/mobile | \`${MOBILE:-see the build log}\` |"
+            echo "| tailscale.com | \`$TS\` |"
+            echo "| AAR SHA-256 | \`$AAR_SHA\` |"
+            echo "| APK SHA-256 | \`$APK_SHA\` |"
+            echo "| Signing certificate SHA-256 | \`$CERT\` |"
+            echo "| Third-party notices | [THIRD-PARTY-NOTICES.md](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/THIRD-PARTY-NOTICES.md) |"
+            echo
+            echo "\`\`\`bash"
+            echo "sha256sum tailnet-byok-arm64.apk"
+            echo "apksigner verify --print-certs tailnet-byok-arm64.apk"
+            echo "\`\`\`"
+            echo
+            echo "The certificate fingerprint is how you check that the next release will install over"
+            echo "this one: Android refuses an update signed by a different key."
+          } > "$RUNNER_TEMP/release-notes.md"
+          cat "$RUNNER_TEMP/release-notes.md"
 
       - name: Remove the signing keystore
         if: always()
@@ -179,28 +230,5 @@ jobs:
           name: ${{ inputs.tag || github.ref_name }}
           draft: true
           generate_release_notes: true
-          files: app/build/outputs/apk/release/*.apk
-          body: |
-            ## Install
-
-            Download the APK below and install it. Android will warn about
-            installing from outside the Play Store; that warning is correct and
-            expected, since this build is not distributed through it.
-
-            ## Verify what you downloaded
-
-            The APK is signed. To check the signature matches the certificate
-            used for previous releases:
-
-            ```bash
-            apksigner verify --print-certs tailnet-byok-*.apk
-            ```
-
-            ## What is in this build
-
-            This build includes the embedded Tailscale node. Your auth key is
-            entered in the app and stored encrypted by the Android Keystore; it
-            is not present in this APK in any form.
-
-            See [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md) before trusting
-            it with a key that can join a machine to your tailnet.
+          files: app/build/outputs/apk/release/tailnet-byok-arm64.apk
+          body_path: ${{ runner.temp }}/release-notes.md
