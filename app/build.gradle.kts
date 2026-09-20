@@ -244,8 +244,16 @@ android {
             isMinifyEnabled = false
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // `-PnoMinify=true` turns R8 and resource shrinking off for a release
+            // build. It exists for one purpose: a release has to be *runnable*
+            // before it is published, and the only builds this project has ever
+            // run on a real device are the ones it could install. Shipping a
+            // minified artifact nobody has executed is a bet on the keep rules;
+            // this is the escape hatch that removes the bet for a first public
+            // release. The default stays minified. See docs/RELEASING.md.
+            val noMinify = (providers.gradleProperty("noMinify").orNull ?: "false").toBooleanStrict()
+            isMinifyEnabled = !noMinify
+            isShrinkResources = !noMinify
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
