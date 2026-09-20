@@ -89,28 +89,28 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_PATH"
 
-      - name: Install gomobile and gobind
-        run: |
-          set -euo pipefail
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
       - name: Build the native bridge
-        run: |
-          set -euo pipefail
-          cd tailnet
-          go mod tidy
-          go mod download
-          cd ..
-          gomobile init
-          mkdir -p app/libs
-          CGO_ENABLED=0 gomobile bind \
-            -target=android \
-            -androidapi 26 \
-            -javapkg=io.github.zero6689.tailnetbyok \
-            -o app/libs/tailnet.aar \
-            ./tailnet
+        env:
+          # The script probes for a reachable module proxy when GOPROXY is unset;
+          # on a runner the official one works, so it is left to the script (a fork
+          # behind a restrictive network can set the `GOPROXY` repository variable
+          # and the script will respect it).
+          GOPROXY: ${{ vars.GOPROXY || 'https://proxy.golang.org,direct' }}
+        # The build is delegated, not spelled out here. This step used to have its
+        # own copy — `go install …@latest` plus a hand-written `gomobile bind` run
+        # from the repository root — and it had never once succeeded: gomobile
+        # resolves "the current module" from the working directory, so binding
+        # `./tailnet` from the root fails with "requires golang.org/x/mobile in the
+        # current module, but it is not in the module dependency graph" (the
+        # message names the dependency; the problem is the directory). It also
+        # installed gomobile at `@latest`, which breaks the rule that gomobile and
+        # gobind must come from the pinned x/mobile revision.
+        #
+        # `scripts/build-bridge.mjs` is the recipe: it pins the revision, refuses
+        # to build if `go mod tidy` moves the pin, binds from inside the module,
+        # injects the version stamps, and passes `GOFLAGS=-trimpath` so the
+        # shipped library does not record this machine's source paths.
+        run: node scripts/build-bridge.mjs
 
       - name: Materialise the signing keystore
         run: |
