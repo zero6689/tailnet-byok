@@ -232,3 +232,22 @@ jobs:
           generate_release_notes: true
           files: app/build/outputs/apk/release/tailnet-byok-arm64.apk
           body_path: ${{ runner.temp }}/release-notes.md
+
+      - name: Make the body this build wrote, and publish
+        # Two things happen here that the action above does not do reliably:
+        #
+        #   * the **body** is set from the record this job generated. The action
+        #     updates an existing release's *assets* but kept the older body when a
+        #     second run reused the same tag, which would leave the notes
+        #     describing different bytes than the asset.
+        #   * the draft is **published**, which is what makes
+        #     `/releases/latest/download/tailnet-byok-arm64.apk` — the link on the
+        #     provisioning page — resolve. Pushing the tag is the deliberate act
+        #     here; by this point the gate has already refused anything that names
+        #     the build machine, and the record is written.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.tag || github.ref_name }}"
+          gh release edit "$tag" --notes-file "$RUNNER_TEMP/release-notes.md" --draft=false

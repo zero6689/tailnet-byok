@@ -13,6 +13,13 @@ that one service. No account with us, no server of ours, no shared relay.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-3DDC97.svg)](https://developer.android.com/about/versions/oreo)
 
+**[Download the latest APK](https://github.com/zero6689/tailnet-byok/releases/latest/download/tailnet-byok-arm64.apk)**
+— Android 8.0+, arm64. Then open the app: a fresh install shows the ways to connect it. The short
+version is that whoever runs the server you are reaching hands over a target, and
+[the provisioning page](https://zero6689.github.io/tailnet-byok/provisioning.html) is what turns
+that target into a link or a QR code. Install, take a link, sign in against your own server; nothing
+here talks to a server of ours.
+
 > **Not affiliated with DeepSeek.** This is an independent, unofficial client. The name and
 > the whale artwork are used descriptively, to say what the app connects to. See
 > [Not affiliated with DeepSeek](#not-affiliated-with-deepseek).
