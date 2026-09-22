@@ -60,6 +60,18 @@
     A pixel counts as background white when every channel is at or above this.
     Default 235; lower it for heavily compressed screenshots.
 
+.PARAMETER MonochromeSource
+    A silhouette for the Material You themed-icon layer: Android tints that layer
+    instead of drawing the coloured one, so only its alpha matters. Written as
+    `ic_launcher_monochrome.png` at all five densities, and the
+    `mipmap-anydpi*/ic_launcher*.xml` files gain a `<monochrome>` element.
+
+.PARAMETER MonochromeFromArt
+    Derive the silhouette from the source art's own alpha, instead of a second
+    file. Correct only when the art is a solid shape on transparency. The script
+    refuses when the result would be a filled square, because a themed icon that
+    "works" by accident is worse than no themed icon at all.
+
 .EXAMPLE
     ./make-icons.ps1 -Source branding/mark-taiji.png -Res app/src/main/res
 
@@ -79,7 +91,9 @@ param(
     [string]$SaveCropped,
     [string]$PlayStoreIcon,
     [int]$CropPadding = 6,
-    [int]$WhiteThreshold = 235
+    [int]$WhiteThreshold = 235,
+    [string]$MonochromeSource,
+    [switch]$MonochromeFromArt
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,6 +102,12 @@ Add-Type -AssemblyName System.Drawing
 if (-not (Test-Path $Source)) { throw "source image not found: $Source" }
 if (-not (Test-Path $Res)) { throw "resource directory not found: $Res" }
 if ($MarkFraction -le 0 -or $MarkFraction -gt 1) { throw "MarkFraction must be in (0, 1]" }
+if ($MonochromeSource -and $MonochromeFromArt) {
+    throw 'pass either -MonochromeSource or -MonochromeFromArt, not both'
+}
+if ($MonochromeSource -and -not (Test-Path $MonochromeSource)) {
+    throw "monochrome silhouette not found: $MonochromeSource"
+}
 
 function Test-IsWhite {
     param([System.Drawing.Color]$Color, [int]$Threshold)
@@ -277,7 +297,75 @@ function New-IconCanvas {
     return $bmp
 }
 
+function New-MonochromeCanvas {
+    param([int]$Size, [System.Drawing.Bitmap]$Silhouette, [double]$Aspect, [double]$Fraction)
+    # Transparent, never a plate: the launcher draws this layer on its own themed
+    # background and tints it, so a ground here would become a coloured square.
+    $bmp = [System.Drawing.Bitmap]::new($Size, $Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.Clear([System.Drawing.Color]::Transparent)
+    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.PixelOffsetMode   = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.SmoothingMode     = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+
+    $mw = [int][Math]::Round($Size * $Fraction)
+    $mh = [int][Math]::Round($mw * $Aspect)
+    $mx = [int][Math]::Round(($Size - $mw) / 2)
+    $my = [int][Math]::Round(($Size - $mh) / 2)
+
+    # Flatten to white while keeping alpha. Which colour this layer is does not
+    # matter (the launcher tints it), and a ColorMatrix does it in one draw call
+    # where a per-pixel loop would walk 1.3M pixels across the five densities.
+    $matrix = [System.Drawing.Imaging.ColorMatrix]::new()
+    $matrix.Matrix00 = 0; $matrix.Matrix11 = 0; $matrix.Matrix22 = 0
+    $matrix.Matrix33 = 1
+    $matrix.Matrix40 = 1; $matrix.Matrix41 = 1; $matrix.Matrix42 = 1
+    $attrs = [System.Drawing.Imaging.ImageAttributes]::new()
+    $attrs.SetColorMatrix($matrix)
+    $g.DrawImage(
+        $Silhouette,
+        [System.Drawing.Rectangle]::new($mx, $my, $mw, $mh),
+        0, 0, $Silhouette.Width, $Silhouette.Height,
+        [System.Drawing.GraphicsUnit]::Pixel, $attrs)
+    $attrs.Dispose()
+
+    $g.Flush()
+    $g.Dispose()
+    return $bmp
+}
+
+function Get-OpaqueFraction {
+    param([System.Drawing.Bitmap]$Bitmap, [int]$Step = 4)
+    $opaque = 0; $total = 0
+    for ($y = 0; $y -lt $Bitmap.Height; $y += $Step) {
+        for ($x = 0; $x -lt $Bitmap.Width; $x += $Step) {
+            $total++
+            if ($Bitmap.GetPixel($x, $y).A -ge 128) { $opaque++ }
+        }
+    }
+    return $opaque / $total
+}
+
 $written = @()
+
+# The silhouette is either a second file or the art's own alpha. A supplied
+# silhouette is used as-is; a derived one has to be a real shape, which is what
+# the filled-square check below is for.
+$monoArt = $null
+$monoAspect = 1.0
+if ($MonochromeSource) {
+    $monoArt = [System.Drawing.Bitmap]::FromFile((Resolve-Path $MonochromeSource))
+    $monoAspect = $monoArt.Height / $monoArt.Width
+    Write-Output ("silhouette: {0}x{1}" -f $monoArt.Width, $monoArt.Height)
+} elseif ($MonochromeFromArt) {
+    $monoArt = $art
+    $monoAspect = $aspect
+    $artCoverage = Get-OpaqueFraction -Bitmap $art -Step 8
+    if ($artCoverage -gt 0.97) {
+        $msg = "the source art is opaque (opaque fraction {0:P0}), so its alpha is not a shape; " -f $artCoverage
+        throw ($msg + 'pass -MonochromeSource with artwork that carries a silhouette, or drop the themed-icon layer')
+    }
+}
 
 foreach ($density in $densityScale.Keys) {
     $scale = $densityScale[$density]
@@ -309,6 +397,49 @@ foreach ($density in $densityScale.Keys) {
         $squareIcon.Dispose()
         $written += $legacyPath
     }
+
+    # --- Material You themed-icon layer ---
+    if ($monoArt) {
+        $mono = New-MonochromeCanvas -Size $adaptiveSize -Silhouette $monoArt -Aspect $monoAspect -Fraction $MarkFraction
+        $monoCoverage = Get-OpaqueFraction -Bitmap $mono -Step 4
+        if ($monoCoverage -gt 0.97) {
+            $mono.Dispose()
+            $msg = "the monochrome layer is a filled square (opaque fraction {0:P0} at {1}): " -f $monoCoverage, $density
+            throw ($msg + 'a themed-icon silhouette has to come from the artwork, not from a filter')
+        }
+        if ($monoCoverage -lt 0.02) {
+            $mono.Dispose()
+            throw ("the monochrome layer is empty (opaque fraction {0:P1} at {1})" -f $monoCoverage, $density)
+        }
+        $monoPath = Join-Path $dir 'ic_launcher_monochrome.png'
+        $mono.Save($monoPath, [System.Drawing.Imaging.ImageFormat]::Png)
+        $mono.Dispose()
+        $written += $monoPath
+    }
+}
+
+if ($monoArt) {
+    # Reference it, or the layer is a file nothing reads. `</adaptive-icon>` is
+    # unique in each file and carries no indentation of its own, so replacing it
+    # keeps the element aligned with its siblings without parsing XML.
+    $anydpi = Join-Path $Res 'mipmap-anydpi'
+    $xmls = @(Get-ChildItem -Path $anydpi -Filter 'ic_launcher*.xml' -ErrorAction SilentlyContinue)
+    if ($xmls.Count -eq 0) {
+        Write-Warning "no mipmap-anydpi/ic_launcher*.xml under ${Res}: the monochrome layer was written but nothing references it"
+    }
+    foreach ($x in $xmls) {
+        $text = [IO.File]::ReadAllText($x.FullName)
+        # Match the element, not the word: the hand-written comment in
+        # `ic_launcher.xml` discusses a `<monochrome>` layer it does not have, and a
+        # bare substring test would read that comment as "already patched" and skip
+        # the file — leaving a themed icon that is generated but never referenced.
+        if ($text -match '<monochrome\s+android:drawable') { continue }
+        $element = "    <monochrome android:drawable=`"@mipmap/ic_launcher_monochrome`" />`r`n</adaptive-icon>"
+        $text = $text.Replace('</adaptive-icon>', $element)
+        [IO.File]::WriteAllText($x.FullName, $text, [Text.UTF8Encoding]::new($false))
+        Write-Output "patched $($x.Name): added <monochrome>"
+    }
+    Write-Warning 'the comment block in mipmap-anydpi/ic_launcher.xml still says there is no monochrome layer: update it'
 }
 
 if ($PlayStoreIcon) {
