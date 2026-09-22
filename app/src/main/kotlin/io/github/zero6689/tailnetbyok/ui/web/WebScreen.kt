@@ -24,21 +24,26 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,8 +60,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -68,6 +75,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import io.github.zero6689.tailnetbyok.R
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
+import kotlinx.coroutines.delay
 import io.github.zero6689.tailnetbyok.domain.FileUploadRequest
 import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 
@@ -226,6 +234,10 @@ fun WebScreen(
                 // A failed page still "finishes". The failure is the more useful
                 // thing to keep on screen, so it wins.
                 if (load.value is LoadState.Loading) load.value = LoadState.Ready
+                // The page is the same page the shell renders, so the shell's own
+                // page-level touches belong here too — see tunePage. Idempotent, and
+                // re-run on every navigation because a reload replaces the document.
+                view?.let { tunePage(it) }
             }
 
             override fun onReceivedError(
@@ -273,58 +285,71 @@ fun WebScreen(
         if (view != null && view.canGoBack()) view.goBack() else onClose()
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.web_title)) },
-                navigationIcon = {
-                    // Both this and the gear below land on the settings screen.
-                    // That duplication is the point: the arrow is what the
-                    // platform's leave-this-screen gesture looks like, and the
-                    // gear is what someone who has met the settings screen once
-                    // goes looking for. There is no third destination — the DSH
-                    // UI *is* a child of the settings screen, so "leave" and
-                    // "settings" are the same place.
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.web_back_to_settings),
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = stringResource(R.string.web_back_to_settings),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    // The DSH screen is the app: its content gets every pixel the system does not need.
+    // There is deliberately no app bar any more.
+    //
+    // It used to carry a `TopAppBar` with the title and two ways out, which cost a
+    // full 56dp row above a page that already draws its own header — on a 729px-tall
+    // phone that is 8% of the viewport spent on a label nobody needs ("DSH 界面",
+    // when the page behind it says which screen you are on) and two icons that fit
+    // in the strip the system already reserves.
+    //
+    // So: the WebView starts directly below the status bar, the one exit floats over
+    // the page in a small translucent pill that gets out of the way by itself, and the
+    // failure card keeps its own buttons for when the page did not load at all.
+    //
+    // # Why this app's own settings button is gone (0.3.8)
+    //
+    // 0.3.5 added a second floating control down in the sidebar column, so that "back
+    // to this app's settings" was one thumb-reach away. It was a duplicate: it called
+    // the same callback as the arrow above (`onOpenSettings` and `onClose` are both
+    // `closeWebUi`, because the DSH screen is a child of the settings screen). And it
+    // landed in the corner the *page's* own controls live in, so the bottom of the
+    // sidebar showed two settings buttons — the page's, and ours — which is what the
+    // user saw and asked to merge.
+    //
+    // Only one of the two could stay, and the page decides which: DSH renders its
+    // settings trigger in exactly one place, the sidebar's own footer row
+    // (`settings.trigger`, inside the `sidebar.settings` slot). Removing that row would
+    // leave the user with no way to reach DSH's settings at all, while dropping ours
+    // costs nothing that is not already on screen — the Back gesture leaves this screen
+    // from anywhere, and the arrow above is the visible copy of the same action.
+    //
+    // The page's footer therefore keeps its own bottom, inside the safe area, with no
+    // strip reserved for anything of ours: cost panel, then "设置" — one settings entry
+    // at the bottom, and the one the user was pointing at.
+    var controlsVisible by remember { mutableStateOf(true) }
+
+    Box(modifier.fillMaxSize()) {
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
-                // The WebView must not extend under the keyboard.
+                // The page gets every pixel the system does not need, and none of the
+                // ones it does: nothing under the clock or the battery (the page draws
+                // its own header, and it must not sit under them), and — this is the
+                // 0.3.6 fix — nothing under the navigation bar either.
                 //
-                // Measured on the maintainer's phone (HONOR ALT-AN00 / Android 14 /
-                // Chromium 116 WebView), 2026-09-19: the page was laid out for a
-                // 442px-tall viewport while the IME covered the bottom of it, so the
-                // composer was drawn behind the keyboard -- and on some opens the
-                // engine told the page nothing at all (`innerHeight` and
-                // `visualViewport.height` both stayed at the keyboard-closed value),
-                // which leaves the page with no way to notice. The page-side patches
-                // can only react to a viewport that shrinks; the real inset is known
-                // here, so the shrink is done here and the page simply gets a
-                // viewport that is already correct.
+                // Measured on the maintainer's phone (HONOR Play 9T, 720x1610 at
+                // 320dpi, 3-button navigation), 2026-09-21: the page ran to the very
+                // bottom edge, so the composer's tool row, the sidebar's own settings
+                // row and the cost panel above it were drawn *under* the navigation
+                // bar — visible through it and untappable, because the system bar takes
+                // the touches. The screenshot shows the page's settings row dimmed to a
+                // ghost, one row above the system buttons.
                 //
-                // `consumeWindowInsets(padding)` first, so the Scaffold's own system-bar
-                // padding is subtracted instead of being counted twice.
-                .consumeWindowInsets(padding)
-                .imePadding(),
+                // `safeDrawing` is `systemBars + displayCutout + ime`. The union is the
+                // point, not a sum: with the keyboard up, the IME frame is measured
+                // from the window's bottom edge and already contains the navigation
+                // bar, so adding the two would take that height twice and float the
+                // composer a navigation bar above the keyboard.
+                //
+                // The IME half is the older fix (0.2.8) and is kept for its own
+                // reason: this engine (Chromium 116 WebView on Android 14) sometimes
+                // tells the page nothing about the keyboard at all — both
+                // `innerHeight` and `visualViewport.height` keep the keyboard-closed
+                // value — so no page-side patch can notice, and the shrink has to be
+                // done where the inset is actually known.
+                .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
@@ -381,6 +406,62 @@ fun WebScreen(
                 }
             }
         }
+
+        // The way out, in the corner the platform puts it in. It used to be one of two
+        // floating controls, the other being this app's own settings button; that one is
+        // gone — see the note above `controlsVisible`.
+        Box(
+            Modifier
+                .align(Alignment.TopStart)
+                // `safeDrawing` rather than the status bar alone: in landscape the
+                // cutout is on a side, and this pill is what leaves the screen.
+                // Padding the other three sides costs nothing — the pill is aligned to
+                // the top and the start, so it only ever moves down and inwards.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(start = 6.dp, top = 4.dp),
+        ) {
+            if (controlsVisible) {
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            shape = RoundedCornerShape(20.dp),
+                        )
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.web_back_to_settings),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            } else {
+                // Hidden, but findable: a slim grip instead of nothing at all. The
+                // system Back button and gesture still leave the screen, so this is
+                // the visible second way, not the only one.
+                Box(
+                    Modifier
+                        .size(width = 44.dp, height = 14.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
+                        )
+                        .clickable { controlsVisible = true },
+                )
+            }
+        }
+    }
+
+    // Auto-hide, restarted whenever the load state changes: the way out is visible
+    // again after a failure, because "where did the way out go" is a bad question to
+    // leave someone asking on a screen that did not load.
+    LaunchedEffect(controlsVisible, load.value) {
+        if (controlsVisible) {
+            delay(5000)
+            controlsVisible = false
+        }
     }
 
     DisposableEffect(Unit) {
@@ -435,6 +516,58 @@ private sealed interface LoadState {
     data object Loading : LoadState
     data object Ready : LoadState
     data class Failed(val statusCode: Int, val detail: String) : LoadState
+}
+
+/**
+ * The page-level touches the sibling shell applies, ported so both render the same.
+ *
+ * The two apps load the *same* page from the same server, and the shell's
+ * `tunePage()` deliberately injects almost nothing: the DSH UI has its own
+ * breakpoints, and a wrapper that also rewrote the layout (collapsing grids,
+ * forcing dialogs full-screen) fought them and produced squeezed columns. What the
+ * shell does add is three small facts the page cannot state for itself, and this is
+ * that same set:
+ *
+ *  * a `viewport` meta, **only if the page has none** — and with
+ *    `viewport-fit=cover`, so the page can use the area under the system bars;
+ *  * `referrer: no-referrer`, the same rule the Go proxy enforces at the network
+ *    layer, told to the WebView as well;
+ *  * 16px form fields below 700px, which is the one *visual* difference between
+ *    the two apps' rendering: it is the size at which mobile engines stop zooming
+ *    a focused field, and it makes the composer legible on a phone.
+ *
+ * Deliberately **not** ported, because they exist for the shell's own chrome rather
+ * than for the page: the IME-state mirror (this screen lets the WebView shrink for
+ * the keyboard instead — see the note on `WindowInsets.safeDrawing`), and the
+ * drag-drop / clipboard-paste helpers (this app attaches files through its own
+ * picker).
+ *
+ * 0.3.6 also injected a page-side reserve here, so the sidebar footer would stop above
+ * this screen's own floating settings button. 0.3.8 removed that button, and the
+ * reserve with it: the page's own settings row is the only settings entry at the
+ * bottom now, and it keeps its own place. The measurement, the DSH sidebar's DOM and
+ * the `[data-slot=…]` anchors it relied on are written down in
+ * `_ops/docs/dsh-mobile.md`, should a wrapper ever need to move that footer again.
+ */
+private fun tunePage(view: WebView) {
+    view.evaluateJavascript(
+        "(function(){" +
+            "var m=document.querySelector('meta[name=viewport]');" +
+            "if(!m){m=document.createElement('meta');m.name='viewport';" +
+            "m.content='width=device-width,initial-scale=1,maximum-scale=5,viewport-fit=cover';" +
+            "document.head.appendChild(m);}" +
+            "var rp=document.querySelector('meta[name=referrer]');" +
+            "if(!rp){rp=document.createElement('meta');rp.name='referrer';" +
+            "rp.content='no-referrer';document.head.appendChild(rp);}" +
+            "if(window.__byokPageTuned)return;window.__byokPageTuned=1;" +
+            "var st=document.createElement('style');st.id='byok-page-tuned';" +
+            "st.textContent='@media (max-width:700px){'" +
+            "+'input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px}'" +
+            "+'button,a[role=button],label,[role=button]{touch-action:manipulation}}';" +
+            "document.head.appendChild(st);" +
+            "})();",
+        null,
+    )
 }
 
 /**

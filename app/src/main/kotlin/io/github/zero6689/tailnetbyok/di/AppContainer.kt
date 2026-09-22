@@ -1,16 +1,23 @@
 package io.github.zero6689.tailnetbyok.di
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import io.github.zero6689.tailnetbyok.data.SessionWatcher
 import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.data.crypto.KeystoreSecretVault
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.TurnNoticeOutcome
 import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
 import io.github.zero6689.tailnetbyok.net.ConnectivityProvider
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderRegistry
 import io.github.zero6689.tailnetbyok.notify.TurnNotifications
+import io.github.zero6689.tailnetbyok.notify.TurnWatchService
 
 /**
  * Manual dependency wiring.
@@ -109,8 +116,73 @@ class AppContainer(private val appContext: Context) {
     )
 
     /** Posts "a task finished". The foreground check lives in [TurnNotifications]. */
-    fun notifyTurnFinished(sessionTitle: String?) =
+    fun notifyTurnFinished(sessionTitle: String?): TurnNoticeOutcome =
         TurnNotifications.turnFinished(appContext, sessionTitle)
+
+    /**
+     * Whether Android would let this app post a notification right now.
+     *
+     * Read live rather than cached, and split into its two halves, because they have
+     * different fixes: "the user turned notifications off for this app" is a trip
+     * into Android's settings, while "the permission was never granted" is the
+     * dialog this app shows when the DSH screen opens. A single boolean would send
+     * someone to the wrong place — and this is the exact question behind a
+     * notification that never arrived.
+     */
+    fun notificationsAllowed(): Boolean = notificationsEnabled() && notificationPermissionGranted()
+
+    fun notificationsEnabled(): Boolean =
+        NotificationManagerCompat.from(appContext).areNotificationsEnabled()
+
+    fun notificationPermissionGranted(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Creates the finish-notice channel, early.
+     *
+     * Called when the watch starts rather than only when a notice is posted, for two
+     * reasons: the channel's importance is fixed at creation, so the sooner it exists
+     * with the right one the better — and the diagnostics line can then say whether a
+     * notice would banner *before* the user has to wait for a task to finish to find
+     * out. Idempotent, and cheap.
+     */
+    fun ensureTurnChannel() {
+        TurnNotifications.ensureChannel(appContext)
+    }
+
+    /**
+     * The finish-notice channel's effective importance, as the system sees it.
+     *
+     * Null means "not created yet". Anything below `HIGH` means a notice will reach
+     * the shade without ever popping up — which is a different bug report from
+     * "nothing arrived at all", and this is what tells the two apart.
+     */
+    fun turnChannelImportance(): Int? = TurnNotifications.channelImportance(appContext)
+
+    /**
+     * Raises the watch service, and reports whether Android allowed it.
+     *
+     * A refusal is not an error the caller can fix — Android forbids starting a
+     * foreground service from the background without an exemption — so it is
+     * reported, recorded in the diagnostics, and the poll carries on unprotected.
+     */
+    fun startWatchService(): Boolean {
+        val started = TurnWatchService.start(appContext)
+        watchServiceRefused = !started
+        return started
+    }
+
+    fun stopWatchService() {
+        TurnWatchService.stop(appContext)
+    }
+
+    fun watchServiceRunning(): Boolean = TurnWatchService.running
+
+    /** True when the last attempt to raise the service was refused by the platform. */
+    var watchServiceRefused: Boolean = false
+        private set
 
     /**
      * Stages a verified update and asks the system to install it.
