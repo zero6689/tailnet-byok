@@ -30,6 +30,18 @@ serialization = "1.7.3"
 # --- Third party -----------------------------------------------------------
 okhttp = "4.12.0"
 
+# The QR codec, both directions, in one artifact: `core` is pure Java with no
+# Android or AWT dependency when only `qrcode.encoder` / `RGBLuminanceSource` are
+# used, which is what keeps the whole decision table unit-testable on the JVM.
+# 3.5.3 is the last release of the 3.5 line and is a stable, widely vendored
+# revision rather than a moving target.
+zxing = "3.5.3"
+
+# The camera. CameraX rather than the deprecated `android.hardware.Camera`: it
+# owns the lifecycle, the preview rotation and the frame pipeline, which is the
+# part of a scanner that is easy to get subtly wrong on one device.
+camerax = "1.4.1"
+
 # --- Test ------------------------------------------------------------------
 junit = "4.13.2"
 androidxTestJunit = "1.2.1"
@@ -60,6 +72,13 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
