@@ -38,6 +38,47 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!--
+      CAMERA is requested at runtime, from the scanner screen only, and only to
+      read one QR code into text. A refusal is a normal answer, not a broken
+      state: the same screen reads a code from a picture the user picks, which
+      needs no permission at all. The feature is declared not-required below on
+      the same grounds: a device with no camera can still be configured by a
+      link, a pasted string or a picture.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      FOREGROUND_SERVICE (+ the dataSync type, which Android 14 requires to be named)
+      exists for one thing: keeping this process alive long enough to notice that a
+      task on the user's own server has finished, while the app is off screen. Android
+      12+ freezes a backgrounded process, so the poll that detects the finish simply
+      stops; a foreground service is the only supported way to keep doing that work.
+      It is raised when the DSH screen acquires its route and lowered when the screen
+      releases it, so it cannot outlive the screen and the session it watches. The
+      ongoing notification it requires is on a silent, low-importance channel and
+      says what it is for. See docs/SECURITY-MODEL.md.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!--
+      Both feature declarations matter, and the second is the one that is easy to
+      miss: asking for the CAMERA *permission* makes Play filter the app to devices
+      that have a camera, unless the implied feature is explicitly marked
+      not-required. The scanner is the only thing that needs one, and the picture
+      path does not, so a device without a camera must still be installable.
+    -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
     <application
         android:name=".TailnetByokApp"
         android:allowBackup="false"
@@ -93,7 +134,19 @@
         -->
 
         <!--
-          The one provider in this app, and it is not an IPC surface.
+          The one <service> in this app, and it is not an IPC surface: unexported, no
+          binder, no intent filter, and it can only be started by this app's own
+          process. It exists to keep that process unfrozen while the DSH screen is
+          watching a running task — see the FOREGROUND_SERVICE permissions above and
+          `notify/TurnWatchService.kt`.
+        -->
+        <service
+            android:name=".notify.TurnWatchService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!--
+          One <provider>, and it is not an IPC surface.
 
           It exists for a single job: handing the downloaded update to the system
           package installer, which runs in another process and therefore cannot be

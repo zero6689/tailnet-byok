@@ -114,6 +114,73 @@ object SetupLinkParser {
         }
 
     /**
+     * The link that reproduces an existing configuration on another device.
+     *
+     * This is the *writer* side of the format, and it is deliberately the same
+     * door as the reader: what it produces is parsed again before it is returned,
+     * and a link that does not come back as the configuration it was built from
+     * is refused rather than printed. Printing a code that scans into a
+     * *different* target is the one failure mode a "share my setup" feature must
+     * not have, and it is exactly the failure mode that a hand-written encoder
+     * develops quietly — a field renamed on one side, a port that does not
+     * survive a round trip.
+     *
+     * # What it carries, and what it deliberately leaves out
+     *
+     * It carries how to *reach the deployment*: the host, port, scheme, path, the
+     * transport, the update source, and a self-hosted control plane. It leaves out
+     * the two things that belong to the device rather than to the server —
+     * `nodeHostname` (two phones sharing one node name fight over it in the
+     * tailnet) and `ephemeral` (there is no field for it at all) — and it never
+     * carries a credential, because [AppConfig] does not contain one. The auth key
+     * lives in the Keystore, is not part of this object, and cannot be put in a
+     * link by accident: see the boundary at the top of this file.
+     *
+     * Returns null when there is no target to describe — an empty host is not a
+     * configuration, and a code for it would only waste a scan.
+     */
+    fun format(config: AppConfig): String? {
+        val host = config.hostInput.trim()
+        if (host.isEmpty()) return null
+
+        val query = buildList {
+            add("target=" + encode(host))
+            add("port=" + config.port)
+            add("scheme=" + encode(config.scheme))
+            add("path=" + encode(config.path))
+            add("mode=" + encode(config.provider.storageKey))
+            config.updateUrl.trim().takeIf { it.isNotEmpty() }
+                ?.let { add("update=" + encode(it)) }
+            config.controlUrl.trim().takeIf { it.isNotEmpty() && !AppConfig.isHostedControlPlane(it) }
+                ?.let { add("control=" + encode(it)) }
+        }.joinToString("&")
+
+        val link = "$SCHEME://$HOST?$query"
+        return if (reproduces(link, config)) link else null
+    }
+
+    /**
+     * Whether [link] parses back into [config].
+     *
+     * Compared field by field against the configuration a receiver would end up
+     * with — the link applied on top of an empty configuration, which is what a
+     * second device is. Fields the link does not carry (`nodeHostname`,
+     * `ephemeral`) are left at their defaults and deliberately not compared.
+     */
+    private fun reproduces(link: String, config: AppConfig): Boolean {
+        val parsed = parse(link)
+        if (parsed !is SetupLinkParse.Parsed) return false
+        val applied = parsed.link.applyTo(AppConfig())
+        return applied.hostInput == config.hostInput.trim() &&
+            applied.port == config.port &&
+            applied.scheme == config.scheme &&
+            applied.path == config.path.ifEmpty { AppConfig.DEFAULT_PATH } &&
+            applied.provider == config.provider &&
+            applied.updateUrl == config.updateUrl.trim() &&
+            applied.controlUrl == config.controlUrl.trim().takeIf { !AppConfig.isHostedControlPlane(it) }.orEmpty()
+    }
+
+    /**
      * The configuration a *build* may pre-fill, from `-PdefaultTarget` and friends.
      *
      * Run through the same parser a link goes through, which buys two things: a
