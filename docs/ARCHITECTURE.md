@@ -48,15 +48,20 @@ that a request-shaped API solves with none.
 
 | Layer | Package | Responsibility | Depends on |
 |---|---|---|---|
-| UI | `ui/setup`, `ui/theme` | Compose screen, one `UiState`, one view model | domain, data |
-| Domain | `domain` | Address policy, the ordered connection test | nothing (pure Kotlin) |
+| UI | `ui/setup`, `ui/theme`, `ui/scan`, `ui/web` | Compose screens, one `UiState`, one view model; the scanner's camera plumbing; the WebView that renders the target's own interface | domain, data |
+| Domain | `domain` | Address policy, the ordered connection test, the configuration link and its QR codec | nothing (pure Kotlin, and ZXing's JVM-only half) |
 | Network | `net`, `net/tsnet` | Two ways to reach the target, behind one interface | domain |
 | Data | `data/config`, `data/crypto` | Persistence and the Keystore vault | — |
 | Native | `tailnet/` (Go) | The embedded node | tsnet |
 
 `domain` deliberately references no Android type. That is what lets
 `TailnetAddressPolicyTest` run on the JVM in milliseconds, with no Robolectric and no device —
-and the address policy is exactly the code you most want covered by fast tests.
+and the address policy is exactly the code you most want covered by fast tests. The QR work
+follows the same rule rather than escaping it: `domain/QrCode.kt` and `domain/QrScan.kt` hold the
+encoder, the rotation and the decoder, all of which run on a bare JVM, while the two Android-only
+conversions — an `ImageProxy` to a luminance frame, and a picked `content://` picture to ARGB
+pixels — sit in `ui/scan/CameraFrames.kt`. So "does a code round-trip" and "is a padded sensor row
+read correctly" are unit tests, and only "does the camera open" needs a phone.
 
 ---
 
@@ -163,13 +168,13 @@ Listed so they are not discovered by you.
 | Gap | Impact |
 |---|---|
 | No instrumented tests | Keystore behaviour and the native bridge are verified by hand, not by CI. The bridge compiles and packages, but nothing has run it on a device in CI. |
-| UI strings are not extracted | The app cannot be translated without moving copy into resources. Deliberate: each warning currently sits next to the condition that triggers it. |
-| No `abiFilters` | All four ABIs ship, which is what makes the debug APK 183 MB. See `docs/TSNET.md` for the measured numbers and the one-line change. |
-| No reproducible builds | Release APKs are signed in CI but not verified bit-for-bit reproducible. `go.sum` and the Gradle version catalog do pin the inputs, so this is achievable. |
+| Only two locales | Every user-facing string lives in `res/values/strings.xml` with a complete `values-zh` translation (261 strings each). There is no third locale, and the copy is written to sit next to the condition that triggers it rather than to read as a standalone catalogue. |
+| Four ABIs by default | `abiFilters` is empty in the build file, so a plain `assembleDebug` carries all four ABIs (roughly 180 MiB). The release passes `-PabiFilters=arm64-v8a`. It is a build flag rather than a default so that a build which forgets it is caught in review instead of silently shipping one architecture. See `docs/TSNET.md` for the measured numbers. |
+| Reproducible *builds*, not bit-identical APKs | `reproducible-build.yml` is a manual workflow that builds the bridge twice on one runner with the pinned toolchain and compares the **native library** byte for byte. It is not run before every tag, and it claims nothing about the APK container, whose zip metadata is expected to differ. `docs/RELEASING.md` states the commitment at exactly that strength. |
 | The bridge is compiled, not audited | `tsnet` v1.102.4 is a large dependency, neither vendored nor reviewed here. |
-| No foreground service | Work happens while the screen is on. A long-lived node in the background would need one, plus a notification. |
-| The UI has never been rendered on a device | It compiles and the `@Preview`s describe the intended states, but no screenshot in this repository came from a running app. |
-| **The name and marks are DeepSeek's** | The display name is "DeepSeek Harness" and the icon depicts DeepSeek's whales. **Mitigated, not solved:** the project carries an "independent, unofficial client, no claim to these marks" disclaimer in the README, in every page's footer on the docs site, and inside the app's setup screen. A disclaimer establishes good faith; it is not a licence. Copyright and trademark are separate questions, and MIT answers only the first. `branding/README.md` lays out the alternative — a mark of your own. |
+| The foreground service covers the task watch only | `TurnWatchService` runs while the DSH screen is open, so a task started there can be noticed finishing after the app goes off screen. A tailnet node kept up with the screen closed is still not on offer: that would mean keeping the routing state — and the session cookie — alive past the screen, which is the one thing this app is built not to do. |
+| No screenshots from a running app | The UI does run on a phone, but every image in this repository is artwork or an icon; none of it was captured from the app. The `@Preview`s in `SetupScreen.kt` describe the intended states instead. |
+| **The icon still depicts DeepSeek's marks** | The display name is now **"DSH BYOK"**; the full "DeepSeek Harness" is used only in descriptive sentences, which is the form DeepSeek's own brand guidelines ask for. The launcher icon is still the two-whale taiji — the maintainer's own composition, but one that depicts DeepSeek's brand characters. **Open, not solved.** The project carries an "independent, unofficial client, no claim to these marks" disclaimer in the README, in every page's footer on the docs site, and inside the app's setup screen; that establishes good faith, not a licence. Replacement artwork is the remaining step, and `branding/README.md` lays out the options. |
 | No themed-icon (monochrome) layer | Material You needs a single-colour silhouette. This mark is two-tone by design — the subject *is* the contrast between the two whales — so a threshold-based one reads as damage. Needs real artwork, not a filter. |
 
 ## What the first real build established
@@ -180,8 +185,8 @@ code — which is the point of writing them down rather than leaving them as ass
 | Question | Answer |
 |---|---|
 | Does a prebuilt `libtailscale` AAR exist? | No — not on Maven Central, JitPack, or the GitHub releases. It must be built, and `docs/TSNET.md` explains why we bind `tsnet` ourselves rather than reuse Tailscale's. |
-| Does the bridge build end to end? | Yes. `tailnet.aar` is 60.2 MiB, contains `io.github.zero6689.tailnetbyok.mobile.Mobile`, and `libgojni.so` lands in all four ABI directories of the APK. |
-| What does it cost in size? | **More than everything else combined.** Four ABIs of `libgojni.so` total 162.4 MiB against a 164.1 MiB release APK — the Go runtime is ~99% of this app's download. An `arm64-v8a`-only build is roughly 46 MiB. |
+| Does the bridge build end to end? | Yes. `tailnet.aar` is 60.0 MiB, contains `io.github.zero6689.tailnetbyok.mobile.Mobile`, and `libgojni.so` lands in all four ABI directories of the APK. |
+| What does it cost in size? | **More than everything else combined.** Four ABIs of `libgojni.so` total 162.4 MiB against a 164.1 MiB release APK — the Go runtime is ~99% of this app's download. An `arm64-v8a`-only build is roughly 46 MiB with R8 on, and 53.6 MiB with R8 off — which is what the release ships, so that the code that ships is the code the tests cover. |
 | Which version of `tsnet` is embedded? | `tailscale.com v1.102.4`, resolved by `go mod tidy` and committed in `go.mod` + `go.sum`. |
 
 That size result is the most consequential thing this project learned, and it changes the

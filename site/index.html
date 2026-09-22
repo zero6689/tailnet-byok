@@ -225,10 +225,18 @@
       </tr>
       <tr>
         <td><span class="i18n-en">Minimum permissions</span><span class="i18n-zh">最小权限</span></td>
-        <td><span class="i18n-en">Three: <code>INTERNET</code>, <code>ACCESS_NETWORK_STATE</code>,
-            <code>POST_NOTIFICATIONS</code>. No <code>BIND_VPN_SERVICE</code>, no
-            <code>QUERY_ALL_PACKAGES</code>, no location.</span><span class="i18n-zh">只有三个：<code>INTERNET</code>、<code>ACCESS_NETWORK_STATE</code>、
-            <code>POST_NOTIFICATIONS</code>。没有 <code>BIND_VPN_SERVICE</code>，没有
+        <td><span class="i18n-en">Six, and one of them only while you are watching a task: <code>INTERNET</code>,
+            <code>ACCESS_NETWORK_STATE</code>, <code>POST_NOTIFICATIONS</code>,
+            <code>REQUEST_INSTALL_PACKAGES</code> (the updater asks the system installer; it cannot install
+            silently), <code>CAMERA</code> — asked for by the QR scanner screen alone, and optional, because a
+            code can be read from a picture instead — and <code>FOREGROUND_SERVICE</code>, so a task you started
+            can be noticed finishing while the app is off screen. No <code>BIND_VPN_SERVICE</code>, no
+            <code>QUERY_ALL_PACKAGES</code>, no location.</span><span class="i18n-zh">六个，其中一个是「只在你在等任务跑完时」才用到的：<code>INTERNET</code>、
+            <code>ACCESS_NETWORK_STATE</code>、<code>POST_NOTIFICATIONS</code>、
+            <code>REQUEST_INSTALL_PACKAGES</code>（更新时交给系统安装器，无法静默安装）、
+            <code>CAMERA</code> —— 只由二维码扫描页申请，而且是可选的：不改用相机也能用图片识别 —— 以及
+            <code>FOREGROUND_SERVICE</code>：让你启动的任务在 App 退到后台后跑完也能被发现。没有
+            <code>BIND_VPN_SERVICE</code>，没有
             <code>QUERY_ALL_PACKAGES</code>，不读位置。</span></td>
       </tr>
     </tbody>

@@ -106,6 +106,18 @@ requires a Gradle-side licence report and is tracked as its own task; until it e
 APK's third-party inventory is incomplete, and this file says so rather than implying
 otherwise.
 
+The two non-AndroidX additions are worth naming, because both ended up on the
+configuration path rather than in the UI:
+
+| Module | Licence | Why it is here, and what it can see |
+|---|---|---|
+| `com.google.zxing:core` | Apache-2.0 | The QR codec. Only `qrcode.encoder`, `PlanarYUVLuminanceSource`, `RGBLuminanceSource` and `QRCodeReader` are used — all pure Java, no AWT — so it runs on Android and in JVM unit tests alike. It receives bytes and returns bytes; it has no network, file or Android API use in this app. |
+| `androidx.camera:camera-core` / `camera-camera2` / `camera-lifecycle` / `camera-view` | Apache-2.0 | The scanner's viewfinder and frame pipeline. CameraX is what binds the camera to the scanner screen's lifecycle, which is why leaving the screen ends the session. Frames reach `ui/scan/CameraFrames.kt`, are decoded in-process, and are not written anywhere. |
+
+Camera2 is the platform API underneath; `camera-lifecycle` is the part that makes the camera stop
+when the screen goes away, and it is the reason this app did not need a service, a wakelock or a
+foreground notification to own a camera.
+
 ## Vulnerabilities
 
 Report and handle them as described in [`../SECURITY.md`](../SECURITY.md). One rule about
