@@ -13,9 +13,126 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
-## [Unreleased]
+## [0.3.8] — 2026-09-23
+
+### Fixed
+
+- **The "a task finished" notice pops up instead of only reaching the notification shade.** The notice was posted to
+  a channel created with `IMPORTANCE_DEFAULT`, and on Android 8 and later it is the *channel's* importance — not the
+  notification's priority — that decides whether a notification is a heads-up banner: `DEFAULT` means it arrives,
+  sounds, and never pops up. Worse, an app may lower a channel's importance but never raise it, so the constant could
+  not simply be changed: every phone that already had that channel would have gone on not banner-ing. The notice now
+  uses a new channel created with `IMPORTANCE_HIGH` (and a matching `PRIORITY_HIGH` for the pre-channel path), the old
+  channel is deleted so the app's notification settings do not keep a dead row, and the channel is created when the
+  task watch starts rather than at the first finish.
+- **The diagnostics panel now says whether a notice can pop up at all.** "It only goes to the notification bar" and
+  "it never arrived" look identical from the outside and have completely different fixes, so the panel gained a
+  *Notice channel* line reporting the importance the **system** holds for this app's finish-notice channel: high (a
+  banner pops up), default (shade only, no banner), low, or not created yet. The channel is the app's to create once;
+  after that only Android's own notification settings can raise it, and the line says so rather than leaving it to be
+  guessed.
+- **This app's settings button no longer sits on the page's cost panel, and the bottom of the sidebar carries one
+  settings entry instead of two.** 0.3.5 put a floating "this app's settings" button in the sidebar column, one
+  thumb-reach above the bottom; on this layout it landed in the middle of the page's cost panel, and the page's own
+  settings row ended up below the safe area. It was also a duplicate — it called the same callback as the arrow at the
+  top of the screen, because the DSH screen is a child of the settings screen. The bottom of the sidebar now has a
+  single settings entry: the page's own row, which keeps its own place inside the safe area with no strip reserved
+  for anything of ours (cost panel, then "设置", directly above the navigation bar). Only one of the two could stay,
+  and the page decides which: DSH renders its settings trigger in exactly one place, so removing that row would have
+  left no way into DSH's settings at all — while the app's own settings is still one Back gesture (or one tap on the
+  arrow) away. The screen also stops padding the page for the status bar and the keyboard alone: it now uses the safe
+  drawing insets as a *union* (`systemBars + displayCutout + IME`, never a sum, since the IME frame already contains
+  the navigation bar), which is what stops the composer's tool row and the page's footer from being drawn under the
+  system navigation bar, visible and untappable.
+- **The download page now says which build its button serves, and how big it is.**
+  `site/provisioning.html` pointed at `releases/latest/download/tailnet-byok-arm64.apk` and left the reader to
+  find out what that was — a question a user asked, reasonably, since the answer (the last published release, not
+  the version in this repository) is not obvious from the page. It also warned about GitHub's release storage
+  being slow on some networks, and the privacy note no longer claims the app requests no camera: it explains that
+  the scanner asks at the moment it is opened, and that refusing costs nothing. Both lines are updated by hand at
+  each release, and `docs/RELEASING.md` now says so in its "before tagging" list.
+- **A configured phone no longer walks through onboarding every time.** The ways-in card
+  (paste a link, scan a code, open the provisioning page) was shown until the security note had
+  been acknowledged *as well as* while no target was set. A user who filled in a target, used the
+  DSH screen and never tapped the note's button therefore saw an onboarding card on every visit —
+  at the top of a long page, above the button that led back to the screen they were using. The
+  card's condition is now "there is no target": that is when the ways in are needed, and the note
+  is its own card with its own job.
 
 ### Added
+
+- **The DSH screen is immersive, and the app's own settings moved into the left-hand column.** The screen used
+  to carry a full app bar — a title nobody needs (the page says which screen you are on) and two icons — above a
+  page that already draws its own header; on a 729px phone that is 8% of the viewport spent on chrome. The bar is
+  gone: the page starts directly under the (transparent) status bar, the way out is a slim auto-hiding arrow in
+  the corner, and this app's settings is a small translucent button at the bottom of the left column, where the
+  page's own navigation lives and a thumb reaches one-handed. Both float over the page, so neither costs it a row.
+- **A foreground service keeps the task watch alive while the app is off screen.** Android 12+ does not kill a
+  backgrounded app, it *freezes* it — timers stop — so the poll that notices "a task finished" stopped with it,
+  and the notification the user was waiting for never came. That is what the first real test of the feature hit.
+  The watch now raises a foreground service (`dataSync`) when the DSH screen acquires its route and lowers it when
+  the screen releases it, so the poll survives the app going to the background. It cannot outlive the screen, it
+  has no binder and cannot be started by another app, and the notification it requires is on a silent,
+  low-importance channel that says what it is for. This reverses an earlier decision — the app deliberately had no
+  foreground service — and the reasoning is written down in `docs/SECURITY-MODEL.md`, because the permission
+  surface changed: `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC`. Watching with the DSH screen *closed* is
+  still not done: that would mean holding the route (and the session cookie) open with no screen, which is exactly
+  the capability this app keeps short-lived.
+
+- **The DSH screen now gets the page-level touches the sibling shell has.** The two apps load the *same*
+  page from the same server, and the shell's own `tunePage()` was the last difference between what they
+  render: this screen now adds a `viewport` meta with `viewport-fit=cover` when the page has none,
+  `referrer: no-referrer` (the rule the Go proxy already enforces, told to the WebView too), and 16px form
+  fields below 700px — the size at which mobile engines stop zooming a focused field, and the one change
+  visible to the eye. The shell's keyboard mirror and drag-drop helpers are deliberately not ported: they
+  exist for the shell's own chrome, not for the page.
+
+- **The diagnostics panel now says why a "task finished" notification did or did not arrive.** Every
+  reason the notice was declined used to be a silent `return` inside `TurnNotifications`, so the four
+  causes — the app was on screen, notifications are off for this app, the runtime permission was never
+  granted, the system refused the post — were indistinguishable from the outside, and "the app never
+  told me my task finished" could not be investigated. The decision is now a pure, tested function
+  (`domain/TurnNotificationDecision.kt`) whose outcome is returned and reported, and the panel carries
+  three lines: whether Android would let this app post at all, what the task watch is doing right now
+  (polling, how many sessions are running, how long ago the last answer was, or that it is not watching
+  because the DSH screen is closed), and what happened to the last finish notice, with its time and the
+  session title. Two of those facts have different fixes, which is why they are separate lines rather
+  than one boolean.
+- **The deployment's provisioning page is offered by the code section.** The first-run card — which
+  used to carry the link to the page that generates codes — now appears exactly while there is no
+  target, so a deployment build, whose target arrives pre-filled, had lost its only route to that
+  page. The link belongs with the code section anyway: both ends are about handing a configuration
+  to another device. A build with no provisioning URL (the public one) shows nothing, as before.
+- **A launch opens the DSH screen by itself once a configuration works.** The DSH screen is the
+  app; the settings page is where you go when something has to change. The walk happens once per
+  process and only when there is nothing better to do: no target, an address the policy rejects, or
+  no credential on the embedded route all stay on the fields, and a configuration link waiting to be
+  confirmed — or a scanner holding the screen — always wins, because opening a screen on top of that
+  decision is how the one control that makes links safe would get hidden. Leaving the DSH screen to
+  change a setting does not re-arm it; the next launch does.
+- **The settings top bar carries "open the DSH UI".** The same action already existed in a section
+  near the bottom, below every field and every diagnostic line, so "step out of the DSH screen,
+  change one thing, go back" turned into a scroll hunt.
+
+- **A QR code in the app, both directions.** The settings screen draws this device's
+  configuration as a code another phone can scan — with the same link as text beside it and a Copy
+  button — and reads a code with the camera, or from a picture the user picks. The writer parses
+  its own output back before drawing anything, so a code cannot describe a different target than
+  the fields on screen; it carries the *deployment* (target, port, scheme, path, transport, update
+  source, self-hosted control plane) and not the device (no node name, no ephemeral flag), and a
+  credential is not representable in it because the auth key is not part of the configuration
+  object at all. A scanned code goes through the same parse-show-confirm path as a pasted link:
+  never applied by itself, and a credential-shaped field refuses the whole link. This **reverses an
+  earlier decision** — the app deliberately had no camera — so the reasoning is written down rather
+  than implied: see `docs/SECURITY-MODEL.md`. The short version is that the camera is requested at
+  runtime by the scanner screen alone, is used to turn one code into text, stores and sends
+  nothing, and is genuinely optional: the image path needs no permission at all, so the app is
+  fully configurable with the camera permanently denied.
+- **Two dependencies, both pinned.** `com.google.zxing:core` for the codec — the encoder and the
+  luminance decoder are Java with no AWT, so the scanner's whole decision table is unit-tested on
+  the JVM — and AndroidX CameraX (`camera-core`, `camera-camera2`, `camera-lifecycle`,
+  `camera-view`) for the viewfinder, because binding a camera to a screen's lifecycle is the part
+  of a scanner that fails on exactly one device family and never on the emulator.
 
 - **The docs site is bilingual.** Every page now ships in English and Chinese at once: the two
   languages are siblings in the markup
@@ -466,7 +583,9 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.3.8...HEAD
+[0.3.8]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.3.8
+[0.2.9]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.9
 [0.2.7]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.7
 [0.2.6]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.6
 [0.2.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.2.5

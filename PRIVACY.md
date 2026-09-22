@@ -166,6 +166,8 @@ collects no data from anyone of any age.
 |---|---|---|
 | [`tailscale.com/tsnet`](https://pkg.go.dev/tailscale.com/tsnet) (BSD-3-Clause) | The embedded Tailscale node | Your auth key, node hostname, and the control-plane protocol traffic — i.e. exactly what joining a tailnet requires |
 | [OkHttp](https://square.github.io/okhttp/) (Apache-2.0) | HTTP for the system-network fallback provider only | Your requests to the target |
+| [ZXing](https://github.com/zxing/zxing) `core` (Apache-2.0) | Draws a configuration QR code, and decodes one from a camera frame or a picture | Nothing. It is a codec running inside the app: it takes bytes and returns text |
+| [CameraX](https://developer.android.com/media/camera/camerax) (Apache-2.0) | The scanner's viewfinder and frame pipeline | Camera frames, inside the app only — decoded, never stored and never sent |
 | [AndroidX](https://developer.android.com/jetpack/androidx) (Apache-2.0) | UI, lifecycle, DataStore | None |
 | Android System WebView (a platform component, not bundled) | Renders the DSH screen | The page served by your target host, and the session cookie issued for it |
 

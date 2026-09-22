@@ -117,6 +117,20 @@ cd tailnet && go test ./... && cd ..            # the bridge's own tests
 ./gradlew assembleRelease -PwithTsnet=true      # the artefact the tag will name
 ```
 
+Then check the two hand-maintained lines on the download page — `site/provisioning.html`
+states which version and how many megabytes the "Download the APK" button serves
+(`id="apk-version"` and `id="apk-size"`, once per language), and nothing updates them
+automatically. A page that says `v0.2.9` while the button serves `v0.3.2` is the kind of
+small lie that costs a user a bug report, so bump them in the same commit as the version,
+then `node site/build.mjs`. The size is the asset's size on the release, not the local
+deployment build (they differ: the public one is minified-off but single-ABI with an empty
+configuration, the deployment build has a target baked in).
+
+`README.md` is the other hand-maintained place a version number lives, and it is the one a
+stranger reads first: its `## Status` line names the version and `versionCode`, and its size
+table names the shipped artefact and how large it is. It read `0.2.9` for eight releases
+because no step in this file said to look at it, so now one does.
+
 Then, and only then, `git tag -a vX.Y.Z` and push the tag.
 
 Better, for anything that will be downloaded by someone else: take the AAR from the

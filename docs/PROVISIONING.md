@@ -85,14 +85,46 @@ You can also put the code on your own page: `site/qr.js` exposes
 `window.DSHQR.renderSvg(link, {scale, margin})`, and the page is plain HTML with no
 build step of its own.
 
+### Making one in the app
+
+The generator above is the right tool for the *server* side, where the address is
+chosen. The app draws the other direction: **the settings screen shows this
+device's own configuration as a QR code**, with the same link as text next to it
+and a Copy button. That is for the second phone — the one whose owner has already
+been given a working setup and now has to hand it to somebody else.
+
+Two things about that code are worth knowing:
+
+* **It is built and checked locally.** The link is written by the same
+  `SetupLinkParser` that reads links, and it is parsed back before it is drawn: a
+  link that did not reproduce the configuration it was made from is refused rather
+  than printed. A code that scans into a *different* target than the sender's is
+  the one failure this feature must not have.
+* **It carries the server, not the device.** The target, port, scheme, path,
+  transport, update source and a self-hosted control-plane URL are included; the
+  node name and the ephemeral flag are not, because those identify the phone that
+  wrote the code rather than the deployment it talks to. No credential is
+  included — it cannot be, since the auth key is not part of the configuration
+  object at all.
+
 ### Scanning it
 
 Any camera or QR application will open the link — the scheme is `dshbyok`, so
-Android asks which app handles it. **This app deliberately has no camera
-permission and no in-app scanner**: a scanner would mean asking for the camera on
-every install to serve a one-time setup step, and the system camera already does
-the job. That decision is recorded in
+Android asks which app handles it. **The app also has its own scanner**, on the
+settings screen and on the first-run card: point the camera at a code and it is
+read, or choose "read from an image" and pick a screenshot or a photo instead.
+
+The camera is asked for on that screen and used for nothing else: frames go to a
+decoder inside the app, only the decoded text leaves, and no picture is stored or
+sent. Declining is a first-class answer, not a dead end — the image path needs no
+permission at all, so the app is fully configurable with the camera permanently
+denied. The decision and its boundary are recorded in
 [`SECURITY-MODEL.md`](SECURITY-MODEL.md).
+
+Whatever the scanner reads takes the same path as any other link: parsed, shown
+with the target it would produce, applied only on a tap. Scanning is not a second
+door, and a code that carries a credential-shaped field is refused exactly as a
+pasted one would be.
 
 ### Pasting it
 

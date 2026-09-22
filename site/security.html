@@ -232,8 +232,29 @@
       </tr>
       <tr>
         <td><code>POST_NOTIFICATIONS</code></td>
-        <td><span class="i18n-en">Android 13+, only if the user opts into a persistent "tailnet connected"
-            notification.</span><span class="i18n-zh">仅 Android 13+，且只有用户主动选择开启常驻的「tailnet 已连接」通知时才需要。</span></td>
+        <td><span class="i18n-en">Android 13+, for the two notifications this app can show: the silent row
+            that says it is waiting for a running task while the DSH screen is closed, and the "task
+            finished" notice — the only one that may pop up, and the only one that carries anything (the
+            session's title, and nothing of the conversation). Asked for when the DSH screen opens;
+            declining costs the notice and nothing else.</span><span class="i18n-zh">仅 Android 13+，用于本 App
+            可能显示的两条通知：「DSH 界面」关闭后仍在等待任务跑完的那条静音行，以及「任务完成」通知 ——
+            后者是唯一会弹横幅、也是唯一带内容的（只带会话标题，不带任何对话内容）。它在「DSH 界面」打开时询问，
+            拒绝的代价只是收不到这条通知。</span></td>
+      </tr>
+      <tr>
+        <td><code>REQUEST_INSTALL_PACKAGES</code></td>
+        <td><span class="i18n-en">So the in-app updater can hand a downloaded, hash-verified build to the
+            system installer. It cannot install anything silently: the installer always shows the
+            package and asks.</span><span class="i18n-zh">为了让 App 内更新能把一个已下载、已校验哈希的安装包交给系统安装器。它无法静默安装：
+            安装器总会显示包名并询问。</span></td>
+      </tr>
+      <tr>
+        <td><code>CAMERA</code></td>
+        <td><span class="i18n-en">Requested at runtime by the scanner screen, and only to turn one QR code
+            into text: frames are decoded inside the app, no picture is stored or sent, and
+            declining costs nothing — the same screen reads a code from a picture you pick, which
+            needs no permission.</span><span class="i18n-zh">只由扫码页在运行时申请，且只用来把一个二维码变成文字：画面在 App 内解码，不保存也不发送任何图片；
+            拒绝也没有代价 —— 同一个页面可以用你选的图片识别，那条路不需要任何权限。</span></td>
       </tr>
     </tbody>
   </table>
@@ -261,12 +282,21 @@
         <td><span class="i18n-en">Nothing here needs to enumerate other apps.</span><span class="i18n-zh">这里没有任何东西需要枚举其它 App。</span></td>
       </tr>
       <tr>
-        <td><code>FOREGROUND_SERVICE</code></td>
-        <td><span class="i18n-en">There is no long-lived background component. Work happens while you are looking
-            at the screen.</span><span class="i18n-zh">没有任何长寿的后台组件。工作都发生在你看着屏幕的时候。</span></td>
+        <td><code>CAMERA</code></td>
+        <td><span class="i18n-en">Requested at runtime by the scanner screen, and only to turn one QR code
+            into text. Declining costs nothing: the same screen reads a code from a picture you pick.</span><span class="i18n-zh">只由扫码页在运行时申请，且只用来把一个二维码变成文字。拒绝也没有代价：同一个页面可以用你选的图片识别。</span></td>
       </tr>
       <tr>
-        <td><span class="i18n-en">Location, storage, camera, contacts, phone</span><span class="i18n-zh">位置、存储、相机、联系人、电话</span></td>
+        <td><code>FOREGROUND_SERVICE</code><br><code>FOREGROUND_SERVICE_DATA_SYNC</code></td>
+        <td><span class="i18n-en">Raised only while the DSH screen is open, and only so a task you started can be
+            noticed finishing while the app is off screen — Android freezes a backgrounded app, which used to stop
+            the check silently. It cannot outlive the screen, it has no binder and cannot be started by another app,
+            and the notification it requires is on a silent low-importance channel.</span><span class="i18n-zh">只在「DSH 界面」打开期间启动，目的只有一个：你启动的任务在 App 退到后台时跑完，
+            也能被发现——Android 会冻结后台 App，以前这让检查静默失效。它不能比页面活得更久，没有 binder，别的 App 也启动不了，
+            它要求的那条通知在静音、低优先级的通道上。</span></td>
+      </tr>
+      <tr>
+        <td><span class="i18n-en">Location, storage, contacts, phone</span><span class="i18n-zh">位置、存储、联系人、电话</span></td>
         <td><span class="i18n-en">None of it is used. Exports, if added, go through the Storage Access Framework,
             which grants exactly one file.</span><span class="i18n-zh">这些一个都没用到。将来若加入导出功能，会走 Storage Access Framework，它只授权一个文件。</span></td>
       </tr>

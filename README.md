@@ -46,10 +46,19 @@ unsatisfying options:
 it. The device's other traffic is untouched. No VPN permission is requested. The
 app opens one connection, to one destination, and nothing else.
 
-This is the same shape as [`tailvisor`](https://github.com/tailscale/tailvisor)
-(tsnet without a system VPN) and
-[`netbirdio/android-client`](https://github.com/netbirdio/android-client) (a
-gomobile-bound tunnel in a Kotlin app), applied to the single-destination case.
+The closest thing in the field is
+[`GlassHaven/Haven`](https://github.com/GlassHaven/Haven) — `tsnet` bound through
+gomobile into a Kotlin app, userspace netstack, no `VpnService` consent — applied
+there to a general tunnel and here to the single-destination case. Haven is
+AGPL-3.0, so it is worth reading as evidence that this shape works, and it is not
+a source of code for an MIT project.
+
+Two designs that look like the same shape are not: [`tailscale/tailvisor`](https://github.com/tailscale/tailvisor)
+runs macOS and Linux guest VMs on Apple Silicon (Swift, `-buildmode=c-archive`) and
+contains no Android code at all, and
+[`netbirdio/android-client`](https://github.com/netbirdio/android-client) *does* take
+the device-wide VPN slot — its `:tool` module declares a `VPNService` and holds
+`BIND_VPN_SERVICE` — which is precisely what this project exists to avoid.
 
 ---
 
@@ -81,6 +90,11 @@ gomobile-bound tunnel in a Kotlin app), applied to the single-destination case.
   host the address policy rejects cannot be applied. There is a generator that renders the QR
   code in your browser: [`site/provisioning.html`](https://zero6689.github.io/tailnet-byok/provisioning.html).
   See [`docs/PROVISIONING.md`](docs/PROVISIONING.md).
+- **A QR code in the app, both directions** — the settings screen draws this device's own
+  configuration as a code another phone can scan, and scans a code with the camera (or reads one
+  from a picture, with no camera permission at all). A scanned code is parsed and shown like any
+  other link: it can never apply itself, and it can never carry a credential. See
+  [`docs/SECURITY-MODEL.md`](docs/SECURITY-MODEL.md) for what the camera is and is not used for.
 
 ### A sample run
 
@@ -184,7 +198,7 @@ not an accident of the implementation.
 | Key never written to logs | All logging goes through `SafeLog`, which scrubs through `Redact`; release builds strip `v`/`d`/`i` at the bytecode level. `RedactTest` covers the credential shapes this project actually handles. |
 | No accidental egress | `TailnetAddressPolicy` rejects anything outside `100.64.0.0/10`, `fd7a:115c:a1e0::/48` and named hosts **before** a dial. |
 | Nothing leaves the device | `android:allowBackup="false"`, backup and device-transfer rules exclude everything, no analytics, no crash reporter, no server. |
-| Minimum permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES` (the updater asks the system installer — it cannot install silently). No `BIND_VPN_SERVICE`. No `QUERY_ALL_PACKAGES`. No location. |
+| Minimum permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES` (the updater asks the system installer — it cannot install silently), `CAMERA` (the QR scanner screen only, and optional: a code can be read from a picture instead), `FOREGROUND_SERVICE` (raised only while the DSH screen is open, so a task you started can be noticed finishing while the app is off screen — Android freezes backgrounded apps, which used to stop that check silently). No `BIND_VPN_SERVICE`. No `QUERY_ALL_PACKAGES`. No location. |
 | Updates are verified or refused | The updater downloads `dsh.apk` only after `dsh.apk.version` advertises something newer, and installs it only if its SHA-256 matches `dsh.apk.sha256` and the archive declares this app's package name. A missing or mismatched sidecar is a failure, never a silent pass. |
 
 The honest limits of all of this — what Keystore does *not* protect against, and
@@ -226,22 +240,29 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.2.9** (`versionCode` 9) — a working spine, and it compiles.
+Version **0.3.8** (`versionCode` 18) — used daily on a phone, and it compiles.
 
-**Verified by an actual build**, not by inspection: unit tests pass, Lint reports zero errors,
-`assembleDebug` and `assembleRelease` both succeed, and the gomobile bridge produces a
-60.2 MiB `tailnet.aar` whose `libgojni.so` lands in all four ABI directories of the APK.
+**Verified by an actual build**, not by inspection: **171 unit tests pass** (no failures, no
+skips), Lint reports **zero errors** (six warnings), `assembleDebug` and
+`assembleRelease -PwithTsnet=true` both succeed, and the gomobile bridge produces a
+60.0 MiB `tailnet.aar`.
+
+The release ships **one ABI, not four**: an `arm64-v8a` APK of about **54 MiB** (53.6 MiB on the
+0.3.8 build measured here), built with R8 off so that the code which ships is the code the tests
+cover. Four ABIs of `libgojni.so` are 162.4 MiB on their own, which is the whole argument for
+shipping one.
 
 | Artifact | Size |
 |---|---|
-| `tailnet.aar` | 60.2 MiB |
-| Release APK, four ABIs | 164.1 MiB |
-| Release APK, `arm64-v8a` only (estimated) | ~46 MiB |
+| `tailnet.aar` | 60.0 MiB |
+| Release APK, `arm64-v8a` only — what the release ships, R8 off | 53.6 MiB |
+| Release APK, four ABIs, R8 on | 164.1 MiB |
 
 > **The embedded node is essentially the whole app.** Four ABIs of `libgojni.so` total 162.4 MiB
-> against a 164.1 MiB release APK. If that matters to you, either ship one ABI, ship an App
-> Bundle, or use the `SYSTEM_NETWORK` provider and let the official Tailscale app own the
-> tunnel. Details in [docs/TSNET.md](docs/TSNET.md#measured-sizes).
+> against a 164.1 MiB release APK. If you need more than `arm64-v8a`, build it with
+> `-PabiFilters=`, ship an App Bundle, or use the `SYSTEM_NETWORK` provider and let the official
+> Tailscale app own the tunnel. Details in
+> [docs/TSNET.md](docs/TSNET.md#measured-sizes).
 
 Sizes are MiB, measured on the build described in that document; they move when
 `tailscale.com` moves, which is why they are stated with the version that produced them.
@@ -249,10 +270,11 @@ Sizes are MiB, measured on the build described in that document; they move when
 **Embedded at build time:** `tailscale.com v1.102.4`, resolved by `go mod tidy` and committed
 in `tailnet/go.mod` + `go.sum`.
 
-Not yet done, and listed honestly rather than discovered by you: the bridge compiles and
-packages but has never been run on a device in CI; there are no instrumented tests; the UI
-strings are not extracted for translation; and nothing in this repository is a screenshot from
-a running app. See `docs/ARCHITECTURE.md → Known gaps`.
+Not yet done, and listed honestly rather than discovered by you: there are no instrumented
+tests, so nothing has run on a device in CI (the app itself is used on a phone by hand); every
+user-facing string is extracted and the app ships an English and a Chinese translation, but no
+third locale; and nothing in this repository is a screenshot from a running app. See
+`docs/ARCHITECTURE.md → Known gaps`.
 
 ### What building it taught us
 
@@ -280,10 +302,13 @@ requirement that security-relevant changes come with a note in
 
 ## Not affiliated with DeepSeek
 
-The app's display name is **"DeepSeek Harness"** and its launcher icon depicts the DeepSeek
-whales — a blue one and a black orca, chasing each other into a circle. Both are used
-**descriptively**, to say what this app is a client for. They are not this project's marks,
-and no claim to them is made.
+The app's display name is **"DSH BYOK"** — `DSH` for DeepSeek Harness, the thing this app is a
+client for, and `BYOK` for the bring-your-own-key model it is built around. The full name
+**"DeepSeek Harness"** appears in this project only inside descriptive sentences such as "an
+independent client that works with DeepSeek Harness". That is the form DeepSeek's own brand
+guidelines ask third-party projects to use: they suggest the abbreviation `DSH` as a project name,
+and single out using the full mark as one. Both the name and the artwork are being brought into
+line with that; the name is done, the artwork is not.
 
 **DeepSeek and the DeepSeek whale are trademarks of their respective owner. This project is
 an independent, unofficial client. It is not affiliated with, endorsed by, sponsored by, or
@@ -295,9 +320,11 @@ separate questions, and MIT is silent on the second one. Anyone redistributing t
 a fork, a rebuild, a store listing — inherits the same position and should carry the same
 disclaimer.
 
-The maintainer's personal build of the same tool is deliberately distinct: it uses a single
-blue whale, so the two are distinguishable on a launcher. The public project's mark is the
-taiji. See [`branding/README.md`](branding/README.md).
+The launcher icon is, for now, still the project's two-whale taiji mark: artwork of the
+maintainer's own composition, but one that depicts DeepSeek's brand characters, which is why it is
+being replaced. The maintainer's personal build of the same tool uses a single blue whale so the
+two are distinguishable on a launcher; the public project is getting a mark of its own. See
+[`branding/README.md`](branding/README.md).
 
 If you are the rights holder and would prefer the name or the artwork changed, please open an
 issue and it will be changed.

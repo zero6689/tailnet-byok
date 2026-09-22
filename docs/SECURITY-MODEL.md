@@ -90,7 +90,8 @@ the library from becoming a general-purpose request forwarder if a caller gets t
 
 ## Permissions
 
-Declared: `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES`.
+Declared: `INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES`, `CAMERA`,
+`FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC`.
 Each with its justification next to the declaration in `AndroidManifest.xml`.
 
 `REQUEST_INSTALL_PACKAGES` exists for the in-app updater, and it is worth being precise about what
@@ -120,15 +121,57 @@ Not declared, and why:
 |---|---|
 | `BIND_VPN_SERVICE` | The embedded node dials one destination inside its own process. It never intercepts device-wide traffic, so it must not take the VPN slot — which would also break any other VPN the user runs. |
 | `QUERY_ALL_PACKAGES` | Nothing needs to enumerate other apps. |
-| `FOREGROUND_SERVICE` | No long-lived background component. The session watch lives inside the app's own process, while the DSH screen is open, and dies with it — so it costs no permanent notification and cannot outlive the screen. The honest consequence: if Android reclaims the process, notifications stop until the app is opened again. |
-| Location, storage, camera, contacts, phone | Unused. A future export must go through the Storage Access Framework, which grants exactly one file. |
+`FOREGROUND_SERVICE` (with the `dataSync` type Android 14 requires to be named) is the newest, and it
+reverses an earlier decision in this document. The app used to have no foreground service at all: the
+session watch lived in the process, while the DSH screen was open, and died with it. That was honest
+but it did not work — Android 12+ **freezes** a backgrounded process (it does not kill it, it stops its
+timers), so a task that finished while the user was in another app was never noticed, and the "your
+task finished" notification never arrived. Measured, not theorised: that is exactly what the first real
+test of the feature did.
 
-**No camera, and therefore no in-app QR scanner.** This is a choice, not an
-omission. A scanner exists to serve one setup step, and it would cost the camera
-permission on every install forever; the system camera (or any QR application)
-already opens a `dshbyok://` link, because that is what a custom URI scheme is for.
-Setup codes are scanned by the app the user already trusts with the camera, and
-this app never sees a frame.
+So the watch now raises a foreground service when the DSH screen acquires its route and lowers it when
+the screen releases it. What that means, precisely:
+
+* **It cannot outlive the screen.** The service is a child of the route, not of the app: closing the DSH
+  screen stops it. The route into the tailnet — and the session cookie that goes with it — are released
+  at the same moment, so nothing polls a server the app is no longer connected to.
+* **It costs one notification, and it is silent.** A foreground service must show one; there is no way
+  around that, which is why the earlier decision avoided the whole mechanism. It is on a
+  low-importance, silent channel, has no badge, and says what it is for ("waiting for a task to
+  finish"). The notification that matters — a task stopped running — is a different channel and a
+  different notification: the *only* channel this app creates that is allowed to make a sound or a
+  banner, because it is the one the user is waiting for, and it carries a session title and nothing
+  else. It is created without asking anyone, carries no permission of its own, and can be lowered or
+  turned off by the user at any time; the settings screen's diagnostics line reports the importance the
+  system actually holds for it.
+* **Nothing else changed.** The service has no binder, is not exported, has no intent filter, and can
+  only be started by this app's own process. It is not a background HTTP server, it does not add a
+  second way into the target, and it does not run when the user is not watching a task.
+
+What is still *not* covered, and will not be without another decision: watching with the DSH screen
+**closed**. That would mean holding the route (and the cookie) open with no screen, which is the exact
+capability this app's design keeps short-lived. Someone who wants that is asking for the route to
+outlive the screen, and it should be an explicit choice rather than a side effect.
+| Location, storage, contacts, phone | Unused. A future export must go through the Storage Access Framework, which grants exactly one file. |
+
+`CAMERA` is the newest of the five and the one worth being most precise about,
+because a camera is the permission users are right to be suspicious of. It is
+requested at runtime, from the scanner screen, and asked for the first time only
+when the user taps "Scan a QR code" — never at launch, never in the background.
+What the app does with it: `ImageAnalysis` hands frames to a QR decoder inside
+this process, the decoded *text* is the only thing that leaves that screen, and no
+frame is written to disk, uploaded, or kept after the frame is closed. There is no
+camera preview outside the scanner, no photo library, no image capture of any
+kind, and nothing in the app reads the camera while the scanner is closed —
+CameraX is bound to the scanner screen's lifecycle, so leaving the screen ends the
+session.
+
+The feature is also declared `required="false"`, and the permission is genuinely
+optional. **A refusal costs the user nothing but the viewfinder**: the same screen
+reads a code from a picture chosen through the system photo picker, which needs no
+permission at all and grants exactly one file — the same door the DSH screen's
+upload path uses. So the app is fully configurable with the camera permanently
+denied, which is the property that makes requesting it defensible.
 
 ## No IPC surface
 
@@ -151,6 +194,14 @@ being precise about what can come through it.
 Links are the one place this app takes instructions from outside itself, and the
 design rule is the same one the rest of the app follows: refuse what cannot be
 proven, and show the user what is about to happen.
+
+The in-app scanner does not add a second door. A scanned code is turned into text
+by the decoder, the text goes through `SetupLinkParser`, and what the user sees is
+the same confirmation card a pasted link produces — the same parse, the same
+refusal reasons, the same address-policy verdict, the same explicit Apply. It
+cannot apply anything by itself, and it cannot read a credential, because a link
+that carries one is refused whole. See `docs/PROVISIONING.md` for the feature as
+a workflow.
 
 ## On not setting `FLAG_SECURE`
 
