@@ -24,11 +24,14 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <!-- The launcher label, and the only string the manifest needs. -->
-    <string name="app_name">DeepSeek Harness</string>
+    <!-- The launcher label, and the only string the manifest needs.
+         `DSH` is the abbreviation DeepSeek's own brand guidelines ask third-party
+         projects to use as a project name; the full "DeepSeek Harness" stays in
+         descriptive sentences ("works with DeepSeek Harness"), never as this app's name. -->
+    <string name="app_name">DSH BYOK</string>
 
     <!-- App bar. Same brand as `app_name`, so the two can never drift apart. -->
-    <string name="screen_title">DeepSeek Harness</string>
+    <string name="screen_title">DSH BYOK</string>
 
     <!-- First-run card: the security model, stated once. -->
     <string name="intro_title">What this app does with your key</string>
@@ -207,7 +210,6 @@
     <string name="section_web_subtitle">The target\'s own interface, rendered in the app</string>
     <string name="btn_open_web_ui">Open the DSH UI</string>
     <string name="web_opening">Starting the local proxy…</string>
-    <string name="web_title">DSH UI</string>
     <string name="web_close">Close</string>
     <string name="web_retry">Retry</string>
     <string name="web_pick_file">Choose what to upload</string>
@@ -231,6 +233,10 @@
     <string name="notify_channel_name">Finished tasks</string>
     <string name="notify_channel_description">Says when a task on your DSH server stops running, so you do not have to keep the screen open to find out.</string>
     <string name="notify_turn_title">A task finished</string>
+    <string name="notify_watch_channel_name">Watching for a task to finish</string>
+    <string name="notify_watch_channel_description">The row that Android requires while the app keeps checking whether a running task has finished. Silent.</string>
+    <string name="notify_watch_title">Waiting for a task to finish</string>
+    <string name="notify_watch_text">You will get a notification when it stops running. Tap to go back.</string>
     <string name="notify_turn_fallback">A session on your DSH server stopped running.</string>
     <string name="web_proxy_failed">Could not open the DSH UI: <xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
     <string name="web_proxy_unavailable">The DSH UI needs the embedded tailnet node, which this build cannot provide.</string>
@@ -290,7 +296,64 @@
     <string name="setup_link_empty">That link names no configuration, so there is nothing to apply.</string>
 
     <!-- Footer -->
+    <!-- Open-source licences. The texts the APK is required to carry (BSD-3-Clause
+         and Apache-2.0 attach conditions to binary distribution) are generated into
+         `assets/licenses/` by scripts/generate-license-screen.mjs, because the build
+         strips META-INF/NOTICE from the APK. -->
+    <string name="licences_button">Open source licences</string>
+    <string name="licences_title">Third-party licences</string>
+    <string name="licences_back">Back</string>
+    <string name="licences_close">Close</string>
+    <string name="licences_unavailable">The licence texts are missing from this build.</string>
+
     <string name="footer_privacy">No telemetry. No account. No server of ours — your key is only ever sent to the control plane you configure.</string>
-    <string name="footer_trademark">Not affiliated with DeepSeek. This is an independent, unofficial client; the name and the whale artwork describe what it connects to and are trademarks of their respective owner, not this project\'s.</string>
+    <string name="footer_trademark">Not affiliated with DeepSeek. This is an independent, unofficial client: “DSH BYOK” says what it is — a bring-your-own-key client for DeepSeek Harness — and the launcher artwork is being replaced with a mark of this project\'s own. DeepSeek and the DeepSeek whale are trademarks of their respective owner, not this project\'s.</string>
+
+    <!-- QR codes: handing a configuration to another device, and reading one -->
+    <string name="section_code_title">Hand this configuration on</string>
+    <string name="section_code_subtitle">Another device can scan this and reach the same target. It carries where to connect — never a credential.</string>
+    <string name="code_need_target">A code appears here once a target is filled in.</string>
+    <string name="code_caption">The same thing as text</string>
+    <string name="btn_copy_link">Copy link</string>
+    <string name="code_copied">Link copied.</string>
+    <string name="btn_scan_code">Scan a QR code</string>
+    <string name="scan_title">Scan a configuration code</string>
+    <string name="scan_close">Close</string>
+    <string name="scan_hint">Point the camera at the code.</string>
+    <string name="scan_torch_on">Light on</string>
+    <string name="scan_torch_off">Light off</string>
+    <string name="scan_pick_image">Read from an image</string>
+    <string name="scan_no_code_in_image">No QR code was found in that image.</string>
+    <string name="scan_camera_title">Camera</string>
+    <string name="scan_camera_why">The camera reads one QR code and nothing else: no frame is stored, and only the text of the code leaves this screen. A picture works instead if you prefer.</string>
+    <string name="scan_grant_camera">Allow the camera</string>
+    <string name="scan_open_settings">Open app settings</string>
+    <string name="scan_camera_failed">This device would not open a camera. Reading from a picture works just as well.</string>
+
+    <!-- Diagnostics: the task-finished notification, and why it may not have arrived -->
+    <string name="diag_notifications">Notifications: %1$s</string>
+    <string name="diag_notifications_allowed">allowed</string>
+    <string name="diag_notifications_blocked">off for this app in Android\'s settings</string>
+    <string name="diag_notifications_denied">Android has not granted the permission</string>
+    <string name="diag_channel">Notice channel: %1$s</string>
+    <string name="diag_channel_banner">high — a banner pops up</string>
+    <string name="diag_channel_shade_only">default — it only reaches the shade, with no banner (only Android\'s notification settings can raise it)</string>
+    <string name="diag_channel_silent">low — silent, and no banner</string>
+    <string name="diag_channel_missing">not created yet</string>
+    <string name="diag_turn_watch">Task watch: %1$s — %2$s</string>
+    <string name="diag_watch_service_up">background watch running</string>
+    <string name="diag_watch_service_refused">background watch refused by Android, so it stops when the app is frozen</string>
+    <string name="diag_watch_service_none">no background watch</string>
+    <string name="diag_watch_running">polling, running sessions: %1$d (last answer %2$s s ago)</string>
+    <string name="diag_watch_idle">polling, nothing running (last answer %1$s s ago)</string>
+    <string name="diag_watch_no_answer">polling, no usable answer yet</string>
+    <string name="diag_watch_stopped">not watching — it runs while the DSH screen is open</string>
+    <string name="diag_last_notice">Last finish notice: %1$s</string>
+    <string name="diag_notice_none">none yet in this session</string>
+    <string name="diag_notice_posted">posted at %1$s (%2$s)</string>
+    <string name="diag_notice_skipped_foreground">not needed — the app was on screen</string>
+    <string name="diag_notice_skipped_off">not posted — notifications are off for this app</string>
+    <string name="diag_notice_skipped_permission">not posted — no notification permission</string>
+    <string name="diag_notice_failed">not posted — Android refused it</string>
 
 </resources>

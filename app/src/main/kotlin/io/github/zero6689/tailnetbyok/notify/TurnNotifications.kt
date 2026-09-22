@@ -17,6 +17,8 @@ import androidx.core.content.ContextCompat
 import io.github.zero6689.tailnetbyok.MainActivity
 import io.github.zero6689.tailnetbyok.R
 import io.github.zero6689.tailnetbyok.core.log.SafeLog
+import io.github.zero6689.tailnetbyok.domain.TurnNoticeOutcome
+import io.github.zero6689.tailnetbyok.domain.TurnNotificationDecision
 
 /**
  * Whether any activity is visible.
@@ -55,6 +57,16 @@ object AppForeground : Application.ActivityLifecycleCallbacks {
 }
 
 /**
+ * What a notification channel's importance means for the user.
+ *
+ * The distinction that matters is [BANNER] against everything else: below it a
+ * notification still arrives, still shows in the shade, and still makes whatever
+ * sound the channel allows — it simply never *pops up*, which is the difference
+ * between "the app told me" and "I found it later".
+ */
+enum class TurnChannelAdvice { MISSING, SILENT, SHADE_ONLY, BANNER }
+
+/**
  * The one notification this app posts: a session stopped running.
  *
  * What it deliberately does *not* carry is any of the conversation. A
@@ -65,7 +77,23 @@ object AppForeground : Application.ActivityLifecycleCallbacks {
  */
 object TurnNotifications {
 
-    private const val CHANNEL_ID = "turns"
+    /**
+     * The channel the finish notice is posted to.
+     *
+     * The `-v2` suffix is load-bearing, not cosmetic. A channel's importance is
+     * fixed when it is created: an app may lower it, never raise it, and a user's own
+     * setting always wins. The 0.3.5 channel was created with `IMPORTANCE_DEFAULT`,
+     * so on every phone that already had it the notice could only ever be a silent
+     * row in the shade — and editing that constant would have changed nothing on any
+     * installed device. A new id is the only way to get a channel that can banner;
+     * the old one is removed in [ensureChannel] so the app's notification settings do
+     * not keep a dead row.
+     */
+    private const val CHANNEL_ID = "turn-finished-v2"
+
+    /** 0.3.5–0.3.6: `IMPORTANCE_DEFAULT`, and therefore banner-less forever. */
+    private const val LEGACY_CHANNEL_ID = "turns"
+
     private const val NOTIFICATION_ID = 1001
 
     /**
@@ -75,21 +103,31 @@ object TurnNotifications {
      * someone watching the DSH screen sees the turn end, and a system notification
      * on top of that is noise. The check lives here rather than at the call site so
      * that no future caller has to remember it.
+     *
+     * Returns *why* it did what it did, and that return value is not decoration: it
+     * is what the settings screen's diagnostics report. Until this returned an
+     * outcome, every decline was a silent `return`, so "the app never told me my
+     * task finished" had four indistinguishable causes — the app was on screen, the
+     * user had notifications off, the permission was never granted, or the post
+     * failed — and the only way to find out which was to guess.
      */
-    fun turnFinished(context: Context, sessionTitle: String?) {
-        if (AppForeground.isForeground) return
+    fun turnFinished(context: Context, sessionTitle: String?): TurnNoticeOutcome {
+        val permissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
 
         // Two different questions, both asked in the one place the call happens:
-        // the user's answer inside the app, and the platform's (Android 13+, asked
-        // once the first time the DSH screen opens). The platform check is also
-        // what makes this call legal rather than a permission violation.
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        // the platform's answer for this app, and the user's runtime grant. Both
+        // are required, and the platform check is also what makes the notify() call
+        // legal rather than a permission violation.
+        val enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+        val outcome = TurnNotificationDecision.decide(
+            inForeground = AppForeground.isForeground,
+            notificationsEnabled = enabled,
+            permissionGranted = permissionGranted,
+        )
+        if (outcome != TurnNoticeOutcome.POSTED) return outcome
 
         ensureChannel(context)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -101,32 +139,78 @@ object TurnNotifications {
             )
             .setContentIntent(openApp(context))
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            // The priority line is the pre-channel equivalent of the channel's
+            // importance, and it is the same value on purpose; minSdk is 26, so it
+            // is belt and braces rather than a live path.
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        runCatching {
+        return runCatching {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
-        }.onFailure {
+            TurnNoticeOutcome.POSTED
+        }.getOrElse {
             // A notification that cannot be posted (permission revoked between the
             // check and the call) must never take the poll loop down with it.
             SafeLog.w(TAG, "could not post the turn notification", it)
+            TurnNoticeOutcome.FAILED
         }
     }
 
-    /** Creates the channel once. The system ignores a repeat of the same id. */
+    /**
+     * Creates the channel once, and removes the one that could never banner.
+     *
+     * `IMPORTANCE_HIGH` is the whole point: on Android 8 and later the channel's
+     * importance — not the builder's priority — decides whether a notification is a
+     * heads-up banner, and only `HIGH` or above banners. 0.3.5 shipped this channel
+     * as `IMPORTANCE_DEFAULT` and the user's report was exactly that outcome: the
+     * notice appeared in the shade, silently, with no pop-up. A user can still lower
+     * it afterwards (that is their call, and the diagnostics panel reports it), but
+     * the value this app creates it with is the one that can banner.
+     */
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
 
+        // The pre-0.3.7 channel. Deleting it also drops any notification posted to
+        // it, which is the point: it is superseded, and a stale entry in the app's
+        // notification settings is a thing to explain rather than a thing to use.
+        runCatching { manager.deleteNotificationChannel(LEGACY_CHANNEL_ID) }
+
+        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.notify_channel_name),
-                NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = context.getString(R.string.notify_channel_description)
             },
         )
+    }
+
+    /**
+     * The channel's *effective* importance, or null when it has not been created.
+     *
+     * Read back from the system rather than remembered, because the answer the user
+     * sees is the system's: raising it is the app's job once, and after that only
+     * Android's notification settings can change it.
+     */
+    fun channelImportance(context: Context): Int? =
+        context.getSystemService(NotificationManager::class.java)
+            ?.getNotificationChannel(CHANNEL_ID)
+            ?.importance
+
+    /**
+     * What that importance means, as one word for the diagnostics panel.
+     *
+     * This is the line that answers "will it pop up": a notice that reaches the shade
+     * and no further is not a broken watch, it is a channel below `HIGH`, and the two
+     * look identical from the outside.
+     */
+    fun channelAdvice(importance: Int?): TurnChannelAdvice = when {
+        importance == null -> TurnChannelAdvice.MISSING
+        importance >= NotificationManager.IMPORTANCE_HIGH -> TurnChannelAdvice.BANNER
+        importance == NotificationManager.IMPORTANCE_DEFAULT -> TurnChannelAdvice.SHADE_ONLY
+        else -> TurnChannelAdvice.SILENT
     }
 
     /** Tapping the notification opens the app, not a second copy of it. */

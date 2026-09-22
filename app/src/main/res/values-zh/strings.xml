@@ -13,8 +13,8 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <string name="app_name">DeepSeek Harness</string>
-    <string name="screen_title">DeepSeek Harness</string>
+    <string name="app_name">DSH BYOK</string>
+    <string name="screen_title">DSH BYOK</string>
 
     <!-- 首次运行的安全模型说明 -->
     <string name="intro_title">这个 App 会怎么处理你的密钥</string>
@@ -192,7 +192,6 @@
     <string name="section_web_subtitle">在 App 里直接打开目标自己的界面</string>
     <string name="btn_open_web_ui">打开 DSH 界面</string>
     <string name="web_opening">正在启动本机代理…</string>
-    <string name="web_title">DSH 界面</string>
     <string name="web_close">关闭</string>
     <string name="web_retry">重试</string>
     <string name="web_pick_file">选择要上传的内容</string>
@@ -216,6 +215,10 @@
     <string name="notify_channel_name">任务完成</string>
     <string name="notify_channel_description">你的 DSH 服务器上有任务跑完时告诉你，这样就不用一直开着界面盯着。</string>
     <string name="notify_turn_title">有任务跑完了</string>
+    <string name="notify_watch_channel_name">等待任务结束</string>
+    <string name="notify_watch_channel_description">App 在后台继续检查任务是否结束时，系统要求显示的那一条。静音。</string>
+    <string name="notify_watch_title">正在等待任务结束</string>
+    <string name="notify_watch_text">任务跑完会通知你。点一下回到 App。</string>
     <string name="notify_turn_fallback">你的 DSH 服务器上有一个会话停止了运行。</string>
     <string name="web_proxy_failed">无法打开 DSH 界面：<xliff:g id="detail" example="target must be an absolute http(s) URL">%1$s</xliff:g></string>
     <string name="web_proxy_unavailable">打开 DSH 界面需要内嵌 tailnet 节点，这个构建里没有。</string>
@@ -275,7 +278,63 @@
     <string name="setup_link_empty">这个链接没有指定任何配置，没有可应用的东西。</string>
 
     <!-- 页脚 -->
+    <!-- 开源许可。BSD-3-Clause 与 Apache-2.0 对**二进制分发**附加了条件，而这些正文
+         会被构建从 APK 的 META-INF/NOTICE 里剔除，所以由
+         scripts/generate-license-screen.mjs 生成进 assets/licenses/。 -->
+    <string name="licences_button">开源许可</string>
+    <string name="licences_title">第三方许可</string>
+    <string name="licences_back">返回</string>
+    <string name="licences_close">关闭</string>
+    <string name="licences_unavailable">此构建中缺少许可全文。</string>
+
     <string name="footer_privacy">无遥测、无账号、没有我们的服务器 —— 你的密钥只会发给你自己配置的控制面。</string>
-    <string name="footer_trademark">与 DeepSeek 无关联。这是一个独立、非官方客户端；名称与鲸鱼图标用来说明它连接的是什么，相关商标归各自所有者，不属于本项目。</string>
+    <string name="footer_trademark">与 DeepSeek 无关联。这是一个独立、非官方客户端：名称「DSH BYOK」说明它是什么 —— 自带密钥的 DeepSeek Harness 客户端；启动器图标正在替换为本项目自己的标识。DeepSeek 与 DeepSeek 鲸鱼商标归各自所有者，不属于本项目。</string>
+
+    <!-- 二维码：把配置交给另一台设备，以及读取一个二维码 -->
+    <string name="section_code_title">把这份配置交给另一台设备</string>
+    <string name="section_code_subtitle">另一台设备扫这个码就能连到同一个目标。它只带「连到哪里」，绝不带任何凭据。</string>
+    <string name="code_need_target">填好目标主机之后，这里会出现二维码。</string>
+    <string name="code_caption">同一份内容的链接</string>
+    <string name="btn_copy_link">复制链接</string>
+    <string name="code_copied">链接已复制。</string>
+    <string name="btn_scan_code">扫描二维码</string>
+    <string name="scan_title">扫描配置二维码</string>
+    <string name="scan_close">关闭</string>
+    <string name="scan_hint">把镜头对准二维码。</string>
+    <string name="scan_torch_on">开灯</string>
+    <string name="scan_torch_off">关灯</string>
+    <string name="scan_pick_image">从图片识别</string>
+    <string name="scan_no_code_in_image">这张图片里没有识别到二维码。</string>
+    <string name="scan_camera_title">相机</string>
+    <string name="scan_camera_why">相机只用来读一个二维码，不做别的事：不保存任何画面，只有码里的文字会离开这个页面。不想给相机权限的话，用图片识别也一样。</string>
+    <string name="scan_grant_camera">允许使用相机</string>
+    <string name="scan_open_settings">打开系统设置</string>
+    <string name="scan_camera_failed">这台设备没能打开相机。用图片识别一样可以。</string>
+
+    <!-- 诊断：任务完成通知，以及它为什么没到 -->
+    <string name="diag_notifications">通知：%1$s</string>
+    <string name="diag_notifications_allowed">允许</string>
+    <string name="diag_notifications_blocked">在系统设置里被关掉了（本应用）</string>
+    <string name="diag_notifications_denied">系统还没授予通知权限</string>
+    <string name="diag_channel">完成通知渠道：%1$s</string>
+    <string name="diag_channel_banner">高 —— 会弹横幅</string>
+    <string name="diag_channel_shade_only">默认 —— 只会静默进通知栏、不弹横幅（只能在系统的通知设置里调高）</string>
+    <string name="diag_channel_silent">低 —— 静默，且不弹横幅</string>
+    <string name="diag_channel_missing">还没创建</string>
+    <string name="diag_turn_watch">任务监视：%1$s —— %2$s</string>
+    <string name="diag_watch_service_up">后台监视已启动</string>
+    <string name="diag_watch_service_refused">系统拒绝了后台监视，App 被冻结后就会停</string>
+    <string name="diag_watch_service_none">没有后台监视</string>
+    <string name="diag_watch_running">轮询中，运行中会话：%1$d 个（最近一次答复 %2$s 秒前）</string>
+    <string name="diag_watch_idle">轮询中，没有任务在跑（最近一次答复 %1$s 秒前）</string>
+    <string name="diag_watch_no_answer">轮询中，还没拿到可用答复</string>
+    <string name="diag_watch_stopped">没在监视 —— 它只在「DSH 界面」打开时运行</string>
+    <string name="diag_last_notice">最近一次完成通知：%1$s</string>
+    <string name="diag_notice_none">本次会话还没有</string>
+    <string name="diag_notice_posted">已于 %1$s 发出（%2$s）</string>
+    <string name="diag_notice_skipped_foreground">不需要 —— 当时应用就在屏幕上</string>
+    <string name="diag_notice_skipped_off">没发出 —— 本应用的通知被关了</string>
+    <string name="diag_notice_skipped_permission">没发出 —— 没有通知权限</string>
+    <string name="diag_notice_failed">没发出 —— 系统拒绝了</string>
 
 </resources>
