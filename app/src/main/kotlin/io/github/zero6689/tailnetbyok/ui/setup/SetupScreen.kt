@@ -1,7 +1,9 @@
 package io.github.zero6689.tailnetbyok.ui.setup
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,6 +54,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
@@ -74,16 +79,20 @@ import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.AddressMessages
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.QrCode
+import io.github.zero6689.tailnetbyok.domain.QrEncoder
 import io.github.zero6689.tailnetbyok.domain.SetupLink
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
 import io.github.zero6689.tailnetbyok.domain.UpdateOutcome
 import io.github.zero6689.tailnetbyok.net.ProviderId
 import io.github.zero6689.tailnetbyok.net.ProviderStatus
+import io.github.zero6689.tailnetbyok.ui.scan.QrScanScreen
 import io.github.zero6689.tailnetbyok.ui.theme.Danger
 import io.github.zero6689.tailnetbyok.ui.theme.TailnetByokTheme
 import io.github.zero6689.tailnetbyok.ui.theme.Warning
 import io.github.zero6689.tailnetbyok.ui.web.WebScreen
 import kotlinx.coroutines.delay
+import kotlin.math.floor
 
 /**
  * The whole app, on one scrollable screen.
@@ -113,7 +122,16 @@ fun SetupRoute(container: AppContainer) {
     // fields the user left. It is only reachable when the user asked for it:
     // `webUrl` is set by `openWebUi` and by nothing else.
     val webUrl = state.webUrl
-    if (webUrl == null) {
+    if (state.scanning) {
+        // Third screen, same rule as the second: it replaces the settings screen
+        // because there is nothing to keep behind it — this view model survives
+        // the swap, so a code that is read (or a scan that is abandoned) lands
+        // back on the exact fields the user left.
+        QrScanScreen(
+            onResult = vm::onScanned,
+            onCancel = vm::closeScanner,
+        )
+    } else if (webUrl == null) {
         SetupScreen(state = state, actions = vm.asActions())
     } else {
         // `reveal()` is the one place the URL becomes text, and it goes straight
@@ -139,6 +157,7 @@ fun SetupScreen(
     actions: SetupActions,
 ) {
     var keyVisible by remember { mutableStateOf(false) }
+    var showLicences by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -148,6 +167,20 @@ fun SetupScreen(
                 // same value so the two can never drift apart.
                 title = { Text(stringResource(R.string.screen_title)) },
                 actions = {
+                    // One tap back to the screen the user actually uses. The
+                    // section further down does the same thing, but it sits below
+                    // every field and every diagnostic line, so "leave the DSH
+                    // screen, get something from settings, go back" turned into a
+                    // scroll hunt. The bar is the one part of the page that is
+                    // always visible.
+                    if (state.webUrl == null) {
+                        TextButton(
+                            onClick = actions::openWebUi,
+                            enabled = state.canOpenWebUi,
+                        ) {
+                            Text(stringResource(R.string.btn_open_web_ui))
+                        }
+                    }
                     NodeStatusPill(state.providerStatus)
                 },
             )
@@ -160,20 +193,26 @@ fun SetupScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // A fresh install — or one whose target was cleared — gets the ways in
-            // *before* anything else, including the security note. The note still
-            // follows (nothing here is used before it can be read), but the first
-            // thing a new user needs is how to connect, not an essay.
+            // "How do I connect at all" is the first thing a new user needs, so it
+            // comes before everything else — but only while there is no target.
             //
-            // The condition is "first run OR nothing configured", not just the
-            // latter: a deployment build arrives with its target already filled in
-            // (see `-PdefaultTarget`), and that must not be the reason the page
-            // with the QR code becomes unreachable from inside the app.
-            if (!state.config.acknowledgedSecurityModel || state.config.hostInput.isBlank()) {
+            // It used to be shown until the security note was acknowledged as well,
+            // which turned a one-time introduction into a permanent header: a user
+            // who filled in a target, opened the DSH screen and never tapped the
+            // note's button saw the onboarding card on every visit, at the top of a
+            // long page, above the button that gets them back to the screen they
+            // were using. The note is its own card and does its own job; the ways
+            // in are needed exactly once, when the target is empty.
+            //
+            // It also has to stay reachable in a deployment build, whose target
+            // arrives pre-filled (see `-PdefaultTarget`) — that is what the
+            // in-app code section and the top bar's shortcut are for.
+            if (state.config.hostInput.isBlank()) {
                 item {
                     FirstRunCard(
                         provisioningUrl = state.provisioningUrl,
                         onUseLink = actions::offerPastedLink,
+                        onScanCode = actions::openScanner,
                     )
                 }
             }
@@ -207,6 +246,8 @@ fun SetupScreen(
 
             item { ProviderSection(state = state, actions = actions) }
 
+            item { SetupCodeSection(state = state, actions = actions) }
+
             if (state.config.provider == ProviderId.EMBEDDED_TSNET) {
                 item { CredentialSection(state = state, actions = actions, keyVisible = keyVisible) }
                 item {
@@ -233,8 +274,14 @@ fun SetupScreen(
             // refreshed on the way to finding out.
             item { DiagnosticsSection(state = state, onRefresh = actions::loadDiagnostics) }
 
-            item { FooterNote() }
+            item { FooterNote(onOpenLicences = { showLicences = true }) }
         }
+    }
+
+    // Outside the Scaffold: the licence screen is its own dialog, not a section of
+    // the settings page, because it is reference material rather than configuration.
+    if (showLicences) {
+        LicensesDialog(onDismiss = { showLicences = false })
     }
 }
 
@@ -260,6 +307,7 @@ interface SetupActions {
     fun applyPendingSetup()
     fun discardPendingSetup()
     fun offerPastedLink(text: String)
+    fun openScanner()
     fun loadDiagnostics()
     fun acknowledgeSecurityModel()
     fun dismissBanner()
@@ -293,6 +341,7 @@ private fun SetupViewModel.asActions(): SetupActions = object : SetupActions {
     override fun applyPendingSetup() = this@asActions.applyPendingSetup()
     override fun discardPendingSetup() = this@asActions.discardPendingSetup()
     override fun offerPastedLink(text: String) = this@asActions.offerPastedLink(text)
+    override fun openScanner() = this@asActions.openScanner()
     override fun loadDiagnostics() = this@asActions.loadDiagnostics()
     override fun acknowledgeSecurityModel() = this@asActions.acknowledgeSecurityModel()
     override fun dismissBanner() = this@asActions.dismissBanner()
@@ -356,6 +405,7 @@ private fun UpdateAvailableCard(version: String, onUpdate: () -> Unit) {
 private fun FirstRunCard(
     provisioningUrl: String,
     onUseLink: (String) -> Unit,
+    onScanCode: () -> Unit,
 ) {
     var pasted by remember { mutableStateOf("") }
 
@@ -364,6 +414,13 @@ private fun FirstRunCard(
             text = stringResource(R.string.firstrun_body),
             style = MaterialTheme.typography.bodyMedium,
         )
+        // The code on the server's page is the shortest path in, and it is the
+        // one path that does not involve typing an address off a screen — so the
+        // scanner is offered first, before the field for people who were given
+        // the link as text.
+        OutlinedButton(onClick = onScanCode, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.btn_scan_code))
+        }
         OutlinedTextField(
             value = pasted,
             onValueChange = { pasted = it },
@@ -962,6 +1019,142 @@ private fun SetupLinkCard(
     }
 }
 
+/**
+ * "Hand this configuration on", and "read one from somewhere else".
+ *
+ * The two halves belong together because they are the same question asked in
+ * opposite directions, and because the reader is the reason the writer is safe to
+ * trust: a code produced here is a code this screen can also consume, through the
+ * same parse-show-confirm path as any other link.
+ *
+ * # Why the code is drawn, not captured
+ *
+ * There is no screenshot and no bitmap. The matrix from `QrEncoder` is painted
+ * module by module at a whole number of pixels, which is what makes it scan: a
+ * code that is scaled by a fraction of a pixel per module gets antialiased edges,
+ * and a threshold-based reader is entitled to read those as the wrong cell. The
+ * quiet zone is part of the matrix for the same reason.
+ */
+@Composable
+private fun SetupCodeSection(state: UiState, actions: SetupActions) {
+    SectionCard(R.string.section_code_title, R.string.section_code_subtitle) {
+        val link = state.setupLinkForSharing
+        // Encoding is a pure function of the link, and the link only changes when
+        // a field does: recomputing it on every keystroke elsewhere on the screen
+        // would be wasteful for no gain.
+        val code = remember(link) { link?.let { QrEncoder.encode(it) } }
+
+        if (link == null || code == null) {
+            Text(
+                stringResource(R.string.code_need_target),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                QrCanvas(code = code, modifier = Modifier.size(232.dp))
+            }
+
+            Text(
+                stringResource(R.string.code_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SelectionContainer {
+                Text(
+                    link,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+        }
+
+        val clipboard = LocalClipboardManager.current
+        var copied by remember { mutableStateOf(false) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (link != null) {
+                OutlinedButton(
+                    onClick = {
+                        clipboard.setText(AnnotatedString(link))
+                        copied = true
+                    },
+                ) {
+                    Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_copy_link))
+                }
+            }
+            Button(onClick = actions::openScanner) {
+                Text(stringResource(R.string.btn_scan_code))
+            }
+        }
+        if (copied) {
+            Text(
+                stringResource(R.string.code_copied),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        // The deployment's own page, when this build was given one.
+        //
+        // It used to be offered only by the first-run card, which now appears
+        // exactly while there is no target — so a deployment build, whose target
+        // arrives pre-filled, lost the one link that explains where the codes come
+        // from. It belongs here anyway: this section is about handing a
+        // configuration around, and the page is the other end of that.
+        //
+        // Only http(s) is handed to the system's view intent; the value comes from
+        // the build, so this is not about distrusting the user — an arbitrary
+        // scheme launching an arbitrary app from a settings screen is.
+        val page = state.provisioningUrl
+        val pageOpenable = page.startsWith("http://") || page.startsWith("https://")
+        if (pageOpenable) {
+            val uriHandler = LocalUriHandler.current
+            Text(
+                text = stringResource(R.string.firstrun_provisioning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = { uriHandler.openUri(page) }) {
+                Text(stringResource(R.string.firstrun_open_provisioning))
+            }
+        }
+    }
+}
+
+/**
+ * Paints a [QrCode] on a light background.
+ *
+ * The background is white and the modules black regardless of the theme: a QR
+ * code is defined by contrast, and an inverted or dimmed code is a code that some
+ * scanners will not read. The square is sized down to a whole number of pixels
+ * per module and centred, so no module is drawn across a pixel boundary.
+ */
+@Composable
+private fun QrCanvas(code: QrCode, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val available = minOf(size.width, size.height)
+        val cell = floor(available / code.size)
+        if (cell < 1f) return@Canvas
+
+        val side = cell * code.size
+        val origin = Offset((size.width - side) / 2f, (size.height - side) / 2f)
+
+        drawRect(color = Color.White, topLeft = origin, size = Size(side, side))
+        for (y in 0 until code.size) {
+            for (x in 0 until code.size) {
+                if (!code.isDark(x, y)) continue
+                drawRect(
+                    color = Color.Black,
+                    topLeft = Offset(origin.x + x * cell, origin.y + y * cell),
+                    size = Size(cell, cell),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun StepRow(step: ConnectionTester.StepResult) {
     val tint = when (step.outcome) {
@@ -1061,7 +1254,7 @@ private fun DiagnosticsSection(state: UiState, onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun FooterNote() {
+private fun FooterNote(onOpenLicences: () -> Unit) {
     Column(Modifier.padding(vertical = 16.dp)) {
         Text(
             stringResource(R.string.footer_privacy),
@@ -1079,6 +1272,15 @@ private fun FooterNote() {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // The third-party texts whose conditions travel with the binary belong next to
+        // the disclaimer that says what this app is not: both are statements this app
+        // owes someone, and neither is discoverable anywhere else inside it.
+        TextButton(onClick = onOpenLicences) {
+            Text(
+                stringResource(R.string.licences_button),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
     }
 }
 
@@ -1149,6 +1351,7 @@ private val noopActions = object : SetupActions {
     override fun applyPendingSetup() = Unit
     override fun discardPendingSetup() = Unit
     override fun offerPastedLink(text: String) = Unit
+    override fun openScanner() = Unit
     override fun loadDiagnostics() = Unit
     override fun acknowledgeSecurityModel() = Unit
     override fun dismissBanner() = Unit

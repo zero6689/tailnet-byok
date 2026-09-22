@@ -209,6 +209,16 @@ jobs:
           fi
           echo "ok: third-party notices match the dependency graph"
 
+      # The same texts also travel *inside* the APK, because the build strips
+      # META-INF/NOTICE from it: `app/src/main/assets/licenses/` is what the in-app
+      # licence screen reads. Generated from the notices above, so it can rot in
+      # exactly the same way, and is checked in exactly the same way. No Go needed
+      # for this one — it reads the file the previous step just verified.
+      - name: Check the in-app licence assets
+        run: |
+          set -euo pipefail
+          node scripts/generate-license-screen.mjs --check
+
   # ---------------------------------------------------------------------------
   # Unit tests and lint. No Go, no NDK: the default build is pure Kotlin.
   # ---------------------------------------------------------------------------

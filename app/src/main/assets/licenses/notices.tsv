@@ -1,0 +1,30 @@
+# This app ships a native library, `libgojni.so`, that statically links the Go
+# modules listed here. BSD-3-Clause and Apache-2.0 attach conditions to binary
+# distribution: the copyright notice, the list of conditions, the disclaimer, and
+# any upstream NOTICE, so the texts travel inside the app rather than only in the
+# repository. The same files are published at THIRD-PARTY-NOTICES.md.
+#
+# Scope: the Go modules linked into the native bridge. The Android and Kotlin
+# dependencies that also ship in this APK come from the Gradle graph and are not
+# inventoried here yet, so this list is the bridge, not a claim of completeness.
+project-mit	MIT	This app	project-mit.txt
+Apache-2.0--github-com-golang-groupcache	Apache-2.0	github.com/golang/groupcache	Apache-2.0--github-com-golang-groupcache.txt
+Apache-2.0--github-com-google-btree	Apache-2.0	github.com/google/btree	Apache-2.0--github-com-google-btree.txt
+Apache-2.0--github-com-klauspost-compress	Apache-2.0	github.com/klauspost/compress	Apache-2.0--github-com-klauspost-compress.txt
+Apache-2.0--github-com-pires-go-proxyproto	Apache-2.0	github.com/pires/go-proxyproto	Apache-2.0--github-com-pires-go-proxyproto.txt
+Apache-2.0--go4-org-mem	Apache-2.0	go4.org/mem	Apache-2.0--go4-org-mem.txt
+Apache-2.0--gvisor-dev-gvisor	Apache-2.0	gvisor.dev/gvisor	Apache-2.0--gvisor-dev-gvisor.txt
+BSD-2-Clause--github-com-creachadair-msync	BSD-2-Clause	github.com/creachadair/msync	BSD-2-Clause--github-com-creachadair-msync.txt
+BSD-2-Clause--github-com-huin-goupnp	BSD-2-Clause	github.com/huin/goupnp	BSD-2-Clause--github-com-huin-goupnp.txt
+BSD-3-Clause--filippo-io-edwards25519	BSD-3-Clause	filippo.io/edwards25519	BSD-3-Clause--filippo-io-edwards25519.txt
+BSD-3-Clause--github-com-go-json-experiment-json	BSD-3-Clause	github.com/go-json-experiment/json	BSD-3-Clause--github-com-go-json-experiment-json.txt
+BSD-3-Clause--github-com-hdevalence-ed25519consensus	BSD-3-Clause	github.com/hdevalence/ed25519consensus	BSD-3-Clause--github-com-hdevalence-ed25519consensus.txt
+BSD-3-Clause--github-com-tailscale-peercred	BSD-3-Clause	github.com/tailscale/peercred	BSD-3-Clause--github-com-tailscale-peercred.txt
+BSD-3-Clause--go4-org-netipx	BSD-3-Clause	go4.org/netipx	BSD-3-Clause--go4-org-netipx.txt
+BSD-3-Clause--golang-org-x-crypto	BSD-3-Clause	golang.org/x/crypto, golang.org/x/exp, golang.org/x/mobile, golang.org/x/mod, golang.org/x/net, golang.org/x/oauth2, golang.org/x/sync, golang.org/x/sys, golang.org/x/term, golang.org/x/text, golang.org/x/time, golang.org/x/tools	BSD-3-Clause--golang-org-x-crypto.txt
+BSD-3-Clause--tailscale-com	BSD-3-Clause	tailscale.com	BSD-3-Clause--tailscale-com.txt
+MIT--github-com-fxamacker-cbor-v2	MIT	github.com/fxamacker/cbor/v2	MIT--github-com-fxamacker-cbor-v2.txt
+MIT--github-com-gaissmai-bart	MIT	github.com/gaissmai/bart	MIT--github-com-gaissmai-bart.txt
+MIT--github-com-mdlayher-socket	MIT	github.com/mdlayher/socket	MIT--github-com-mdlayher-socket.txt
+MIT--github-com-tailscale-wireguard-go	MIT	github.com/tailscale/wireguard-go	MIT--github-com-tailscale-wireguard-go.txt
+MIT--github-com-x448-float16	MIT	github.com/x448/float16	MIT--github-com-x448-float16.txt

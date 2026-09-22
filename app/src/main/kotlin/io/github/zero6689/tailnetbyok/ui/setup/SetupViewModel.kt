@@ -12,11 +12,13 @@ import io.github.zero6689.tailnetbyok.data.config.AppConfig
 import io.github.zero6689.tailnetbyok.data.config.ConfigRepository
 import io.github.zero6689.tailnetbyok.di.AppContainer
 import io.github.zero6689.tailnetbyok.domain.ConnectionTester
+import io.github.zero6689.tailnetbyok.domain.ScannedText
 import io.github.zero6689.tailnetbyok.domain.SetupLink
 import io.github.zero6689.tailnetbyok.domain.SetupLinkParse
 import io.github.zero6689.tailnetbyok.domain.SetupLinkParser
 import io.github.zero6689.tailnetbyok.domain.SetupLinkRejection
 import io.github.zero6689.tailnetbyok.domain.TailnetAddressPolicy
+import io.github.zero6689.tailnetbyok.domain.TurnNoticeOutcome
 import io.github.zero6689.tailnetbyok.domain.TurnWatch
 import io.github.zero6689.tailnetbyok.domain.UpdateChecker
 import io.github.zero6689.tailnetbyok.domain.UpdateFailure
@@ -29,6 +31,8 @@ import io.github.zero6689.tailnetbyok.net.ProviderRegistry
 import io.github.zero6689.tailnetbyok.net.ProviderStatus
 import io.github.zero6689.tailnetbyok.net.WebAccess
 import io.github.zero6689.tailnetbyok.net.WebUrl
+import io.github.zero6689.tailnetbyok.notify.TurnChannelAdvice
+import io.github.zero6689.tailnetbyok.notify.TurnNotifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -42,6 +46,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Screen state, in one object.
@@ -67,6 +74,15 @@ data class UiState(
      * port; see `net/ConnectivityProvider.kt` for why it must not be printable.
      */
     val webUrl: WebUrl? = null,
+    /**
+     * True while the QR scanner has the screen.
+     *
+     * A flag rather than a separate navigation graph, for the same reason the DSH
+     * UI is a flag: there is exactly one other screen, it has one way out, and
+     * this view model survives the swap — so what the scanner found is already in
+     * [pendingSetup] by the time the settings screen is drawn again.
+     */
+    val scanning: Boolean = false,
     val steps: List<ConnectionTester.StepResult> = emptyList(),
     val report: ConnectionTester.Report? = null,
     val providerStatus: ProviderStatus? = null,
@@ -148,6 +164,33 @@ data class UiState(
         get() = canRunTest && !isOpeningWebUi
 
     /**
+     * Whether a launch should walk straight into the DSH screen.
+     *
+     * The DSH screen *is* this app; the settings page is where you go when
+     * something has to change. Landing on the settings page every time means the
+     * common case — a configured phone that just wants its session list — costs a
+     * scroll and a tap, and the user rightly reads that as the app forgetting what
+     * they set up.
+     *
+     * Deliberately not automatic in these cases:
+     *
+     *  * nothing configured yet, or a target the address policy rejects — there is
+     *    nothing to open, and the fields are the point;
+     *  * no credential on the embedded route — [canOpenWebUi] already says so, and
+     *    the key field is where the user needs to be;
+     *  * a configuration link arrived: it is untrusted input awaiting a decision,
+     *    and opening a screen on top of that decision would hide the one control
+     *    that makes links safe. Scanning has the same rule ([scanning]).
+     */
+    val shouldOpenWebUiOnLaunch: Boolean
+        get() = webUrl == null &&
+            !scanning &&
+            !isOpeningWebUi &&
+            pendingSetup == null &&
+            setupLinkRejection == null &&
+            canOpenWebUi
+
+    /**
      * Whether "Check for updates" should be tappable.
      *
      * Built on [canRunTest] for the same reason [canOpenWebUi] is: reaching an
@@ -183,6 +226,18 @@ data class UiState(
      */
     val pendingSetupConfig: AppConfig?
         get() = pendingSetup?.applyTo(config)
+
+    /**
+     * This configuration as a link another device can scan, or null when there is
+     * nothing to hand over yet.
+     *
+     * Derived rather than stored: it is a pure function of [config], and the
+     * writer already refuses to produce a link that does not parse back into the
+     * configuration it came from (see `SetupLinkParser.format`). A stored copy
+     * would be a second thing that can be out of date with the fields above it.
+     */
+    val setupLinkForSharing: String?
+        get() = SetupLinkParser.format(config)
 
     val pendingSetupVerdict: TailnetAddressPolicy.Verdict?
         get() = pendingSetupConfig?.let {
@@ -251,9 +306,46 @@ class SetupViewModel(
     /** The start-up update check runs at most once per process; see [autoCheckForUpdate]. */
     private var autoCheckedUpdate = false
 
+    /** The launch walk into the DSH screen also happens at most once; see [autoOpenWebUiIfConfigured]. */
+    private var autoOpenedWebUi = false
+
+    /**
+     * Whether any configuration link has been offered in this process.
+     *
+     * A link is a decision waiting to be made, so it suppresses the automatic walk
+     * into the DSH screen for the rest of the process — including after the link
+     * has been applied or ignored, because the user is at that point deliberately
+     * on the settings screen.
+     */
+    private var sawSetupLink = false
+
     /** The session poller, alive only while the DSH screen is; see [startTurnWatch]. */
     private var turnWatchJob: Job? = null
     private var turnWatch = TurnWatch()
+
+    /**
+     * What the poller has observed, for the diagnostics panel.
+     *
+     * Mutable state behind the immutable snapshot: none of it belongs in `UiState`
+     * (nothing renders it except the diagnostics, and it changes every few seconds,
+     * which would recompose the whole screen for it).
+     */
+    private data class WatchStatus(
+        val polling: Boolean = false,
+        val running: Int = 0,
+        val lastAnswerAt: Long = 0L,
+        val answers: Int = 0,
+        val unusable: Int = 0,
+        val lastFinishedTitle: String? = null,
+        val lastFinishedAt: Long = 0L,
+        val lastOutcome: TurnNoticeOutcome? = null,
+        /** Whether the foreground service that keeps the poll alive was raised. */
+        val serviceUp: Boolean = false,
+        /** True when the platform refused to raise it (background start, no exemption). */
+        val serviceRefused: Boolean = false,
+    )
+
+    private var watch = WatchStatus()
 
     /**
      * Watches for a session stopping, while the DSH screen is open.
@@ -270,14 +362,37 @@ class SetupViewModel(
     private fun startTurnWatch(baseUrl: String) {
         turnWatchJob?.cancel()
         turnWatch = TurnWatch()
+        // The service first, while the screen is still visible: Android refuses to
+        // start a foreground service from the background, so this is the only moment
+        // it can be raised for the session. It is what keeps the poll alive once the
+        // user leaves the app — without it the process is frozen and a finished task
+        // is never noticed. See notify/TurnWatchService.kt.
+        val serviceUp = container.startWatchService()
+        // And the channel the notice will be posted to, created now rather than at the
+        // first finish: its importance is fixed at creation, so the diagnostics panel
+        // can answer "would a notice banner?" before anything has finished.
+        container.ensureTurnChannel()
+        watch = WatchStatus(polling = true, serviceUp = serviceUp, serviceRefused = !serviceUp)
         turnWatchJob = viewModelScope.launch {
             val watcher = container.sessionWatcher(baseUrl)
             while (isActive) {
                 val sessions = watcher.sessions()
                 if (sessions != null) {
+                    watch = watch.copy(
+                        lastAnswerAt = System.currentTimeMillis(),
+                        answers = watch.answers + 1,
+                        running = sessions.count { it.running },
+                    )
                     turnWatch.observe(sessions).forEach { finished ->
-                        container.notifyTurnFinished(finished.title)
+                        val outcome = container.notifyTurnFinished(finished.title)
+                        watch = watch.copy(
+                            lastFinishedTitle = finished.title,
+                            lastFinishedAt = System.currentTimeMillis(),
+                            lastOutcome = outcome,
+                        )
                     }
+                } else {
+                    watch = watch.copy(unusable = watch.unusable + 1)
                 }
                 delay(if (sessions?.any { it.running } == true) TURN_POLL_BUSY_MS else TURN_POLL_IDLE_MS)
             }
@@ -287,6 +402,92 @@ class SetupViewModel(
     private fun stopTurnWatch() {
         turnWatchJob?.cancel()
         turnWatchJob = null
+        container.stopWatchService()
+        watch = watch.copy(polling = false, running = 0, serviceUp = false)
+    }
+
+    /**
+     * What the poller has been doing, for the diagnostics panel.
+     *
+     * The reason this exists: when a "task finished" notification does not arrive,
+     * the user has no way to tell whether the app was watching and declined, or was
+     * not watching at all — and on Android those look identical from the outside.
+     * Everything the loop knows is therefore on one line the user can read and paste.
+     */
+    private fun describeWatch(res: android.content.res.Resources): String {
+        val status = when {
+            !watch.polling -> res.getString(R.string.diag_watch_stopped)
+            watch.lastAnswerAt == 0L -> res.getString(R.string.diag_watch_no_answer)
+            watch.running > 0 -> res.getString(
+                R.string.diag_watch_running,
+                watch.running,
+                ((System.currentTimeMillis() - watch.lastAnswerAt) / 1000).toString(),
+            )
+            else -> res.getString(
+                R.string.diag_watch_idle,
+                ((System.currentTimeMillis() - watch.lastAnswerAt) / 1000).toString(),
+            )
+        }
+        // The service is the difference between "polling" and "polling while the app
+        // is off screen", so whether it is up belongs on this line: without it, the
+        // poll stops as soon as Android freezes the process, and that is invisible
+        // from the page.
+        val service = when {
+            watch.serviceUp -> res.getString(R.string.diag_watch_service_up)
+            watch.serviceRefused -> res.getString(R.string.diag_watch_service_refused)
+            else -> res.getString(R.string.diag_watch_service_none)
+        }
+        return res.getString(R.string.diag_turn_watch, status, service)
+    }
+
+    private fun describeLastNotice(res: android.content.res.Resources): String {
+        val outcome = watch.lastOutcome ?: return res.getString(R.string.diag_notice_none)
+        val word = when (outcome) {
+            TurnNoticeOutcome.POSTED -> res.getString(
+                R.string.diag_notice_posted,
+                // A diagnostics line, read once in a bug report: the clock time of
+                // the post is what matters, not the locale's idea of it, and a
+                // fixed format keeps the line comparable between two reports.
+                SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(watch.lastFinishedAt)),
+                watch.lastFinishedTitle?.takeIf { it.isNotBlank() }
+                    ?: res.getString(R.string.notify_turn_fallback),
+            )
+            TurnNoticeOutcome.SKIPPED_IN_FOREGROUND -> res.getString(R.string.diag_notice_skipped_foreground)
+            TurnNoticeOutcome.SKIPPED_NOTIFICATIONS_OFF -> res.getString(R.string.diag_notice_skipped_off)
+            TurnNoticeOutcome.SKIPPED_NO_PERMISSION -> res.getString(R.string.diag_notice_skipped_permission)
+            TurnNoticeOutcome.FAILED -> res.getString(R.string.diag_notice_failed)
+        }
+        return res.getString(R.string.diag_last_notice, word)
+    }
+
+    private fun describeNotifications(res: android.content.res.Resources): String {
+        val word = when {
+            !container.notificationPermissionGranted() -> res.getString(R.string.diag_notifications_denied)
+            !container.notificationsEnabled() -> res.getString(R.string.diag_notifications_blocked)
+            else -> res.getString(R.string.diag_notifications_allowed)
+        }
+        return res.getString(R.string.diag_notifications, word)
+    }
+
+    /**
+     * Whether the finish notice will *pop up*, as opposed to merely arriving.
+     *
+     * This exists because 0.3.5 shipped the notice on a channel whose importance
+     * could never produce a heads-up banner: the notification did arrive, silently, in
+     * the shade, and "it never pops up" was indistinguishable from "it never came".
+     * The channel's importance is fixed when the channel is created (the app can lower
+     * it, never raise it), so the value the *system* holds is read back here — if a
+     * future device reports "default", that is a channel from an older build or a
+     * setting the user changed, and neither is something code can fix from here.
+     */
+    private fun describeTurnChannel(res: android.content.res.Resources): String {
+        val word = when (TurnNotifications.channelAdvice(container.turnChannelImportance())) {
+            TurnChannelAdvice.BANNER -> res.getString(R.string.diag_channel_banner)
+            TurnChannelAdvice.SHADE_ONLY -> res.getString(R.string.diag_channel_shade_only)
+            TurnChannelAdvice.SILENT -> res.getString(R.string.diag_channel_silent)
+            TurnChannelAdvice.MISSING -> res.getString(R.string.diag_channel_missing)
+        }
+        return res.getString(R.string.diag_channel, word)
     }
 
     /**
@@ -363,6 +564,7 @@ class SetupViewModel(
                 )
                 observeProvider(config.provider)
                 autoCheckForUpdate(config)
+                autoOpenWebUiIfConfigured()
             }
             .launchIn(viewModelScope)
 
@@ -403,6 +605,53 @@ class SetupViewModel(
         container.offerSetupLink(trimmed)
     }
 
+    /** Shows the scanner, which owns the screen until it finds something or is closed. */
+    fun openScanner() {
+        _state.value = _state.value.copy(scanning = true)
+    }
+
+    /** Leaves the scanner without applying anything. The configuration is untouched. */
+    fun closeScanner() {
+        _state.value = _state.value.copy(scanning = false)
+    }
+
+    /**
+     * A QR code was read. The text goes through [offerPastedLink], which is the
+     * same door a pasted link uses.
+     *
+     * That is the whole security argument for building a scanner at all: it does
+     * not get its own path into the configuration, it does not apply anything, and
+     * the user still sees the target it names and taps Apply. [ScannedText] only
+     * strips the wrapping a codec may have added around the link; what comes out
+     * is still untrusted input from a stranger's screen.
+     */
+    fun onScanned(raw: String) {
+        _state.value = _state.value.copy(scanning = false)
+        val text = ScannedText.setupLinkIn(raw)
+        if (text.isEmpty()) return
+        offerPastedLink(text)
+    }
+
+    /**
+     * Walks into the DSH screen once, on the first state that can support it.
+     *
+     * Once per process, and never after a configuration link has been offered:
+     * the point is to skip a settings page the user does not need, not to fight
+     * them for the screen. `closeWebUi` does not re-arm it — leaving the DSH
+     * screen to change a setting and staying there is a normal thing to do — and
+     * a fresh launch re-arms it, which is exactly the "open the app, be where I
+     * was" behaviour this exists for.
+     */
+    private fun autoOpenWebUiIfConfigured() {
+        if (autoOpenedWebUi || sawSetupLink) return
+        // A link delivered by the launcher intent may not have reached the state
+        // flow yet; the container's own flow knows, so it decides.
+        if (container.setupLinks.value != null) return
+        if (!_state.value.shouldOpenWebUiOnLaunch) return
+        autoOpenedWebUi = true
+        openWebUi()
+    }
+
     /**
      * Takes a configuration link apart and puts it in front of the user.
      *
@@ -412,6 +661,7 @@ class SetupViewModel(
      * string is cleared immediately so a configuration change cannot replay it.
      */
     private fun onSetupLink(raw: String) {
+        sawSetupLink = true
         container.offerSetupLink(null)
         when (val result = SetupLinkParser.parse(raw)) {
             is SetupLinkParse.Parsed ->
@@ -680,6 +930,10 @@ class SetupViewModel(
                             resolve(_state.value.updateOutcome.describe(), res),
                         ),
                     )
+                    add(describeNotifications(res))
+                    add(describeTurnChannel(res))
+                    add(describeWatch(res))
+                    add(describeLastNotice(res))
                     addAll(lines)
                 },
             )
