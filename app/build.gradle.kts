@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 9
+        versionCode = 18
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -169,7 +169,95 @@ android {
         //     path (paste it, or open the provisioning page);
         //   * a session that stops running posts a notification — but only when
         //     the app is not already in front of the user.
-        versionName = "0.2.9"
+        // 0.3.0: the configuration hand-off became a two-way, on-device feature.
+        //   * the settings screen draws this device's configuration as a QR code
+        //     (and as text, with a Copy button) for another phone to scan, and the
+        //     writer parses its own output back before drawing it;
+        //   * the app scans a code itself -- camera on the scanner screen, or a
+        //     picture the user picks, which needs no permission -- and what it
+        //     reads goes through the same parse-show-confirm path as a pasted link;
+        //   * CAMERA is requested at runtime by that screen alone and is optional:
+        //     everything above works with it permanently denied.
+        //
+        // 0.3.1: the app stops making a configured user walk through onboarding.
+        //   * the ways-in card is shown while there is no target, instead of until
+        //     the security note is acknowledged — it had become a permanent header
+        //     above the button back to the screen the user was using;
+        //   * a launch with a working configuration goes straight to the DSH
+        //     screen (once per process, and never over a configuration link that
+        //     is waiting to be confirmed);
+        //   * the settings top bar carries the same "open the DSH UI" action as
+        //     the section at the bottom, because that section is below every field
+        //     and every diagnostic line.
+        //
+        // 0.3.2: the deployment's page is offered by the code section.
+        //   The first-run card now appears exactly while there is no target, so a
+        //   deployment build (pre-filled target) had lost its only link to the page
+        //   that generates codes. It sits with the code section, which is the same
+        //   subject.
+        //
+        // 0.3.3: "the app never told me my task finished" became answerable.
+        //   Every reason the notice was declined used to be a silent `return`, so the
+        //   four causes (on screen / notifications off / permission never granted /
+        //   refused) were indistinguishable from outside. The outcome is now returned
+        //   and reported, and the diagnostics panel carries three lines: whether
+        //   Android would let this app post, what the task watch is doing right now,
+        //   and what happened to the last finish notice.
+        //
+        // 0.3.4: the DSH screen gets the page-level touches the sibling shell has.
+        //   Same page, same server, so the shell's tunePage() was the only remaining
+        //   difference between what the two apps render: a viewport meta with
+        //   viewport-fit=cover when the page has none, `referrer: no-referrer`, and
+        //   16px form fields below 700px (the size at which mobile engines stop
+        //   zooming a focused field). The shell's IME mirror and drag-drop helpers are
+        //   deliberately not ported — they exist for the shell's own chrome.
+        //
+        // 0.3.5: the DSH screen goes immersive, and the watch survives the background.
+        //   * no app bar: the page keeps the row, the content starts under the status
+        //     bar, and the two exits float over it (a slim auto-hiding arrow in the
+        //     corner, and this app's settings moved down into the left-hand column the
+        //     page's own navigation lives in, one-handed);
+        //   * a foreground service (dataSync, silent low-importance row) is raised
+        //     with the route and lowered with it, so the task watch keeps polling
+        //     while the app is off screen instead of being frozen with the process.
+        //
+        // 0.3.6: the bottom of the DSH screen stops running under the system bars.
+        //   * the page is padded by the safe drawing insets (status bar, navigation
+        //     bar, display cutout, IME) instead of the status bar and the keyboard
+        //     alone. On a 3-button phone the composer's tool row, the sidebar's own
+        //     settings row and the cost panel above it were drawn under the
+        //     navigation bar: visible, and untappable, because the system bar takes
+        //     the touches;
+        //   * this app's own settings button is pinned to the bottom of the *safe
+        //     area* rather than to a fixed 104dp above the bottom edge — which is
+        //     where the page's cost panel sits, so the button used to be drawn on top
+        //     of the panel it was trying to avoid;
+        //   * the page's sidebar footer is told, measured, to stop one gap above that
+        //     button, so the sidebar's bottom is one block inside the safe area: the
+        //     cost panel, the page's settings row, and this app's way back.
+        //
+        // 0.3.7: the finish notice pops up instead of only reaching the shade.
+        //   * the notice moved to a channel created with IMPORTANCE_HIGH. On Android 8
+        //     and later the *channel's* importance decides whether a notification is a
+        //     heads-up banner, and an app may lower a channel's importance but never
+        //     raise it — so the 0.3.5 channel, created as DEFAULT, could never banner
+        //     on any phone that already had it. A new channel id is the only fix; the
+        //     old channel is deleted, and the pre-channel priority is HIGH as well;
+        //   * the diagnostics panel gained a line for the channel's *effective*
+        //     importance, because "it arrived silently" and "it never arrived" looked
+        //     identical from the outside — and they have different fixes.
+        //
+        // 0.3.8: one settings entry at the bottom of the DSH screen, not two.
+        //   * the floating settings button that 0.3.5 put in the sidebar column is gone,
+        //     and with it the strip the page used to keep free for it. It was a
+        //     duplicate — the same callback as the arrow at the top — and it put a
+        //     second "settings" in the corner the page's own settings row occupies,
+        //     which is what the user asked to merge;
+        //   * the page's row is the one that stays: DSH renders its settings trigger in
+        //     exactly one place, so removing that row would leave no way into DSH's
+        //     settings at all. Back to this app's settings is the Back gesture and the
+        //     arrow above, both of which were already there.
+        versionName = "0.3.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -351,6 +439,25 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
+
+    // QR codes, both directions. `core` is pure Java: the encoder and the
+    // luminance-source decoder are the two halves used here, and neither touches
+    // AWT (`MatrixToImageWriter` and `BufferedImageLuminanceSource` do, and are
+    // deliberately not used). Everything security-relevant about a scan is
+    // therefore testable on the JVM, next to `SetupLinkTest`.
+    implementation(libs.zxing.core)
+
+    // The viewfinder. CameraX binds to the activity lifecycle, which is what
+    // stops the camera from outliving the screen; the deprecated
+    // `android.hardware.Camera` API would put that bookkeeping here instead.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    // `PreviewView`: the view that turns a `SurfaceRequest` into a correctly
+    // rotated, correctly cropped preview. Hand-rolling that against a
+    // `TextureView` is the part of a scanner that fails on exactly one device
+    // family and never on the emulator.
+    implementation(libs.androidx.camera.view)
 
     // Native tailnet node. Absent unless -PwithTsnet=true.
     if (withTsnet) {
