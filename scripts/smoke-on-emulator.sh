@@ -45,6 +45,13 @@ if [ -z "$activity" ]; then
 fi
 echo "ok: launcher activity is $activity"
 
+# Pre-grant the two runtime permissions. Otherwise the first launch can raise a
+# permission dialog, the dialog takes focus, and the check at the bottom fails for a
+# reason that has nothing to do with the app.
+for perm in android.permission.CAMERA android.permission.POST_NOTIFICATIONS; do
+  adb shell pm grant "$pkg" "$perm" || true
+done
+
 echo "== launching $activity"
 adb shell am start -W -n "$activity"
 
@@ -65,12 +72,24 @@ if adb logcat -d -b crash | grep -q 'FATAL EXCEPTION'; then
 fi
 echo "ok: nothing in the crash buffer"
 
-# `mCurrentFocus` is the field on API 30; `mFocusedApp` is the fallback, because a
-# rename in a future image must not read as a product failure.
-focused=$(adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' || true)
-echo "$focused"
+# A live process is not the same as a rendered window: an app stuck on a blank
+# screen would pass everything above.
+#
+# This reads the *last* `mFocusedApp` record rather than grepping the whole dump for
+# the package name, because a dump also carries stale records — the first green run
+# of this job showed the emulator's fallback home screen and two system ANR dialogs
+# in the same output, so a loose grep can pass for the wrong reason. It retries,
+# because a swiftshader emulator can take a while to hand focus over.
+focused=""
+for attempt in 1 2 3 4 5 6; do
+  focused=$(adb shell dumpsys window | grep -E 'mFocusedApp' | tail -n1 | tr -d '\r' || true)
+  echo "  attempt $attempt: $focused"
+  if echo "$focused" | grep -q "$pkg"; then break; fi
+  sleep 5
+done
 if ! echo "$focused" | grep -q "$pkg"; then
   echo "::error::this package does not own the focused window; the UI never rendered"
+  adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | tr -d '\r' || true
   exit 1
 fi
-echo "ok: a window from this package is focused"
+echo "ok: the focused app is this package"
