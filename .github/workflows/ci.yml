@@ -361,40 +361,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            # `sh`, not bash: the runner hands this script to /usr/bin/sh, where
-            # `set -o pipefail` is an illegal option and kills the step with exit 2
-            # before the emulator is even touched.
-            set -eu
-            apk=app/build/outputs/apk/debug/app-debug.apk
-            adb logcat -c || true
-            adb install -r "$apk"
-            adb shell am start -W -n io.github.zero6689.tailnetbyok/.MainActivity
-            sleep 10
-
-            pid=$(adb shell pidof io.github.zero6689.tailnetbyok | tr -d '\r' || true)
-            if [ -z "$pid" ]; then
-              echo "::error::the app is not running ten seconds after launch"
-              adb logcat -d | tail -100
-              exit 1
-            fi
-            echo "ok: the app is alive as pid $pid"
-
-            if adb logcat -d -b crash | grep -q 'FATAL EXCEPTION'; then
-              echo "::error::the app crashed on launch"
-              adb logcat -d -b crash | tail -60
-              exit 1
-            fi
-            echo "ok: nothing in the crash buffer"
-
-            # A live process is not the same as a rendered window: an app stuck on a
-            # blank screen would pass the two checks above. This asserts the activity
-            # actually owns the screen. `mCurrentFocus` is the API-30 field name and
-            # `mFocusedApp` is the fallback, because a rename here must not read as a
-            # product failure.
-            focused=$(adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' || true)
-            echo "$focused"
-            if ! echo "$focused" | grep -q 'io.github.zero6689.tailnetbyok'; then
-              echo "::error::this package does not own the focused window; the UI never rendered"
-              exit 1
-            fi
-            echo "ok: a window from this package is focused"
+            # One line on purpose: this action hands each line to a separate
+            # /usr/bin/sh -c, so the assertions live in the script file, where they
+            # run in one shell and can be read and changed like code.
+            bash scripts/smoke-on-emulator.sh
