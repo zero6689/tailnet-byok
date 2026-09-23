@@ -124,7 +124,11 @@ automatically. A page that says `v0.2.9` while the button serves `v0.3.2` is the
 small lie that costs a user a bug report, so bump them in the same commit as the version,
 then `node site/build.mjs`. The size is the asset's size on the release, not the local
 deployment build (they differ: the public one is minified-off but single-ABI with an empty
-configuration, the deployment build has a target baked in).
+configuration, the deployment build has a target baked in). The gap is wider than the baked
+target accounts for — for v0.3.9 the published asset was 43.8 MiB while the deployment build of
+the same commit measured 54.2 MiB, because the locally bound `libgojni.so` carried about 11 MB
+more DWARF than the library the workflow builds from `scripts/build-bridge.mjs`. Take the number
+from the published asset, never from a local build.
 
 `README.md` is the other hand-maintained place a version number lives, and it is the one a
 stranger reads first: its `## Status` line names the version and `versionCode`, and its size

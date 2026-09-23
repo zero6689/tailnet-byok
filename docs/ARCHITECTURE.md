@@ -186,7 +186,7 @@ code — which is the point of writing them down rather than leaving them as ass
 |---|---|
 | Does a prebuilt `libtailscale` AAR exist? | No — not on Maven Central, JitPack, or the GitHub releases. It must be built, and `docs/TSNET.md` explains why we bind `tsnet` ourselves rather than reuse Tailscale's. |
 | Does the bridge build end to end? | Yes. `tailnet.aar` is 60.0 MiB, contains `io.github.zero6689.tailnetbyok.mobile.Mobile`, and `libgojni.so` lands in all four ABI directories of the APK. |
-| What does it cost in size? | **More than everything else combined.** Four ABIs of `libgojni.so` total 162.4 MiB against a 164.1 MiB release APK — the Go runtime is ~99% of this app's download. An `arm64-v8a`-only build is roughly 46 MiB with R8 on, and 53.6 MiB with R8 off — which is what the release ships, so that the code that ships is the code the tests cover. |
+| What does it cost in size? | **More than everything else combined.** Four ABIs of `libgojni.so` total 162.4 MiB against a 164.1 MiB release APK — the Go runtime is ~99% of this app's download. The published `arm64-v8a` asset for v0.3.9 is **43.8 MiB** (45,915,868 B), built by the release workflow with R8 off so that the code that ships is the code the tests cover. A workstation build of the same commit measured 54.2 MiB with identical dex: same Go source, but the locally bound `libgojni.so` carries about 11 MB more DWARF than the library `scripts/build-bridge.mjs` produces on a runner. |
 | Which version of `tsnet` is embedded? | `tailscale.com v1.102.4`, resolved by `go mod tidy` and committed in `go.mod` + `go.sum`. |
 
 That size result is the most consequential thing this project learned, and it changes the
