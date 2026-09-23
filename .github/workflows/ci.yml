@@ -209,11 +209,35 @@ jobs:
           fi
           echo "ok: third-party notices match the dependency graph"
 
+      # The Android and Kotlin half. `./gradlew :app:androidLicenceInventory` resolves
+      # the release runtime classpath and reads each module's declared licence out of
+      # its POM, which is why this job needs a JDK as well as Go — and why the step is
+      # online rather than `--offline`: Gradle keeps POMs in its cache as metadata, and
+      # re-resolving one as an artifact offline returns nothing, which reads exactly
+      # like "every module is unlicensed".
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Regenerate the Android licence inventory and compare
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon :app:androidLicenceInventory
+          if ! git diff --quiet -- docs/ANDROID-DEPENDENCIES.md; then
+            echo "::error::docs/ANDROID-DEPENDENCIES.md no longer matches the Gradle graph."
+            git diff --stat -- docs/ANDROID-DEPENDENCIES.md
+            echo "Run './gradlew :app:androidLicenceInventory' and commit the result."
+            exit 1
+          fi
+          echo "ok: the Android licence inventory matches the Gradle graph"
+
       # The same texts also travel *inside* the APK, because the build strips
       # META-INF/NOTICE from it: `app/src/main/assets/licenses/` is what the in-app
-      # licence screen reads. Generated from the notices above, so it can rot in
-      # exactly the same way, and is checked in exactly the same way. No Go needed
-      # for this one — it reads the file the previous step just verified.
+      # licence screen reads. Generated from the two inventories above, so it can rot
+      # in exactly the same way, and is checked in exactly the same way.
       - name: Check the in-app licence assets
         run: |
           set -euo pipefail
