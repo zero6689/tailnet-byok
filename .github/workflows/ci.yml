@@ -361,7 +361,10 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            set -euo pipefail
+            # `sh`, not bash: the runner hands this script to /usr/bin/sh, where
+            # `set -o pipefail` is an illegal option and kills the step with exit 2
+            # before the emulator is even touched.
+            set -eu
             apk=app/build/outputs/apk/debug/app-debug.apk
             adb logcat -c || true
             adb install -r "$apk"
