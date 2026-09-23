@@ -47,7 +47,7 @@ junit = "4.13.2"
 androidxTestJunit = "1.2.1"
 espresso = "3.6.1"
 robolectric = "4.14.1"
-mockk = "1.13.13"
+mockk = "1.14.11"
 turbine = "1.2.0"
 
 [libraries]
