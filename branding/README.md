@@ -4,40 +4,55 @@ The project's visual identity: the source art, and the generated icons.
 
 ## The mark
 
-**Two whales in a taiji** — a blue one and a black orca, chasing each other into a
-circle. It is this project's identity, and it is deliberately *different* from the
-single blue whale used by the maintainer's personal build of the same tool, so the
-two are distinguishable on a launcher.
+**A blue whale holding a glowing phone, two signal arcs above its head, on a dark
+blue plate.** It says what the app is — an assistant you carry, reached over your
+own network — without the meme caption the earlier artwork carried, which at 48px
+is a smear rather than a joke.
 
 | File | What it is |
 |---|---|
-| `mark-taiji.png` | 629×696. The mark, cropped from a phone screenshot. Source of truth for every icon. |
-| `play-store-icon-512.png` | 512×512, for a Play Store listing. Not used by the build. |
+| `mark-whale-1024.png` | 1024×1024. The master artwork, four corners filled in. Every icon derives from it. |
+| `ic_launcher_background.png` | 432×432 (108dp at xxxhdpi). The plate layer. |
+| `ic_launcher_foreground.png` | 432×432, transparent. The whale, already inside the adaptive safe zone. |
+| `ic_launcher_monochrome.png` | 432×432, transparent, white. The silhouette Android 13+ tints for themed icons. |
+| `play-store-icon-512.png` | 512×512, for a store listing. Not used by the build. |
+| `mark-taiji.png` | 629×696. The **previous** mark — two whales in a taiji, cropped from a screenshot. Kept because it is what the first public builds shipped, and because `make-icons.ps1 -AutoCrop` is documented against it. |
 
 The icons the build consumes live where Android requires them:
-`app/src/main/res/mipmap-<density>/ic_launcher_foreground.png`, referenced by
-`mipmap-anydpi/ic_launcher.xml`.
+`app/src/main/res/mipmap-<density>/ic_launcher_{background,foreground,monochrome}.png`,
+referenced by `mipmap-anydpi/ic_launcher.xml` and `mipmap-anydpi/ic_launcher_round.xml`.
 
-## Regenerating the icons
+## Installing the icons
+
+Two paths, because artwork arrives in two shapes.
+
+**A layer set** — a plate, a foreground and a silhouette, each already composed on
+the 108dp canvas. Nothing is re-composed here, so the layers are scaled and copied
+as they are:
 
 ```powershell
-./scripts/make-icons.ps1 -Source branding/mark-taiji.png -Res app/src/main/res
+./scripts/install-icon-layers.ps1 -Background branding/ic_launcher_background.png `
+    -Foreground branding/ic_launcher_foreground.png `
+    -Monochrome branding/ic_launcher_monochrome.png `
+    -Res app/src/main/res
 ```
 
-With a Play Store icon and legacy rasters:
+**One mark image** — `make-icons.ps1` composes the icon itself: it paints the art
+on a plate, keeps the mark inside the safe zone, and can derive the themed-icon
+silhouette from the art's own alpha.
 
 ```powershell
-./scripts/make-icons.ps1 -Source branding/mark-taiji.png -Res app/src/main/res `
-  -PlayStoreIcon branding/play-store-icon-512.png -Legacy
+./scripts/make-icons.ps1 -Source branding/mark-whale-1024.png -Res app/src/main/res -MonochromeFromArt
 ```
 
-The script is Windows-only and says why in its own header — the short version is that
-it needs an image decoder and this project has no Node dependency.
+Both are Windows-only and say why in their own headers — they need an image decoder
+and this project has no Node dependency. Neither has to run to build the app, only
+to change the artwork, which is why the output is committed.
 
 ## Cropping a mark out of a screenshot
 
-The artwork this project runs on arrives as screenshots, so the crop is part of the
-build rather than a manual step:
+The artwork this project ran on for its first releases arrived as screenshots, so
+the crop is part of the build rather than a manual step:
 
 ```powershell
 ./scripts/make-icons.ps1 -Source shot.jpg -AutoCrop -SaveCropped branding/mark-taiji.png `
@@ -53,75 +68,77 @@ build rather than a manual step:
    pixels to protect antialiased edges.
 
 Doing it the other way round is wrong, and was wrong here first. "The longest run of
-mostly-white rows is the background" sounds equivalent and is not: **a row crossing the
-mark is not mostly white**, so that approach finds the empty margin *above* the mark and
-happily reports a bounding box containing nothing. The letterbox has to be found by
-looking for black.
+mostly-white rows is the background" sounds equivalent and is not: **a row crossing
+the mark is not mostly white**, so that approach finds the empty margin *above* the
+mark and happily reports a bounding box containing nothing. The letterbox has to be
+found by looking for black.
 
-Measured result for the current mark: content band `y = 325..1284`, mark
+Measured for `mark-taiji.png`: content band `y = 325..1284`, mark
 `x = 54..670, y = 491..1174`, crop 629×696.
 
 ## Design notes
 
-**White plate.** The mark is drawn on white, and the orca's saddle patch and belly are
-white too. Those areas only read against a light ground: put the mark on a dark plate
-and the black whale's white markings vanish into the background. So
-`ic_launcher_background` is `#FFFFFF`, and the foreground PNG is *opaque* — it carries
-its own ground, so the two layers cannot disagree.
+**The plate is a bitmap, not a colour.** The background is a gradient with a glass
+disc on it, so it is a layer rather than a `@color` resource; the foreground keeps
+its own transparency on top of it, which is what stops the two from disagreeing
+about where the mark sits.
 
-**The mark takes 72% of the canvas width.** The adaptive-icon safe zone is the central
-72 of 108dp (66.7%). A roughly square mark can safely sit slightly above that: at
-x = ±0.36 of the side a circular mask still has vertical room to spare. Verified by
-rendering under circular, squircle and square masks before committing.
+**Safe zone.** The foreground is composed on the 108dp adaptive canvas with the
+whale inside the middle 66dp. That is the region every launcher mask is guaranteed
+to show, so nothing important lives outside it — which also means the colour layer
+can be re-masked by the launcher without redrawing anything.
 
-**No themed-icon (monochrome) layer.** Material You themed icons want a single-colour
-silhouette. This mark is a two-tone drawing whose whole subject is the contrast between
-the two whales; a threshold-based silhouette would keep the white markings as holes and
-destroy exactly the thing that makes it recognisable. A correct monochrome layer means
-drawing a real silhouette in the artwork. Until then, omitting the layer is better than
-shipping a wrong one.
+**Themed icons are real artwork, not a filter.** `ic_launcher_monochrome.png` is a
+silhouette drawn for the purpose (the whale and the signal arcs, white on
+transparent). It has to be drawn rather than thresholded because the coloured mark
+contains white markings: a threshold keeps those as holes and the result reads as
+damage. `install-icon-layers.ps1` installs the drawn one;
+`make-icons.ps1 -MonochromeFromArt` derives one only when the art already is a
+solid shape on transparency, and refuses when it is not.
 
 ## Provenance and licensing — read this before publishing
 
-Both whales are **DeepSeek's brand characters**, and the app's display name is
-**"DeepSeek Harness"**. The taiji composition appears to be original fan artwork, and
-cropping it from a screenshot does not change who owns the underlying characters.
+The whale is **DeepSeek's brand character**; this project's composition — the phone,
+the signal arcs, the plate — is its own. So the position is the ordinary one for a
+third-party client, and it is written down in three places a user can actually see:
+the README states it above the fold and in its own section, every page of the docs
+site carries it in the footer, and the app says it at the bottom of the setup screen
+and in its settings footer.
 
-What that means in practice:
+Two things were done about it beyond the disclaimer:
 
-- **For a personal build**, none of this matters. Nothing here is a problem on your own
-  device.
-- **For a public release**, it matters. Marking the code MIT does not license the brand:
-  copyright covers the source, trademark covers the name and the marks, and they are
-  separate questions. A trademark holder can ask you to stop using their mark even when
-  every line of your code is your own.
+- **The display name is no longer DeepSeek's.** It is **"DSH BYOK"**; the full
+  "DeepSeek Harness" appears only in descriptive sentences ("an independent client
+  that works with DeepSeek Harness"). That is the form DeepSeek's own brand
+  guidelines ask third-party projects to use — they suggest the abbreviation `DSH`
+  as a project name and single out using the full mark as one.
+- **The artwork is this project's own composition** of that character rather than a
+  copy of DeepSeek's icon.
 
-Three workable options, in rough order of how much they cost you:
+A disclaimer establishes good faith, which materially affects how a complaint is
+handled. It is not a licence, and it does not make the trademark question go away.
+`docs/ARCHITECTURE.md` records this alongside the project's other known gaps,
+because it is a decision for the project owner rather than an implementation detail.
 
-1. **Publish with a clear disclaimer.** — *This is what the project now does.* The README
-   states it above the fold and in its own section, every page of the docs site carries it in
-   the footer, and the app itself says it at the bottom of the setup screen. Wording:
-   *independent, unofficial client; the name and the artwork are used descriptively; DeepSeek
-   and the DeepSeek whale are trademarks of their respective owner.* This is what the
-   overwhelming majority of open-source third-party clients do, and it is usually accepted.
-   **It is not a legal shield** — it establishes good faith, which materially affects how a
-   complaint is handled, but it does not grant permission.
-2. **Ship your own mark and name.** Keep the taiji for your personal build and give the public
-   project its own identity. This is the only option with no ambiguity.
-3. **Publish the code, not the brand.** Keep the repository public but distribute a build that
-   carries neutral artwork, with the branded build staying personal.
+If the artwork has to change anyway, the three options are, in rough order of cost:
 
-Anyone redistributing this project — a fork, a rebuild, a store listing — inherits the same
-position. The disclaimer travels with the code, and a fork that strips it out is a fork that
-has taken on the problem itself.
+1. **Publish with the disclaimer** — what the project does now.
+2. **Ship a mark with no third-party character in it at all.** This is the only
+   option with no ambiguity, and `scripts/make-icons.ps1` takes any source image.
+3. **Publish the code, not the brand** — keep the repository public and distribute a
+   build with neutral artwork, with the branded build staying personal.
 
-`docs/ARCHITECTURE.md` records this alongside the project's other known gaps, because it is a
-decision for the project owner rather than an implementation detail.
+Anyone redistributing this project — a fork, a rebuild, a store listing — inherits
+the same position. The disclaimer travels with the code, and a fork that strips it
+out is a fork that has taken on the problem itself.
 
 ## The other mark
 
-The maintainer's personal build of the same tool uses a **single blue whale** — the
-clean version of DeepSeek's mascot, without the meme caption. That art lives with that
-app, at `dsh-remote-app/res/icon-source.png`, and is intentionally *not* here: the two
-builds share code and nothing else, and two apps with the same name and the same icon
-are two apps nobody can tell apart on a launcher.
+The maintainer's personal build of the same tool (`dsh-remote-app`) keeps its own
+artwork at `dsh-remote-app/res/icon-source.png`. It currently uses the same whale, so
+the two apps are told apart on a launcher by their labels — "DSH BYOK" for this one.
+If that stops being enough, `mark-taiji.png` is the obvious second identity: it is
+distinct at a glance, and it is already in this repository's history.
+
+Two apps with the same name and the same icon are two apps nobody can tell apart on
+a launcher, which is why this section exists at all.

@@ -59,8 +59,31 @@ oversight, and it is worth knowing when you read a security entry below.
   card's condition is now "there is no target": that is when the ways in are needed, and the note
   is its own card with its own job.
 
+### Changed
+
+- **The app is called "DSH BYOK" rather than "DeepSeek Harness".** DeepSeek's own brand guidelines ask
+  third-party projects not to use the full mark as a project name, and suggest the abbreviation `DSH`;
+  the full name now appears only in descriptive sentences ("an independent client that works with
+  DeepSeek Harness"). The launcher label, the app bar and the in-app disclaimer all follow the one name,
+  and `branding/README.md` records the position — a disclaimer is good faith, not a licence.
+
 ### Added
 
+- **The open-source licence texts travel inside the app.** `app/build.gradle.kts` excludes
+  `META-INF/LICENSE`, `META-INF/NOTICE` and `META-INF/DEPENDENCIES` from the APK, because the gomobile
+  AAR ships Go licence files that collide with AGP's packaging. That keeps the build working and takes
+  the notices out of the binary — which is exactly where BSD-3-Clause clause 1 and Apache-2.0 section 4
+  require them: the repository's notices were complete and the APK carried none of them. The same texts
+  are now generated into `assets/licenses/` by `scripts/generate-license-screen.mjs` and shown on a
+  screen reachable from the settings footer, and CI checks that the copy is regenerated rather than
+  trusting anyone to remember.
+- **A launcher icon with a themed-icon layer.** New artwork — a blue whale holding a glowing phone, on a
+  dark plate — installed as three adaptive layers: a bitmap background (the plate is a gradient, not a
+  flat fill), a transparent foreground, and a drawn monochrome silhouette. The silhouette is what makes
+  the icon follow the system theme on Android 13 and later, and it is drawn rather than thresholded
+  because the coloured mark contains white markings that a filter would keep as holes.
+  `scripts/install-icon-layers.ps1` installs a composed layer set; `scripts/make-icons.ps1` handles the
+  single-image path and refuses to derive a silhouette from art that is not already a shape.
 - **The DSH screen is immersive, and the app's own settings moved into the left-hand column.** The screen used
   to carry a full app bar — a title nobody needs (the page says which screen you are on) and two icons — above a
   page that already draws its own header; on a 729px phone that is 8% of the viewport spent on chrome. The bar is
