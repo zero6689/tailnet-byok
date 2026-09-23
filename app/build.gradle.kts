@@ -119,7 +119,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 18
+        versionCode = 19
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -257,7 +257,7 @@ android {
         //     exactly one place, so removing that row would leave no way into DSH's
         //     settings at all. Back to this app's settings is the Back gesture and the
         //     arrow above, both of which were already there.
-        versionName = "0.3.8"
+        versionName = "0.3.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

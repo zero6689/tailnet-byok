@@ -240,22 +240,22 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.3.8** (`versionCode` 18) — used daily on a phone, and it compiles.
+Version **0.3.9** (`versionCode` 19) — used daily on a phone, and it compiles.
 
 **Verified by an actual build**, not by inspection: **171 unit tests pass** (no failures, no
 skips), Lint reports **zero errors** (six warnings), `assembleDebug` and
 `assembleRelease -PwithTsnet=true` both succeed, and the gomobile bridge produces a
 60.0 MiB `tailnet.aar`.
 
-The release ships **one ABI, not four**: an `arm64-v8a` APK of about **54 MiB** (53.6 MiB on the
-0.3.8 build measured here), built with R8 off so that the code which ships is the code the tests
+The release ships **one ABI, not four**: an `arm64-v8a` APK of about **54 MiB** (54.2 MiB on the
+0.3.9 build measured here), built with R8 off so that the code which ships is the code the tests
 cover. Four ABIs of `libgojni.so` are 162.4 MiB on their own, which is the whole argument for
 shipping one.
 
 | Artifact | Size |
 |---|---|
 | `tailnet.aar` | 60.0 MiB |
-| Release APK, `arm64-v8a` only — what the release ships, R8 off | 53.6 MiB |
+| Release APK, `arm64-v8a` only — what the release ships, R8 off | 54.2 MiB |
 | Release APK, four ABIs, R8 on | 164.1 MiB |
 
 > **The embedded node is essentially the whole app.** Four ABIs of `libgojni.so` total 162.4 MiB
