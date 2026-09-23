@@ -4,24 +4,29 @@
 
   This lives in `mipmap-anydpi`, not `mipmap-anydpi-v26`. Adaptive icons arrived
   in API 26, which is exactly this app's minSdk, so the version qualifier could
-  never select anything else — and Lint says so. Keeping it would also imply the
+  never select anything else - and Lint says so. Keeping it would also imply the
   project supports a pre-adaptive path that it does not, and therefore needs
   bitmap fallbacks it does not have.
 
-  The foreground is a raster (`mipmap-<density>/ic_launcher_foreground.png`), not
-  a vector, because the mark is a piece of brand art rather than a glyph. It is
-  generated at five densities by `scripts/make-icons.ps1` from
-  `branding/mark-taiji.png` — which itself is cropped out of a screenshot by the
-  same script's `-AutoCrop`. See `branding/README.md`.
+  All three layers are rasters, not vectors: the mark is a piece of brand art
+  rather than a glyph. They are written at five densities by
+  `scripts/install-icon-layers.ps1` from a delivered layer set - a background
+  plate, a foreground with the safe zone already composed, and a silhouette drawn
+  by the artist. `scripts/make-icons.ps1` is the other path: one mark image,
+  composed into an icon here. See `branding/README.md` for which one to run.
 
-  There is no `<monochrome>` layer. Material You themed icons need a single-colour
-  silhouette, and this mark is two-tone by design: the subject *is* the contrast
-  between the blue whale and the black orca, so a threshold-based silhouette would
-  keep the white markings as holes and destroy what makes it recognisable.
-  Omitting the layer is better than shipping a wrong one; doing it properly means
-  drawing a real silhouette, which is a job for the artwork, not a filter.
+  The background is a bitmap rather than a colour because the plate is a gradient
+  with a glass disc on it, not a flat fill. The foreground keeps its own
+  transparency over that plate, so the two layers cannot disagree about the mark.
+
+  `<monochrome>` is the layer Android 13 and later tint instead of drawing the
+  coloured icon, which is what makes the launcher icon follow the system theme. It
+  is a real silhouette drawn as part of the artwork - white on a transparent
+  ground - rather than a threshold taken of the coloured mark: this art has white
+  markings inside it, and a filter would keep those as holes.
 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
+    <background android:drawable="@mipmap/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
 </adaptive-icon>

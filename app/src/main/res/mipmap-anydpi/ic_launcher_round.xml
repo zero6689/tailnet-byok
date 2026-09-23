@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Round variant. Identical to `ic_launcher.xml`: the launcher applies its own
-  mask, so declaring the same two layers is the whole job.
+  Round variant. Identical to `ic_launcher.xml`: the launcher applies its own mask,
+  so declaring the same three layers is the whole job.
 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
+    <background android:drawable="@mipmap/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
 </adaptive-icon>

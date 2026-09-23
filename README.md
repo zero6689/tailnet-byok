@@ -307,8 +307,7 @@ client for, and `BYOK` for the bring-your-own-key model it is built around. The 
 **"DeepSeek Harness"** appears in this project only inside descriptive sentences such as "an
 independent client that works with DeepSeek Harness". That is the form DeepSeek's own brand
 guidelines ask third-party projects to use: they suggest the abbreviation `DSH` as a project name,
-and single out using the full mark as one. Both the name and the artwork are being brought into
-line with that; the name is done, the artwork is not.
+and single out using the full mark as one.
 
 **DeepSeek and the DeepSeek whale are trademarks of their respective owner. This project is
 an independent, unofficial client. It is not affiliated with, endorsed by, sponsored by, or
@@ -320,11 +319,11 @@ separate questions, and MIT is silent on the second one. Anyone redistributing t
 a fork, a rebuild, a store listing — inherits the same position and should carry the same
 disclaimer.
 
-The launcher icon is, for now, still the project's two-whale taiji mark: artwork of the
-maintainer's own composition, but one that depicts DeepSeek's brand characters, which is why it is
-being replaced. The maintainer's personal build of the same tool uses a single blue whale so the
-two are distinguishable on a launcher; the public project is getting a mark of its own. See
-[`branding/README.md`](branding/README.md).
+The launcher icon is this project's own composition — a blue whale holding a glowing phone, two
+signal arcs above it, on a dark blue plate — but the whale is DeepSeek's brand character, so the
+mark is used descriptively under the disclaimer above rather than licensed. What that does and does
+not buy is written out in [`branding/README.md`](branding/README.md), including what a mark with no
+third-party character in it would cost.
 
 If you are the rights holder and would prefer the name or the artwork changed, please open an
 issue and it will be changed.
