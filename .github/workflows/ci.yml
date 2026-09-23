@@ -323,3 +323,75 @@ jobs:
       # anyone, and an APK — even a debug one with no native bridge — is a binary
       # handed out with no release record and no checksum. The assertion above is
       # what this job exists to prove.
+
+  smoke-on-device:
+    name: Smoke on an emulator (install, launch, stay up)
+    # The one thing no other job does: run the APK on a device. Everything else
+    # checks the code, and until this job existed the README's "nothing has run on a
+    # device in CI" was true for every release. What it proves is narrow and stated
+    # plainly: the shell installs, launches, and stays up, and its window renders.
+    # The node-up and dial-failure paths need the bridged build (the AAR from the
+    # Tailnet bridge workflow), which is the next step rather than this one.
+    #
+    # Not run on pull requests on purpose: emulator minutes are the scarce resource
+    # here, and main is what ships. Dependency bumps still get compile, lint, test
+    # and the guardrails on their PR.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble the debug APK (no native bridge)
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Install it on a clean emulator, launch it, and watch it live
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -euo pipefail
+            apk=app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c || true
+            adb install -r "$apk"
+            adb shell am start -W -n io.github.zero6689.tailnetbyok/.MainActivity
+            sleep 10
+
+            pid=$(adb shell pidof io.github.zero6689.tailnetbyok | tr -d '\r' || true)
+            if [ -z "$pid" ]; then
+              echo "::error::the app is not running ten seconds after launch"
+              adb logcat -d | tail -100
+              exit 1
+            fi
+            echo "ok: the app is alive as pid $pid"
+
+            if adb logcat -d -b crash | grep -q 'FATAL EXCEPTION'; then
+              echo "::error::the app crashed on launch"
+              adb logcat -d -b crash | tail -60
+              exit 1
+            fi
+            echo "ok: nothing in the crash buffer"
+
+            # A live process is not the same as a rendered window: an app stuck on a
+            # blank screen would pass the two checks above. This asserts the activity
+            # actually owns the screen. `mCurrentFocus` is the API-30 field name and
+            # `mFocusedApp` is the fallback, because a rename here must not read as a
+            # product failure.
+            focused=$(adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' || true)
+            echo "$focused"
+            if ! echo "$focused" | grep -q 'io.github.zero6689.tailnetbyok'; then
+              echo "::error::this package does not own the focused window; the UI never rendered"
+              exit 1
+            fi
+            echo "ok: a window from this package is focused"
