@@ -196,6 +196,27 @@ jobs:
             echo "See [docs/SECURITY-MODEL.md](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/SECURITY-MODEL.md)"
             echo "before trusting it with a key that can join a machine to your tailnet."
             echo
+            echo "## What is deliberately not in this build"
+            echo
+            echo "The four choices below are visible to anybody who inspects the binary, so they are"
+            echo "stated rather than left to be discovered:"
+            echo
+            echo "- **One ABI.** The asset is \`arm64-v8a\` only: a four-ABI build is roughly 164 MiB,"
+            echo "  and this download link is aimed at a phone."
+            echo "- **R8 off.** \`-PnoMinify=true\` keeps the shipped code on the same path the tests"
+            echo "  cover, and costs about 10 MB over a minified build (docs/RELEASING.md)."
+            echo "- **No instrumented tests.** Everything checked about this app runs as JVM unit tests"
+            echo "  plus the CI jobs; \`app/src/androidTest\` does not exist, and no on-device coverage"
+            echo "  is claimed anywhere."
+            echo "- **Cleartext HTTP, in-tailnet only.** The network security config permits plain"
+            echo "  \`http\` for tailnet literals and \`*.ts.net\` names, because a DSH server on a"
+            echo "  tailnet is normally reached at a bare address inside the tunnel. Everything else"
+            echo "  has to be HTTPS."
+            echo
+            echo "One limit worth knowing before you update: the embedded-node route refuses a package"
+            echo "larger than \`UpdateProtocol.MAX_EMBEDDED_APK_BYTES\` (32 MB) and reports"
+            echo "\`PACKAGE_TOO_LARGE\`, so an APK of this size updates over the **system network** route."
+            echo
             echo "## Verify what you downloaded"
             echo
             echo "| | |"
