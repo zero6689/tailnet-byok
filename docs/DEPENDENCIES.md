@@ -101,10 +101,25 @@ it is the one dependency chore that is easy to defer forever.
 
 They are a separate graph (`gradle/libs.versions.toml`, resolved by Gradle) and are **not**
 covered by `scripts/third-party-licenses.mjs`, which reads the Go module graph. They are
-mostly Apache-2.0 (AndroidX, Kotlin) and MIT. Producing the equivalent inventory for them
-requires a Gradle-side licence report and is tracked as its own task; until it exists, the
-APK's third-party inventory is incomplete, and this file says so rather than implying
-otherwise.
+Apache-2.0, with one dual-licensed exception. The equivalent inventory now exists and is
+generated rather than written by hand:
+
+```bash
+./gradlew :app:androidLicenceInventory      # writes docs/ANDROID-DEPENDENCIES.md
+```
+
+It resolves the release runtime classpath and reads each module's declared licence out of
+its own POM — `com.google.zxing:core`, `com.google.guava:listenablefuture` and
+`com.google.auto.value:auto-value-annotations` declare none, so those three are listed
+explicitly in the task with the upstream licence each one is under. A module that is
+neither in a POM nor in that table fails the task, which is the point: a new dependency
+must not be able to slip an unnamed licence into the APK. `scripts/generate-license-screen.mjs`
+then maps the declared licence names to the texts the app carries and puts every module on
+the in-app licence screen, and the `licences` job regenerates and compares both files.
+
+Note that this step needs the network: Gradle keeps POMs in its cache as metadata, and
+re-resolving one as an artifact under `--offline` returns nothing, which reads exactly like
+"every module is unlicensed".
 
 The two non-AndroidX additions are worth naming, because both ended up on the
 configuration path rather than in the UI:
