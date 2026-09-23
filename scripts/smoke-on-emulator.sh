@@ -14,8 +14,11 @@
 set -euo pipefail
 
 apk=app/build/outputs/apk/debug/app-debug.apk
-pkg=io.github.zero6689.tailnetbyok
-activity="$pkg/.MainActivity"
+# The debug variant carries an applicationIdSuffix (".debug"), so hardcoding the
+# release id here is wrong — it cost one run, with `am start` reporting "Activity
+# class ... does not exist" while the install itself had succeeded. The id and the
+# launchable activity are asked of the device instead of assumed.
+base_id=io.github.zero6689.tailnetbyok
 
 if [ ! -f "$apk" ]; then
   echo "::error::$apk is missing; the assemble step did not produce it"
@@ -26,6 +29,21 @@ adb logcat -c || true
 
 echo "== installing $apk"
 adb install -r "$apk"
+
+pkg=$(adb shell pm list packages | tr -d '\r' | grep -o "${base_id}[a-z.]*" | head -n1)
+if [ -z "$pkg" ]; then
+  echo "::error::no installed package matching ${base_id}* — the install did not take"
+  adb shell pm list packages | tr -d '\r' | grep 6689 || true
+  exit 1
+fi
+echo "ok: installed as $pkg"
+
+activity=$(adb shell cmd package resolve-activity --brief "$pkg" | tr -d '\r' | tail -n1)
+if [ -z "$activity" ]; then
+  echo "::error::$pkg declares no launchable activity"
+  exit 1
+fi
+echo "ok: launcher activity is $activity"
 
 echo "== launching $activity"
 adb shell am start -W -n "$activity"
