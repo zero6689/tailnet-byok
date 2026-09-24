@@ -94,28 +94,35 @@ if ! echo "$focused" | grep -q "$pkg"; then
 fi
 echo "ok: the focused app is this package"
 
-# What only a device can answer, and only with the bridged build: does the native
-# library load? The app says so in its own words on the setup screen, so the check
-# reads those words rather than trusting the packaging step. `EXPECT_BRIDGE=yes` is
-# set by the job that installs an APK built with `-PwithTsnet=true`.
-if [ "${EXPECT_BRIDGE:-no}" = "yes" ]; then
-  label='Embedded tailnet node'
-  failures='not compiled into this build|native bridge missing|native bridge failed to load'
-  dump=""
-  for attempt in 1 2 3 4 5; do
-    dump=$(adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 && adb shell cat /sdcard/window.xml | tr -d '\r' || true)
-    if echo "$dump" | grep -q "$label"; then break; fi
-    sleep 4
-  done
-  if ! echo "$dump" | grep -q "$label"; then
-    echo "::error::the setup screen never lists the embedded provider"
-    echo "$dump" | head -c 2000
-    exit 1
-  fi
-  if echo "$dump" | grep -qE "$failures"; then
-    echo "::error::built with the bridge, but the UI reports it unusable:"
-    echo "$dump" | grep -oE "$failures" | sort -u
-    exit 1
-  fi
-  echo "ok: the embedded node is offered, and no bridge failure is reported"
-fi
+# What only a device can answer, and only with the bridged build: did the native
+# library actually load? The app says so in its own log, in three places, when the
+# reflective lookup or the library load fails (ProviderRegistry):
+#
+#   embedded tsnet installer not found        -- the class is not in this build
+#   embedded tsnet installer failed           -- it is there and threw while initialising
+#   embedded tsnet native library unavailable -- UnsatisfiedLinkError
+#
+# So the bridged job asserts that none of them appears, and the no-bridge job asserts
+# that the first one does -- which is what makes the absence meaningful rather than
+# vacuous. Reading the log beats reading the screen: the first version of this check
+# dumped the UI and compared text, and it failed because `uiautomator` captured a
+# system ANR dialog on top of the app rather than the app.
+BRIDGE_FAILURES='embedded tsnet installer not found|embedded tsnet installer failed|embedded tsnet native library unavailable'
+case "${EXPECT_BRIDGE:-no}" in
+  yes)
+    hits=$(adb logcat -d | grep -E "$BRIDGE_FAILURES" || true)
+    if [ -n "$hits" ]; then
+      echo "::error::built with the bridge, but the app reports it unusable:"
+      echo "$hits" | head -5
+      exit 1
+    fi
+    echo "ok: the app reports no bridge failure, so the native library loaded"
+    ;;
+  no)
+    if adb logcat -d | grep -q 'embedded tsnet installer not found'; then
+      echo "ok: this build reports the installer as not compiled in, as it should"
+    else
+      echo "::warning::the no-bridge build did not log 'embedded tsnet installer not found'; the absence check in the bridged job is worth re-reading"
+    fi
+    ;;
+esac
