@@ -67,18 +67,31 @@
       它是单一的 <code>arm64</code> 构建，要求 Android 8.0（API 26）或更高。</span>
     </p>
     <p>
-      <a class="btn primary" href="{{REPO_URL}}/releases/latest/download/tailnet-byok-arm64.apk"><span class="i18n-en">Download the APK (arm64)</span><span class="i18n-zh">下载安装包（arm64）</span></a>
+      <a class="btn primary" href="byok/tailnet-byok-arm64.apk"><span class="i18n-en">Download the APK (arm64, mirror)</span><span class="i18n-zh">下载安装包（arm64，镜像）</span></a>
+      <a class="btn" href="{{REPO_URL}}/releases/latest/download/tailnet-byok-arm64.apk"><span class="i18n-en">GitHub release link</span><span class="i18n-zh">GitHub 发布链接</span></a>
+      <a class="btn" href="byok/tailnet-byok-arm64.apk.sha256"><span class="i18n-en">sha256</span><span class="i18n-zh">sha256</span></a>
       <a class="btn" href="{{REPO_URL}}/releases/latest"><span class="i18n-en">Release notes</span><span class="i18n-zh">发布说明</span></a>
     </p>
     <p class="small muted">
-      <span class="i18n-en">That button serves the newest published release, which is
+      <span class="i18n-en">Both download buttons serve <strong>the same bytes</strong> — the mirror is this site's
+      own copy of the release asset, published under <code>byok/</code> because GitHub's release storage is slow or
+      unreachable from some networks (measured at 0.03&nbsp;MB/s, about 25 minutes for 45&nbsp;MB, while this page
+      itself loaded in under a second). It is refreshed automatically whenever a release is published, and the
+      <code>sha256</code> link next to it is the checksum of exactly those bytes — compare it before installing if
+      you got the file from anywhere else.</span><span class="i18n-zh">两个下载按钮给的是<strong>同一份字节</strong> ——
+      镜像就是本页所在站点自己保存的那份发布资产，放在 <code>byok/</code> 下，因为 GitHub 的发布存储在部分地区很慢甚至
+      打不开（本机实测 0.03&nbsp;MB/s，45&nbsp;MB 要约 25 分钟；而本页本身不到一秒就打开了）。它会在每次发布新版本时自动刷新，
+      旁边的 <code>sha256</code> 链接就是这份字节的校验值 —— 如果你是从别处拿到的文件，装之前先对一下。</span>
+    </p>
+    <p class="small muted">
+      <span class="i18n-en">The newest published release is
       <strong id="apk-version">v0.3.9</strong> — about
-      <strong id="apk-size">44&nbsp;MB</strong>, arm64 — one file for everybody. It comes from GitHub's release
-      storage, which is slow from some networks; if it crawls, whoever runs the server can hand the same file over
-      directly.</span><span class="i18n-zh">那个按钮给的是最新发布的那个版本，目前是
+      <strong id="apk-size">44&nbsp;MB</strong>, arm64 — one file for everybody, with
+      nobody's address baked into it. If both links crawl, whoever runs the server can hand the same file over
+      directly.</span><span class="i18n-zh">最新发布的版本是
       <strong id="apk-version-zh">v0.3.9</strong>，约
-      <strong id="apk-size-zh">44&nbsp;MB</strong>，arm64 —— 所有人同一个文件。它由 GitHub 的发布存储提供，
-      在部分地区很慢；如果慢得离谱，服务器主人可以直接把同一个文件交给你。</span>
+      <strong id="apk-size-zh">44&nbsp;MB</strong>，arm64 —— 所有人同一个文件，里面没有预置任何人的地址。
+      如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。</span>
       <span class="i18n-en">This page was built from the repository at <strong>v{{VERSION}}</strong>; if that
       differs from the version above, the button is the older one. Updated by hand at each release; see
       <code>docs/RELEASING.md</code>.</span><span class="i18n-zh">本页构建自仓库的
@@ -89,10 +102,12 @@
       <span class="i18n-en">Android asks once whether installs from this source are allowed. The app requests no
       storage and no contacts, and it talks to the server you point it at and to nothing else. (The QR scanner asks
       for the camera at the moment you open it; refusing costs nothing, because a code can also be read from a
-      picture.) If the phone cannot reach GitHub, whoever runs the server hands over the same APK directly — that
-      file plus a link from this page is the whole hand-off.</span><span class="i18n-zh">Android 会问一次是否允许来自这个来源的安装。这个应用不要存储、
+      picture.) If the phone cannot reach GitHub at all, the mirror button above serves the same bytes from this
+      page's own host; failing that too, whoever runs the server hands the same APK over directly — that file plus a
+      link from this page is the whole hand-off.</span><span class="i18n-zh">Android 会问一次是否允许来自这个来源的安装。这个应用不要存储、
       不要通讯录，只跟你指定的那台服务器说话。（二维码扫描在你打开它的时候才会申请相机权限；拒绝也没有代价，
-      因为也可以用图片识别。）手机访问不了 GitHub 时，由服务器主人直接把同一个安装包交给对方 ——
+      因为也可以用图片识别。）如果手机完全连不上 GitHub，用上面那个镜像按钮，它从本页所在的站点给出同一份字节；
+      连它也不行时，由服务器主人直接把同一个安装包交给对方 ——
       一个安装包加上本页生成的一条链接，就是全部所需。</span>
     </p>
   </div>

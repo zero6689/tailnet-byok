@@ -50,6 +50,19 @@ Two things are published, and they are different files:
    one server's own users. It is **never** the release asset: it names a real
    machine, and the public build's defaults are empty on purpose, with CI asserting
    that they stay empty.
+3. **The mirror on the docs site.** `docs-pages.yml` copies the newest release asset
+   to `site/dist/byok/tailnet-byok-arm64.apk` (plus a `.sha256`) every time it
+   deploys, so `https://<site>/byok/tailnet-byok-arm64.apk` serves the same bytes
+   from GitHub Pages. This exists because GitHub's *release storage* is a different
+   host from the Pages site and is far slower from some networks — measured
+   2026-09-25 at 0.03 MB/s against the release asset, i.e. about 25 minutes for
+   45 MB, while the page itself loaded in under a second. The workflow therefore also
+   runs on `release: published`: a mirror that keeps serving the *previous* release
+   after a new one is published is worse than no mirror, and nothing else would
+   refresh it when a release changes no file under `site/`.
+   Nothing about the mirror is rebuilt or re-signed — it is the release asset,
+   byte for byte, and the checksum published beside it is the one to verify a copy
+   against.
 
 ### The release asset must not name the build machine
 

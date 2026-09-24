@@ -43,6 +43,17 @@ oversight, and it is worth knowing when you read a security entry below.
   does not see the platform that is already on disk — it downloads the same 65 MB again and installs
   it as `platforms/android-37.0-2`, which is then the copy the build compiles against.
 
+### Added
+
+- **The documentation site serves the release APK itself.** GitHub's release storage
+  (`release-assets.githubusercontent.com`) is a different host from the Pages site and was measured
+  on 2026-09-25 at 0.03 MB/s — about 25 minutes for the 45 MB APK — while the page itself loaded in
+  under a second. `docs-pages.yml` now copies the newest release asset to `byok/` on every deploy
+  **and** on `release: published` (a mirror that keeps serving the previous release would be worse
+  than none), publishes its sha256 beside it, and refuses to publish a file that is implausibly
+  small. The GitHub link stays on the page: same bytes, and the checksum is what makes that
+  checkable.
+
 ## [0.3.9] — 2026-09-23
 
 Everything below this heading landed after 0.2.9. It ships as **0.3.9** rather than 0.3.8 because

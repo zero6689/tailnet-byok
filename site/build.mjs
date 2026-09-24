@@ -93,6 +93,24 @@ function isExternal(href) {
   return /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//') || href.startsWith('data:');
 }
 
+/**
+ * Files the *deploy* workflow adds to the artifact after this build has finished.
+ *
+ * The APK mirror is the only one: `docs-pages.yml` copies the newest release asset
+ * to `byok/tailnet-byok-arm64.apk` (plus its `.sha256`) so the download button has
+ * a host that still works where GitHub's release storage does not. Measured on
+ * 2026-09-25, that storage moved a 45 MB asset at 0.03 MB/s from this network —
+ * about 25 minutes — while this site's own host served the page in under a second.
+ *
+ * A placeholder here would be worse than useless (it would ship something that is
+ * not the release), so the link is instead allowed to point at a file this build
+ * deliberately did not produce. The deploy asserts the real file's size.
+ */
+const DEPLOY_PROVIDED = new Set([
+  'byok/tailnet-byok-arm64.apk',
+  'byok/tailnet-byok-arm64.apk.sha256',
+]);
+
 function validateLinks(pageName, html, anchorsByPage) {
   for (const m of html.matchAll(/href="([^"]+)"/g)) {
     const href = m[1];
@@ -120,7 +138,7 @@ function validateLinks(pageName, html, anchorsByPage) {
     }
 
     const targetPath = join(OUT_DIR, pathPart);
-    if (!existsSync(targetPath)) {
+    if (!existsSync(targetPath) && !DEPLOY_PROVIDED.has(pathPart)) {
       errors.push(`${pageName}: href="${href}" does not resolve to a file in the built site`);
       continue;
     }

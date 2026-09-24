@@ -23,6 +23,12 @@ on:
       - 'LICENSE'
       - 'docs/**'
       - '.github/workflows/docs-pages.yml'
+  # A published release must redeploy the site even when no file under `site/`
+  # changed, because this workflow is what puts the APK mirror on the site. Without
+  # this trigger the mirror would keep serving the previous release's bytes, which
+  # is the one way a download mirror can be actively harmful.
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -79,6 +85,47 @@ jobs:
           fi
 
           echo "ok: $(find site/dist -name '*.html' | wc -l) pages, $(du -sh site/dist | cut -f1) total"
+
+      # The download mirror.
+      #
+      # GitHub's release storage (`release-assets.githubusercontent.com`) is not
+      # reachable at a usable speed from every network: measured 2026-09-25 at
+      # 0.03 MB/s, which is about 25 minutes for the 45 MB APK, while this site's own
+      # host served the page in under a second. So the newest release asset is copied
+      # into the published site and `provisioning.html` offers it as a mirror.
+      #
+      # Same bytes, not a rebuild: the file is the release asset verbatim, and its
+      # sha256 is published next to it so a copy from anywhere can be checked.
+      #
+      # A repository with no published release yet is a legitimate state (a fork),
+      # so a missing release warns rather than failing the docs deploy.
+      - name: Publish the release APK as a download mirror
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p site/dist/byok
+          if ! gh release view --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::warning::no published release — the mirror link will 404 until one exists"
+            exit 0
+          fi
+          gh release download \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'tailnet-byok-arm64.apk' \
+            --dir site/dist/byok \
+            --clobber
+          (
+            cd site/dist/byok
+            sha256sum tailnet-byok-arm64.apk > tailnet-byok-arm64.apk.sha256
+          )
+          size=$(stat -c%s site/dist/byok/tailnet-byok-arm64.apk)
+          echo "mirror: $size bytes, $(cat site/dist/byok/tailnet-byok-arm64.apk.sha256)"
+          # A stub or a truncated transfer would be served as a broken installer.
+          # The only release build is ~45 MB; anything near zero is not one.
+          if [ "$size" -lt 10000000 ]; then
+            echo "::error::the mirrored APK is implausibly small ($size bytes) — refusing to publish it"
+            exit 1
+          fi
 
       - uses: actions/configure-pages@v5
 
