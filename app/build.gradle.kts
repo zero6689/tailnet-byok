@@ -3,7 +3,10 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // Kotlin is compiled by AGP itself (built-in Kotlin, AGP 9). Applying
+    // `org.jetbrains.kotlin.android` here would fail: it is incompatible with
+    // AGP 9's new DSL. The two compiler plugins below are still required —
+    // built-in Kotlin supplies the compiler, not Compose's or kotlinx's.
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -12,11 +15,13 @@ plugins {
 // Switches and overridable SDK levels
 //
 // The names deliberately do NOT match the Android extension's own properties.
-// AGP still carries a deprecated `compileSdkVersion: String?` (the old
-// "android-35" form) alongside the modern `compileSdk: Int?`, and a local
-// variable with the same name loses to that receiver member — which surfaces as
-// the baffling "inferred type is String? but Int? was expected" on the line
-// below. `resolved*` names cannot collide with anything.
+// When this was written, AGP still carried a deprecated
+// `compileSdkVersion: String?` (the old "android-35" form) alongside the modern
+// `compileSdk: Int?`, and a local variable with the same name lost to that
+// receiver member — which surfaced as the baffling "inferred type is String?
+// but Int? was expected" on the line below. AGP 9 has removed the deprecated
+// property, so the collision can no longer happen; `resolved*` is kept because
+// it also reads better next to the `-P` overrides.
 // ---------------------------------------------------------------------------
 val withTsnet: Boolean =
     (providers.gradleProperty("withTsnet").orNull ?: "false").toBooleanStrict()
@@ -366,9 +371,13 @@ android {
 
     // The tsnet bridge lives in its own source set so that the default build
     // stays compilable on a machine without the prebuilt .aar.
+    //
+    // `directories` rather than `srcDir`: Gradle 9.6 deprecates `srcDir`/`srcDirs`
+    // on a source directory set in favour of the mutable set. Same effect, one less
+    // Gradle-10 blocker.
     sourceSets["main"].apply {
         if (withTsnet) {
-            kotlin.srcDir("src/tsnet/kotlin")
+            kotlin.directories.add("src/tsnet/kotlin")
         }
     }
 
@@ -409,7 +418,15 @@ android {
         abortOnError = true
         checkDependencies = true
         // Secrets must never be logged; this check is the machine half of that rule.
-        disable += setOf("GradleDependency", "OldTargetApi")
+        //
+        // The three version checks are off for one reason: every version here is a
+        // deliberate pin (`gradle/libs.versions.toml`, `fetch-toolchain.mjs`,
+        // `make-wrapper.mjs`), and moving one is a reviewed change with a build
+        // behind it — not a lint suggestion. Gradle itself is the clearest case:
+        // AGP 9.4.1's tested pairing is Gradle 9.6.0, so the "9.8.0 is available"
+        // that this check raises is an invitation to leave the tested pairing.
+        // Dependabot already proposes those bumps, where they can be evaluated.
+        disable += setOf("GradleDependency", "OldTargetApi", "AndroidGradlePluginVersion")
     }
 }
 
@@ -493,7 +510,11 @@ dependencies {
 // Deliberately not the `com.jaredsburrows.license` plugin: one more third-party
 // build plugin, pinned and upgraded forever, to write a table this repository can
 // write with the API it already has.
-val androidLicenceInventory by tasks.registering {
+// `tasks.register("name") { … }` rather than `val x by tasks.registering { … }`:
+// Gradle 9.6 deprecates the delegated-property form (and the property name was the
+// only thing naming the task, which is the sort of implicit coupling that makes a
+// rename break CI silently).
+val androidLicenceInventory = tasks.register("androidLicenceInventory") {
     group = "verification"
     description = "Writes docs/ANDROID-DEPENDENCIES.md from the release runtime classpath."
 

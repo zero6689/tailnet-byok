@@ -62,14 +62,18 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // ---------------------------------------------------------------------------
 
 const VERSIONS = {
-  gradle: '8.11.1',
+  gradle: '9.6.0',
   // Go is resolved dynamically from https://go.dev/VERSION so that the script
   // does not rot; pin `go` here to override.
   go: null,
   // The NDK version gomobile is known to work with.
   ndk: { revision: 'r26d', version: '26.3.11579264' },
-  androidPlatform: '35',
-  androidBuildTools: '35.0.0',
+  // API 37 ships as a *minor* platform release, so the package path is
+  // `platforms;android-37.0` and the SDK directory is `android-37.0` — there is
+  // no plain `android-37` package in Google's index. The minor-version scheme
+  // starts at 36.1; the first release of a new API level is always `.0`.
+  androidPlatform: '37.0',
+  androidBuildTools: '37.0.0',
 };
 
 const args = process.argv.slice(2);
@@ -220,11 +224,14 @@ function extract(archive, intoDir) {
  *   go1.27.1.windows-amd64.zip      -> `go/`
  *   platform-35_r02.zip             -> `android-35/`
  *   build-tools_r35_windows.zip     -> `android-15/`
+ *   build-tools_r37_windows.zip     -> `android-37.0/`
  *
- * The last one is the trap that makes this function worth its length: `r35`
- * extracting to `android-15` is not a typo, it is the platform API level the
- * tools target, and hardcoding a mapping for it would be a bug waiting for the
- * next release.
+ * The `r35 -> android-15` line is the trap that makes this function worth its
+ * length: it is not a typo, it is the platform API level the tools target, and
+ * hardcoding a mapping for it would be a bug waiting for the next release. The
+ * `r37` line is the second trap: build-tools 37 and platform 37 both extract to
+ * `android-37.0`, so the two must be told apart by where they are moved to, not
+ * by the name they arrive with.
  *
  * So the layout is discovered rather than assumed, and the result is named
  * canonically. If an archive ever contains something other than one directory,
@@ -409,7 +416,7 @@ function renameSyncCrossDevice(from, to) {
  * stops working with no useful error.
  *
  * @param xml      the repository index
- * @param path     package path, e.g. `platforms;android-35`
+ * @param path     package path, e.g. `platforms;android-37.0`
  * @param wantArch a substring that must appear in the archive filename, for
  *                 packages that ship one archive per platform
  */
@@ -452,12 +459,22 @@ function findArchive(xml, path, wantArch) {
 async function installArchive(sdkRoot, { path, wantArch, targetSubdir }) {
   log(`\n  ${path}`);
   const dest = join(sdkRoot, targetSubdir);
-  if (existsSync(dest) && !FORCE) {
+  if (existsSync(dest) && existsSync(join(dest, 'package.xml')) && !FORCE) {
     log(`    already installed at ${dest}`);
     return;
   }
 
   const xml = await fetchText('https://dl.google.com/android/repository/repository2-3.xml');
+
+  // Already unpacked, but not *registered*. Fix that instead of downloading the
+  // same 65 MB again — see ensurePackageXml for why a missing descriptor makes AGP
+  // install a second copy of the platform under `android-37.0-2`.
+  if (existsSync(dest) && !FORCE) {
+    log(`    already unpacked at ${dest}, but the SDK has no package.xml for it`);
+    ensurePackageXml(xml, path, dest);
+    return;
+  }
+
   const found = findArchive(xml, path, wantArch);
   if (!found || !found.url) {
     fail(`could not find an archive for ${path} in the Android repository index`);
@@ -497,6 +514,64 @@ async function installArchive(sdkRoot, { path, wantArch, targetSubdir }) {
   if (entries[0] !== targetSubdir.split('/').pop()) {
     log(`    (archive contained '${entries[0]}', renamed to '${targetSubdir.split('/').pop()}')`);
   }
+  ensurePackageXml(xml, path, dest);
+}
+
+/**
+ * Registers an unpacked SDK package with the SDK's own package registry.
+ *
+ * # Why this is not optional
+ *
+ * `package.xml` is what the SDK loader reads to decide a package is installed —
+ * `source.properties` alone is not enough. The platform archive ships only
+ * `source.properties`, and the visible consequence is not a warning but a silent
+ * second download: on 2026-09-25, with `platforms/android-37.0` unpacked and
+ * working, AGP reported
+ *
+ *     Package "Android SDK Platform 37.0" should be installed in
+ *     …/platforms/android-37.0 but it already exists.
+ *     Installing in …/platforms/android-37.0-2 instead.
+ *
+ * and fetched 65 MB it already had, on a machine whose build then compiled against
+ * the copy nobody asked for. sdkmanager would have written this file; this script
+ * does not use sdkmanager, so it has to.
+ *
+ * The descriptor is not hand-written: it is Google's own `remotePackage` block for
+ * that path, out of the repository index this script already downloaded, with the
+ * repository-only parts (`<archives>`, `<channelRef>`) removed and the element
+ * renamed. That way the schema, the version, the type-details and the licence
+ * reference (`ref="android-sdk-license"`, or `license-2AB95129` for build-tools)
+ * all come from the vendor, and cannot drift from what sdkmanager writes.
+ */
+function ensurePackageXml(indexXml, path, dest) {
+  const file = join(dest, 'package.xml');
+  if (existsSync(file)) return;
+
+  const start = indexXml.indexOf(`<remotePackage path="${path}">`);
+  if (start < 0) fail(`no remotePackage for ${path} in the SDK index — cannot register it`);
+  const end = indexXml.indexOf('</remotePackage>', start);
+  if (end < 0) fail(`unterminated remotePackage for ${path} in the SDK index`);
+
+  let block = indexXml.slice(start, end + '</remotePackage>'.length);
+  block = block
+    .replace(/<archives>[\s\S]*?<\/archives>/g, '')
+    .replace(/<channelRef[^>]*\/>/g, '')
+    .replace(`<remotePackage path="${path}">`, `  <localPackage path="${path}" obsolete="false">`)
+    .replace('</remotePackage>', '  </localPackage>');
+
+  const rootTag = indexXml.match(/<sdk:sdk-repository[^>]*>/)?.[0];
+  if (!rootTag) fail('the SDK index no longer starts with <sdk:sdk-repository>; cannot build package.xml');
+
+  // The licence *texts* are part of what sdkmanager writes, and the ids they carry
+  // are what the package's <uses-license ref="…"> points at.
+  const licences = [...indexXml.matchAll(/<license id="[^"]+" type="text">[\s\S]*?<\/license>/g)].map((m) => m[0]);
+
+  writeFileSync(
+    file,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${rootTag}\n${licences.join('\n')}\n${block}\n</sdk:sdk-repository>\n`,
+    'utf8',
+  );
+  log(`    wrote package.xml (registers '${path}' with the SDK; the archive ships none)`);
 }
 
 async function installAndroidSdkPackages() {

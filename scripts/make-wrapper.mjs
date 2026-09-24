@@ -42,7 +42,7 @@ const gradleFlag = args.indexOf('--gradle');
  * Must match `VERSIONS.gradle` in fetch-toolchain.mjs. That duplication is
  * checked at runtime below rather than left to drift.
  */
-const GRADLE_VERSION = '8.11.1';
+const GRADLE_VERSION = '9.6.0';
 
 function fail(msg) {
   console.error(`\n  error: ${msg}\n`);

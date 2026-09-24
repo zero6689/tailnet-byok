@@ -13,6 +13,36 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **The app is built with `compileSdk 37`, AGP 9.4.1, Gradle 9.6.0 and Kotlin 2.2.10.** One change
+  rather than four, because it cannot be split: `androidx.core` 1.19.0 — the update Dependabot has
+  been offering since 2026-09-20 — declares `minCompileSdk=37` and
+  `minAndroidGradlePluginVersion=9.1.0` in its AAR metadata, and AGP's compatibility table ties the
+  plugin to the other two (AGP 9.4 wants Gradle 9.6.0 and carries KGP 2.2.10). AGP 9.4 is also the
+  first line that *knows* API 37: both 8.13 and 9.0 report `HIGHEST_KNOWN_STABLE_API = 36`.
+- **Kotlin is compiled by AGP itself now.** AGP 9 enables built-in Kotlin by default and
+  `org.jetbrains.kotlin.android` is incompatible with its new DSL, so that plugin is gone from both
+  build files. The Compose and serialization compiler plugins stay: built-in Kotlin supplies the
+  compiler, not those.
+- API 37 ships as a *minor* platform release, so the SDK package is `platforms;android-37.0` and not
+  `platforms;android-37`. `scripts/fetch-toolchain.mjs`, `scripts/make-wrapper.mjs`,
+  `docs/BUILD.md` and the guide page follow the pin.
+- Two Gradle 9 deprecations in `app/build.gradle.kts` are fixed rather than tolerated
+  (`sourceSets[…] .kotlin.directories` instead of `srcDir`, and `tasks.register("name")` instead of
+  the delegated `by tasks.registering`), and lint's version-advice check is disabled for the same
+  reason `GradleDependency` and `OldTargetApi` already were: every version in this repository is a
+  reviewed pin with a build behind it, not a suggestion to act on.
+
+### Fixed
+
+- `scripts/fetch-toolchain.mjs` now writes the `package.xml` that registers an unpacked SDK package
+  with the SDK. The platform archive ships only `source.properties`, and without the descriptor AGP
+  does not see the platform that is already on disk — it downloads the same 65 MB again and installs
+  it as `platforms/android-37.0-2`, which is then the copy the build compiles against.
+
 ## [0.3.9] — 2026-09-23
 
 Everything below this heading landed after 0.2.9. It ships as **0.3.9** rather than 0.3.8 because

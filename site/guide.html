@@ -140,8 +140,8 @@ node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aa
     </thead>
     <tbody>
       <tr><td>JDK</td><td>17</td><td><span class="i18n-en">everything</span><span class="i18n-zh">全部</span></td></tr>
-      <tr><td>Gradle</td><td>8.11.1</td><td><span class="i18n-en">the wrapper</span><span class="i18n-zh">wrapper</span></td></tr>
-      <tr><td>Android SDK</td><td>platform 35, build-tools 35.0.0</td><td><span class="i18n-en">the app</span><span class="i18n-zh">App</span></td></tr>
+      <tr><td>Gradle</td><td>9.6.0</td><td><span class="i18n-en">the wrapper</span><span class="i18n-zh">wrapper</span></td></tr>
+      <tr><td>Android SDK</td><td>platform 37.0, build-tools 37.0.0</td><td><span class="i18n-en">the app</span><span class="i18n-zh">App</span></td></tr>
       <tr><td>Go</td><td><span class="i18n-en">resolved from <code>go.dev</code> (1.23+ required)</span><span class="i18n-zh">从 <code>go.dev</code> 解析（要求 1.23+）</span></td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
       <tr><td>Android NDK</td><td>r26d (26.3.11579264)</td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
       <tr><td>gomobile / gobind</td><td><span class="i18n-en">same <code>x/mobile</code> revision</span><span class="i18n-zh">与 <code>x/mobile</code> 同一 revision</span></td><td><span class="i18n-en">the bridge</span><span class="i18n-zh">桥接</span></td></tr>
@@ -167,17 +167,18 @@ node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aa
   <h2 id="build-modes"><span class="i18n-en">SDK level overrides</span><span class="i18n-zh">覆盖 SDK 版本</span><a class="anchor" href="#build-modes">#</a></h2>
 
   <p>
-    <span class="i18n-en">The default is <code>compileSdk 35</code> / <code>targetSdk 35</code>, which is what a
-    Play submission needs. If your local SDK is older, override both:</span><span class="i18n-zh">默认是 <code>compileSdk 35</code> / <code>targetSdk 35</code>，这是提交到 Google Play 所需要的。
-    如果你本地的 SDK 更旧，就把这两个都覆盖掉：</span>
+    <span class="i18n-en">The default is <code>compileSdk 37</code> / <code>targetSdk 37</code>, which is what a
+    Play submission needs. API 37 is a minor platform release, so the SDK package is
+    <code>platforms;android-37.0</code>. If your local SDK is older, override both:</span><span class="i18n-zh">默认是 <code>compileSdk 37</code> / <code>targetSdk 37</code>，这是提交到 Google Play 所需要的。
+    API 37 是一个 minor 平台版本，所以 SDK 包名是 <code>platforms;android-37.0</code>。如果你本地的 SDK 更旧，就把这两个都覆盖掉：</span>
   </p>
 
-  <pre><code>./gradlew assembleDebug -PcompileSdk=34 -PtargetSdk=34</code></pre>
+  <pre><code>./gradlew assembleDebug -PcompileSdk=35 -PtargetSdk=35</code></pre>
 
   <p class="small muted">
-    <span class="i18n-en">Note that AndroidX 1.15+ requires <code>compileSdk 35</code>, so this override is only
+    <span class="i18n-en">Note that AndroidX <code>core</code> 1.19 requires <code>compileSdk 37</code>, so this override is only
     useful if you also lower the dependency versions in
-    <code>gradle/libs.versions.toml</code>.</span><span class="i18n-zh">注意 AndroidX 1.15+ 要求 <code>compileSdk 35</code>，所以只有在你也把
+    <code>gradle/libs.versions.toml</code>.</span><span class="i18n-zh">注意 AndroidX <code>core</code> 1.19 要求 <code>compileSdk 37</code>，所以只有在你也把
     <code>gradle/libs.versions.toml</code> 里的依赖版本调低时，这个覆盖才有用。</span>
   </p>
 

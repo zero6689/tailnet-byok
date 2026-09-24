@@ -74,7 +74,7 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
 
       - name: Install the Android NDK
         run: |
@@ -162,7 +162,7 @@ jobs:
           set -euo pipefail
           apk=app/build/outputs/apk/release/tailnet-byok-arm64.apk
           [ -f "$apk" ] || { echo "::error::no release APK produced"; exit 1; }
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$apk"
           echo "signed: $apk"
 
       - name: Write the release notes and their record
@@ -172,7 +172,7 @@ jobs:
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/release/tailnet-byok-arm64.apk
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          APKSIGNER="$ANDROID_HOME/build-tools/37.0.0/apksigner"
           CERT=$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/SHA-256 digest/{print $2; exit}')
           AAR_SHA=$(sha256sum app/libs/tailnet.aar | cut -d' ' -f1)
           APK_SHA=$(sha256sum "$APK" | cut -d' ' -f1)

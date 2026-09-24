@@ -46,14 +46,16 @@ Note the doubled backslashes and the escaped colon: this is a Java properties fi
 
 ### SDK level
 
-The default is `compileSdk 35` / `targetSdk 35`. To build against an older SDK:
+The default is `compileSdk 37` / `targetSdk 37`. API 37 ships as a *minor* platform release, so
+the SDK package and directory are `android-37.0` — there is no plain `android-37` package. To
+build against an older SDK:
 
 ```bash
-./gradlew assembleDebug -PcompileSdk=34 -PtargetSdk=34
+./gradlew assembleDebug -PcompileSdk=35 -PtargetSdk=35
 ```
 
-AndroidX 1.15+ requires `compileSdk 35`, so this only helps if you also lower the versions in
-`gradle/libs.versions.toml`.
+AndroidX `core` 1.19 requires `compileSdk 37`, so this only helps if you also lower the versions
+in `gradle/libs.versions.toml` (1.18.0 is the last release that accepts 36).
 
 ### Pre-filling a target (your own build only)
 
@@ -111,11 +113,11 @@ reference" lines.
 
 | Component | Version | Notes |
 |---|---|---|
-| JDK | 17 | AGP 8.7 requires 17 |
-| Gradle | 8.11.1 | set by `make-wrapper.mjs` |
-| AGP | 8.7.3 | `gradle/libs.versions.toml` |
-| Kotlin | 2.1.0 | with the Compose compiler plugin |
-| Android SDK | platform 35, build-tools 35.0.0 | |
+| JDK | 17 | AGP 9.4 requires 17 |
+| Gradle | 9.6.0 | set by `make-wrapper.mjs`; AGP 9.4 requires 9.6.0 |
+| AGP | 9.4.1 | `gradle/libs.versions.toml`; the first line that supports `compileSdk 37` |
+| Kotlin | 2.2.10 | compiled by AGP's built-in Kotlin (the `org.jetbrains.kotlin.android` plugin is no longer applied); the Compose and serialization compiler plugins are |
+| Android SDK | platform 37.0, build-tools 37.0.0 | API 37 is a minor release, so the package is `platforms;android-37.0` |
 | Go | the `go` line in `tailnet/go.mod` (1.26.6) | CI installs exactly that; `fetch-toolchain.mjs` resolves the newest Go unless you pin one |
 | Android NDK | r26d (26.3.11579264) | pinned in CI; gomobile is NDK-sensitive |
 | gomobile / gobind | the `golang.org/x/mobile` revision in `tailnet/go.mod` | see below |

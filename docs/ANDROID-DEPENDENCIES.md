@@ -14,9 +14,9 @@ describes the contents of the APK.
 | Licence | Modules |
 | --- | ---: |
 | BSD License | 1 |
-| The Apache License, Version 2.0 | 6 |
-| The Apache Software License, Version 2.0 | 123 |
-| **total** | **129** |
+| The Apache License, Version 2.0 | 7 |
+| The Apache Software License, Version 2.0 | 124 |
+| **total** | **131** |
 
 ## Modules
 
@@ -25,9 +25,9 @@ describes the contents of the APK.
 | `androidx.activity:activity` | 1.9.3 | The Apache Software License, Version 2.0 |
 | `androidx.activity:activity-compose` | 1.9.3 | The Apache Software License, Version 2.0 |
 | `androidx.activity:activity-ktx` | 1.9.3 | The Apache Software License, Version 2.0 |
-| `androidx.annotation:annotation` | 1.8.1 | The Apache Software License, Version 2.0 |
+| `androidx.annotation:annotation` | 1.10.0 | The Apache Software License, Version 2.0 |
 | `androidx.annotation:annotation-experimental` | 1.4.1 | The Apache Software License, Version 2.0 |
-| `androidx.annotation:annotation-jvm` | 1.8.1 | The Apache Software License, Version 2.0 |
+| `androidx.annotation:annotation-jvm` | 1.10.0 | The Apache Software License, Version 2.0 |
 | `androidx.appcompat:appcompat` | 1.1.0 | The Apache Software License, Version 2.0 |
 | `androidx.appcompat:appcompat-resources` | 1.1.0 | The Apache Software License, Version 2.0 |
 | `androidx.arch.core:core-common` | 2.2.0 | The Apache Software License, Version 2.0 |
@@ -78,8 +78,9 @@ describes the contents of the APK.
 | `androidx.compose:compose-bom` | 2024.12.01 | The Apache Software License, Version 2.0 |
 | `androidx.concurrent:concurrent-futures` | 1.1.0 | The Apache Software License, Version 2.0 |
 | `androidx.concurrent:concurrent-futures-ktx` | 1.1.0 | The Apache Software License, Version 2.0 |
-| `androidx.core:core` | 1.15.0 | The Apache Software License, Version 2.0 |
-| `androidx.core:core-ktx` | 1.15.0 | The Apache Software License, Version 2.0 |
+| `androidx.core:core` | 1.19.0 | The Apache Software License, Version 2.0 |
+| `androidx.core:core-ktx` | 1.19.0 | The Apache Software License, Version 2.0 |
+| `androidx.core:core-viewtree` | 1.0.0 | The Apache Software License, Version 2.0 |
 | `androidx.cursoradapter:cursoradapter` | 1.0.0 | The Apache Software License, Version 2.0 |
 | `androidx.customview:customview` | 1.0.0 | The Apache Software License, Version 2.0 |
 | `androidx.customview:customview-poolingcontainer` | 1.0.0 | The Apache Software License, Version 2.0 |
@@ -137,8 +138,8 @@ describes the contents of the APK.
 | `com.squareup.okio:okio-jvm` | 3.6.0 | The Apache Software License, Version 2.0 |
 | `org.jetbrains.kotlin:kotlin-android-extensions-runtime` | 1.9.22 | The Apache License, Version 2.0 |
 | `org.jetbrains.kotlin:kotlin-parcelize-runtime` | 1.9.22 | The Apache License, Version 2.0 |
-| `org.jetbrains.kotlin:kotlin-stdlib` | 2.1.0 | The Apache License, Version 2.0 |
-| `org.jetbrains.kotlin:kotlin-stdlib-common` | 2.1.0 | The Apache License, Version 2.0 |
+| `org.jetbrains.kotlin:kotlin-stdlib` | 2.2.10 | The Apache License, Version 2.0 |
+| `org.jetbrains.kotlin:kotlin-stdlib-common` | 2.2.10 | The Apache License, Version 2.0 |
 | `org.jetbrains.kotlin:kotlin-stdlib-jdk7` | 1.9.10 | The Apache License, Version 2.0 |
 | `org.jetbrains.kotlin:kotlin-stdlib-jdk8` | 1.9.10 | The Apache License, Version 2.0 |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.9.0 | The Apache Software License, Version 2.0 |
@@ -151,3 +152,4 @@ describes the contents of the APK.
 | `org.jetbrains.kotlinx:kotlinx-serialization-json` | 1.7.3 | The Apache Software License, Version 2.0 |
 | `org.jetbrains.kotlinx:kotlinx-serialization-json-jvm` | 1.7.3 | The Apache Software License, Version 2.0 |
 | `org.jetbrains:annotations` | 23.0.0 | The Apache Software License, Version 2.0 |
+| `org.jspecify:jspecify` | 1.0.0 | The Apache License, Version 2.0 |

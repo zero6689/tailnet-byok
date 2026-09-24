@@ -261,6 +261,14 @@ jobs:
         with:
           cache-read-only: false
 
+      # The runner image carries whatever SDK platform it was built with, which is
+      # not a version this project gets to choose. The build needs API 37 (the
+      # minor-release package `platforms;android-37.0`) and build-tools 37.0.0, so
+      # they are installed explicitly rather than hoped for.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
+
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
 
@@ -301,6 +309,10 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v4
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
 
       - name: Assemble
         run: ./gradlew --no-daemon assembleDebug
