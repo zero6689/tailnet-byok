@@ -93,3 +93,29 @@ if ! echo "$focused" | grep -q "$pkg"; then
   exit 1
 fi
 echo "ok: the focused app is this package"
+
+# What only a device can answer, and only with the bridged build: does the native
+# library load? The app says so in its own words on the setup screen, so the check
+# reads those words rather than trusting the packaging step. `EXPECT_BRIDGE=yes` is
+# set by the job that installs an APK built with `-PwithTsnet=true`.
+if [ "${EXPECT_BRIDGE:-no}" = "yes" ]; then
+  label='Embedded tailnet node'
+  failures='not compiled into this build|native bridge missing|native bridge failed to load'
+  dump=""
+  for attempt in 1 2 3 4 5; do
+    dump=$(adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 && adb shell cat /sdcard/window.xml | tr -d '\r' || true)
+    if echo "$dump" | grep -q "$label"; then break; fi
+    sleep 4
+  done
+  if ! echo "$dump" | grep -q "$label"; then
+    echo "::error::the setup screen never lists the embedded provider"
+    echo "$dump" | head -c 2000
+    exit 1
+  fi
+  if echo "$dump" | grep -qE "$failures"; then
+    echo "::error::built with the bridge, but the UI reports it unusable:"
+    echo "$dump" | grep -oE "$failures" | sort -u
+    exit 1
+  fi
+  echo "ok: the embedded node is offered, and no bridge failure is reported"
+fi

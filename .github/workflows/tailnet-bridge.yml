@@ -190,3 +190,53 @@ jobs:
           name: app-debug-with-bridge
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+  smoke-with-bridge:
+    name: Smoke the bridged build on an emulator
+    # The APK above is assembled and checked for `libgojni.so` inside the zip, which
+    # says the library was packaged -- not that it loads. This job installs that same
+    # APK on a clean emulator and asserts what only a device can answer: the app comes
+    # up, and the setup screen offers the embedded node without reporting that the
+    # bridge is missing or failed to load. The strings it checks against are the app's
+    # own (`provider_unavailable_*`), so a build that compiles the bridge in and then
+    # cannot load it fails here rather than on somebody's phone.
+    #
+    # It reuses the artifact instead of rebuilding, and it is skipped on pull requests
+    # for the same reason the smoke in ci.yml is: emulator minutes are the scarce
+    # resource, and main is what ships.
+    needs: build-bridge
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-debug-with-bridge
+          path: smoke-apk
+
+      - name: Put the APK where the smoke script looks for it
+        run: |
+          set -euo pipefail
+          apk=$(find smoke-apk -name '*.apk' | head -n1)
+          [ -n "$apk" ] || { echo "::error::the bridged APK artifact is empty"; exit 1; }
+          mkdir -p app/build/outputs/apk/debug
+          cp "$apk" app/build/outputs/apk/debug/app-debug.apk
+          ls -l app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Install it on a clean emulator and check what the device says
+        uses: ReactiveCircus/android-emulator-runner@v2
+        env:
+          EXPECT_BRIDGE: 'yes'
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            # One line on purpose: this action hands each line to a separate
+            # /usr/bin/sh -c, so the assertions live in the script file.
+            bash scripts/smoke-on-emulator.sh
+
