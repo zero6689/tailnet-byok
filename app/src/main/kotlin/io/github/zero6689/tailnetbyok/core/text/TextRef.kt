@@ -22,7 +22,13 @@ import androidx.annotation.StringRes
  * `strings.xml` behind an id like this one.
  */
 data class TextRef(
-    @StringRes val res: Int,
+    // `@param:` is explicit on purpose. Kotlin 2.2 warns that an annotation on a
+    // constructor property lands on the value parameter today and will also land on
+    // the field later (KT-73255); the remedies are to say which one you meant, or to
+    // pass -Xannotation-default-target=param-property. The flag changes that for
+    // *every* annotation in the module, while this says it for this one --
+    // `@StringRes` here has always been about the argument a caller passes.
+    @param:StringRes val res: Int,
     val args: List<Any> = emptyList(),
 ) {
     companion object {

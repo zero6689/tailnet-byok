@@ -40,7 +40,10 @@ import io.github.zero6689.tailnetbyok.net.TailnetCredentials
  */
 class ConnectionTester {
 
-    enum class Step(@StringRes val labelRes: Int) {
+    // `@param:` for the reason spelled out in `core.text.TextRef`: explicit beats a
+    // module-wide -Xannotation-default-target, and this annotation is about the
+    // argument each step is constructed with.
+    enum class Step(@param:StringRes val labelRes: Int) {
         VALIDATE_ADDRESS(R.string.step_validate_address),
         RESOLVE_PROVIDER(R.string.step_resolve_provider),
         CHECK_CREDENTIAL(R.string.step_check_credential),

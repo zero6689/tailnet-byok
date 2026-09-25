@@ -158,7 +158,11 @@ interface ConnectivityProvider {
  * [labelRes] is the translated display name — an id, not text, so the UI can
  * render it in the active language (see `core.text.TextRef` for the rule).
  */
-enum class ProviderId(val storageKey: String, @StringRes val labelRes: Int) {
+// `@param:` for the reason spelled out in `core.text.TextRef`: say which target is
+// meant rather than switching the whole module's default with
+// -Xannotation-default-target, and this annotation is about the argument each
+// provider is constructed with.
+enum class ProviderId(val storageKey: String, @param:StringRes val labelRes: Int) {
     /** Own node, own auth key, no VPN slot. */
     EMBEDDED_TSNET("embedded_tsnet", R.string.provider_embedded_tsnet),
 
