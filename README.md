@@ -139,6 +139,21 @@ The setup screen is one scrollable screen, in this order: target → connection
 method → credential → node → test. That order is the dependency order, so the
 result of the test sits directly under the fields it describes.
 
+### On a tablet (0.4.1)
+
+The same app on an Android tablet (HUAWEI AGS5-W00, Android 12), which is the other
+half of the point: the DSH UI is the same page at a wider width, and the app around it
+behaves the same. Two of these show that page, and the block over the composer's
+workspace chip is a redaction — the name under it is the local checkout's folder, and
+a machine path has no business in a public repository.
+
+| | | |
+|---|---|---|
+| ![DSH BYOK 0.4.1 installed on a tablet](docs/images/tablet-app-info.jpg) | ![The app's permission screen on a tablet](docs/images/tablet-permissions.jpg) | ![DSH's settings panel at tablet width](docs/images/tablet-dsh-settings.jpg) |
+| **Installed** — `DSH BYOK` 0.4.1 on the tablet | **Permissions** — camera for a setup QR, install-unknown-apps for the updater | **DSH's settings**, tabbed, at tablet width |
+| ![The DSH UI on a tablet](docs/images/tablet-dsh-composer.jpg) | ![DSH's first-run notice on a tablet](docs/images/tablet-first-run-notice.jpg) | |
+| **The DSH UI** on the tablet (workspace name redacted) | **First run** on the tablet, over the session list | |
+
 From there, *Open the DSH UI* swaps in `WebScreen.kt`: a WebView onto the
 target's own interface, reached through the loopback proxy described above.
 
