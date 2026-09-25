@@ -121,6 +121,18 @@ And when it fails, it says which part:
 
 ## Screens
 
+These are from a real device running v0.3.9 (Android, arm64), not mockups. The one
+screenshot that showed a tailnet address — the provisioning page's target field, the
+link it generates, and the QR code that encodes that link — is redacted: that address
+belongs to whoever runs the server, not to this project.
+
+| | | |
+|---|---|---|
+| ![Installed: DSH BYOK 0.3.9](docs/images/app-info.jpg) | ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![The provisioning page](docs/images/provisioning-page.jpg) |
+| **Installed** — `DSH BYOK` 0.3.9 | **The DSH UI**, in the WebView, through the loopback proxy | **The provisioning page** that turns a target into a link or a code (address redacted) |
+| ![DSH's first-run notice](docs/images/dsh-notice.jpg) | ![The notification permission prompt](docs/images/notification-permission.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
+| **First run** — the target's own notice, shown by the app | **Notification permission** — asked once, and the finish notice needs it | **The finish notice** pops up; above it, the watch that precedes it |
+
 The setup screen is one scrollable screen, in this order: target → connection
 method → credential → node → test. That order is the dependency order, so the
 result of the test sits directly under the fields it describes.
