@@ -88,14 +88,25 @@ jobs:
 
       # The download mirror.
       #
-      # GitHub's release storage (`release-assets.githubusercontent.com`) is not
-      # reachable at a usable speed from every network: measured 2026-09-25 at
-      # 0.03 MB/s, which is about 25 minutes for the 45 MB APK, while this site's own
-      # host served the page in under a second. So the newest release asset is copied
-      # into the published site and `provisioning.html` offers it as a mirror.
+      # The release asset and this site are served by *different* hosts: the asset by
+      # `release-assets.githubusercontent.com` (Azure Blob), the site by GitHub Pages
+      # (Fastly). On some networks the first is unusable while the second is fine --
+      # that is the reported symptom this exists for: the provisioning page loads on
+      # the phone, the 45 MB APK behind it crawls. So the newest release asset is
+      # copied into the published site and `provisioning.html` offers it as a second
+      # host for the same bytes.
       #
-      # Same bytes, not a rebuild: the file is the release asset verbatim, and its
-      # sha256 is published next to it so a copy from anywhere can be checked.
+      # Measured 2026-09-25 on the maintainer's machine, nothing else in flight,
+      # 4 MB ranges x3: mirror 2.6 / 13.3 / 14.0 MB/s against the release asset's
+      # 2.9 / 7.7 / 7.7. An earlier 0.03 MB/s reading was taken while a 134 MB Gradle
+      # download saturated the same link, so it is not a baseline and is not quoted
+      # as one anywhere. The mirror is an alternative host, not a proven speedup:
+      # which one is faster depends on the network.
+      #
+      # What is checked rather than assumed: the deployed file was downloaded whole
+      # and its sha256 compared against the release digest (2026-09-25: 45,921,396 B,
+      # 70d7cd1d...6706f, identical), and that checksum is published beside it so a
+      # copy from anywhere can be verified.
       #
       # A repository with no published release yet is a legitimate state (a fork),
       # so a missing release warns rather than failing the docs deploy.

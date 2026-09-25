@@ -75,12 +75,12 @@
     <p class="small muted">
       <span class="i18n-en">Both download buttons serve <strong>the same bytes</strong> — the mirror is this site's
       own copy of the release asset, published under <code>byok/</code> because GitHub's release storage is slow or
-      unreachable from some networks (measured at 0.03&nbsp;MB/s, about 25 minutes for 45&nbsp;MB, while this page
-      itself loaded in under a second). It is refreshed automatically whenever a release is published, and the
+      unreachable from some networks while this page's own host is fine — the two files come from
+      different places, which is why there are two buttons). It is refreshed automatically whenever a release is published, and the
       <code>sha256</code> link next to it is the checksum of exactly those bytes — compare it before installing if
       you got the file from anywhere else.</span><span class="i18n-zh">两个下载按钮给的是<strong>同一份字节</strong> ——
-      镜像就是本页所在站点自己保存的那份发布资产，放在 <code>byok/</code> 下，因为 GitHub 的发布存储在部分地区很慢甚至
-      打不开（本机实测 0.03&nbsp;MB/s，45&nbsp;MB 要约 25 分钟；而本页本身不到一秒就打开了）。它会在每次发布新版本时自动刷新，
+      镜像就是本页所在站点自己保存的那份发布资产，放在 <code>byok/</code> 下。两份文件来自不同的主机：GitHub 的发布存储
+      在部分地区很慢甚至打不开，而本页所在的主机正常，这就是有两个按钮的原因。它会在每次发布新版本时自动刷新，
       旁边的 <code>sha256</code> 链接就是这份字节的校验值 —— 如果你是从别处拿到的文件，装之前先对一下。</span>
     </p>
     <p class="small muted">

@@ -45,14 +45,17 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Added
 
-- **The documentation site serves the release APK itself.** GitHub's release storage
-  (`release-assets.githubusercontent.com`) is a different host from the Pages site and was measured
-  on 2026-09-25 at 0.03 MB/s — about 25 minutes for the 45 MB APK — while the page itself loaded in
-  under a second. `docs-pages.yml` now copies the newest release asset to `byok/` on every deploy
+- **The documentation site serves the release APK itself.** The release asset and the docs site are
+  served by different hosts — the asset by `release-assets.githubusercontent.com` (Azure Blob), the
+  site by Pages (Fastly) — and on some networks the asset host is unusable while the page loads fine,
+  which is exactly the reported symptom: the provisioning page opens on the phone and the 45 MB APK
+  behind it crawls. `docs-pages.yml` now copies the newest release asset to `byok/` on every deploy
   **and** on `release: published` (a mirror that keeps serving the previous release would be worse
   than none), publishes its sha256 beside it, and refuses to publish a file that is implausibly
-  small. The GitHub link stays on the page: same bytes, and the checksum is what makes that
-  checkable.
+  small. It is an alternative host, not a proven speedup — measured 2026-09-25 with nothing else in
+  flight, 4 MB ranges ×3: mirror 2.6 / 13.3 / 14.0 MB/s against the release asset's 2.9 / 7.7 / 7.7.
+  The GitHub link stays on the page: both are the same bytes, verified by downloading the deployed
+  mirror whole and comparing its sha256 against the release digest.
 
 ## [0.3.9] — 2026-09-23
 

@@ -53,15 +53,23 @@ Two things are published, and they are different files:
 3. **The mirror on the docs site.** `docs-pages.yml` copies the newest release asset
    to `site/dist/byok/tailnet-byok-arm64.apk` (plus a `.sha256`) every time it
    deploys, so `https://<site>/byok/tailnet-byok-arm64.apk` serves the same bytes
-   from GitHub Pages. This exists because GitHub's *release storage* is a different
-   host from the Pages site and is far slower from some networks — measured
-   2026-09-25 at 0.03 MB/s against the release asset, i.e. about 25 minutes for
-   45 MB, while the page itself loaded in under a second. The workflow therefore also
-   runs on `release: published`: a mirror that keeps serving the *previous* release
-   after a new one is published is worse than no mirror, and nothing else would
-   refresh it when a release changes no file under `site/`.
-   Nothing about the mirror is rebuilt or re-signed — it is the release asset,
-   byte for byte, and the checksum published beside it is the one to verify a copy
+   from GitHub Pages. This exists because the release asset and the docs site are
+   served by different hosts — the asset by `release-assets.githubusercontent.com`
+   (Azure Blob), the site by Pages (Fastly) — and on some networks the asset host is
+   unusable while the page loads fine. That is the symptom it was added for: the
+   provisioning page opens on the phone, the 45 MB APK behind it crawls.
+   It is an **alternative host, not a proven speedup**. Measured 2026-09-25 with
+   nothing else in flight, 4 MB ranges x3: mirror 2.6 / 13.3 / 14.0 MB/s against the
+   release asset's 2.9 / 7.7 / 7.7. An earlier 0.03 MB/s reading was taken while a
+   134 MB Gradle download saturated the same link, and is not a baseline.
+   The workflow therefore also runs on `release: published`: a mirror that keeps
+   serving the *previous* release after a new one is published is worse than no
+   mirror, and nothing else would refresh it when a release changes no file under
+   `site/`.
+   Nothing about the mirror is rebuilt or re-signed — it is the release asset, byte
+   for byte. That is checked rather than assumed: the deployed file was downloaded
+   whole and hashed (2026-09-25: 45,921,396 B, `70d7cd1d…6706f` — the release
+   digest), and the checksum published beside it is the one to verify any other copy
    against.
 
 ### The release asset must not name the build machine
