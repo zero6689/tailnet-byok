@@ -177,6 +177,22 @@ that AAR and run the privacy scan above before attaching anything to a release.
 - **Never ship an AAR whose notices are stale.** The `licences` CI job fails when
   `THIRD-PARTY-NOTICES.md` or `licenses/` no longer match `go list -deps`.
 
+## Releases are pruned to the latest
+
+The Releases page carries one release: the newest one a user can actually run. Earlier
+builds are not kept as downloads, because two entries can share a label and a
+`versionName` and be indistinguishable on a phone — that is not hypothetical, it is how a
+fresh handset came to run a build with the operator's own tailnet address already in the
+target field. One consequence to respect when editing: a `CHANGELOG.md` link for a
+withdrawn version points at the releases page rather than at a tag URL, because the tag is
+gone with the release.
+
+Withdrawing one is `gh release delete <tag> --cleanup-tag`, and only *after* the asset has
+been archived and its digest checked — `.cache/byok-repo-cleanup/` holds the v0.2.9 asset
+and its release metadata for that reason. Deleting a tag ref is also what makes GitHub
+revert the release it names to a draft, so delete the release itself, then confirm that
+`/releases/latest` still resolves and that the surviving release is not a draft.
+
 ## Reproducibility, honestly
 
 The pin, the toolchain versions and the record above make a rebuild *possible to

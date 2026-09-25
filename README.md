@@ -16,7 +16,9 @@ that one service. No account with us, no server of ours, no shared relay.
 **[Download the latest APK](https://github.com/zero6689/tailnet-byok/releases/latest/download/tailnet-byok-arm64.apk)**
 ([mirror](https://zero6689.github.io/tailnet-byok/byok/tailnet-byok-arm64.apk) — the same bytes from a different
 host; use it if the GitHub link crawls, which it does from some networks)
-— Android 8.0+, arm64. Then open the app: a fresh install shows the ways to connect it. The short
+— Android 8.0+, arm64. The releases page keeps one build, the one above; earlier ones are
+withdrawn rather than left beside it, because two entries that report the same version cannot be
+told apart once they are installed. Then open the app: a fresh install shows the ways to connect it. The short
 version is that whoever runs the server you are reaching hands over a target, and
 [the provisioning page](https://zero6689.github.io/tailnet-byok/provisioning.html) is what turns
 that target into a link or a QR code. Install, take a link, sign in against your own server; nothing
