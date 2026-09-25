@@ -705,7 +705,7 @@ AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 [Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.1...HEAD
 [0.4.1]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.1
-[0.4.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.0
+[0.4.0]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: 0.4.1 replaced it within the day"
 [0.3.9]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.3.9
 [0.2.9]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: only the latest release is kept"
 [0.2.8]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: only the latest release is kept"
