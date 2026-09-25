@@ -132,7 +132,8 @@ jobs:
           size=$(stat -c%s site/dist/byok/tailnet-byok-arm64.apk)
           echo "mirror: $size bytes, $(cat site/dist/byok/tailnet-byok-arm64.apk.sha256)"
           # A stub or a truncated transfer would be served as a broken installer.
-          # The only release build is ~45 MB; anything near zero is not one.
+          # A release build is ~35 MB (43.8 MB up to 0.3.9, before the native library
+          # was stripped); anything near zero is not one.
           if [ "$size" -lt 10000000 ]; then
             echo "::error::the mirrored APK is implausibly small ($size bytes) — refusing to publish it"
             exit 1

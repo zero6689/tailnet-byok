@@ -39,6 +39,15 @@ The rest is the toolchain work that had been sitting in `[Unreleased]`: `compile
 
 ### Changed
 
+- **The download got about 9 MB smaller and the code is the same.** The toolchain upgrade put the NDK
+  where AGP can find it during the release build (`ANDROID_NDK_HOME`), and AGP's native-library strip
+  therefore runs: `libgojni.so` loses its `.debug_*`, `.symtab` and `.strtab` sections — 9,072,480 B,
+  which is the whole difference between the 0.3.9 asset (45,921,396 B) and this one (36,850,464 B).
+  Checked rather than assumed: `.text`, `.rodata` and `.gopclntab` come out the same size in both, and
+  the dynamic symbol table is identical, all 28 `Java_io_github_*` entry points at the same addresses.
+  So the embedded node is the same library with the debug tables removed. A workstation build keeps
+  them, because the local Gradle driver does not set `ANDROID_NDK_HOME` — which is why the two sizes
+  differ by more than the DWARF they used to differ by.
 - **The app is built with `compileSdk 37`, AGP 9.4.1, Gradle 9.6.0 and Kotlin 2.2.10.** One change
   rather than four, because it cannot be split: `androidx.core` 1.19.0 — the update Dependabot has
   been offering since 2026-09-20 — declares `minCompileSdk=37` and

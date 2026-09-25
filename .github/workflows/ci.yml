@@ -360,7 +360,11 @@ jobs:
           # button for an http(s) URL, so empty means a first-run card that offers no
           # way to reach the page at all. That is what shipped in 0.3.9 and it read as
           # a missing feature. Asserted, so it cannot go missing quietly again.
-          if ! grep -qE 'DEFAULT_PROVISIONING_URL = "https://'; then
+          # The file argument is not optional here: a bare `grep -q PATTERN` reads
+          # stdin, and an empty stdin is a no-match -- which is a check that fails on
+          # a correct value rather than a check that passes on a wrong one, but it is
+          # still an assertion that never looked at the thing it names.
+          if ! grep -qE 'DEFAULT_PROVISIONING_URL = "https://' "$cfg"; then
             echo "::error::DEFAULT_PROVISIONING_URL is not an https URL in the default build:"
             grep -E "DEFAULT_PROVISIONING_URL =" "$cfg"
             exit 1
