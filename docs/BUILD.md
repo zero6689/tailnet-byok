@@ -90,6 +90,17 @@ falls back to is public (the page the README links). `defaultTarget`, `defaultMo
 `defaultUpdateUrl` must stay empty there, and `ci.yml` asserts both halves against the generated
 `BuildConfig.java` rather than against this file.
 
+`defaultUpdateUrl` needs its own warning, because its file names are shared. An update source is a
+directory serving `dsh.apk.version`, `dsh.apk` and `dsh.apk.sha256` — and the **DSH shell app's own
+update face uses exactly those names at the web root** of the same host. So on a host that serves
+both, a build whose update source falls back to the target's origin reads the *shell*'s version
+file: the app announces an update to that version, downloads that APK, verifies its SHA-256 against
+that sidecar (both are genuine — of a different app), and only then refuses, because
+`UpdateInstaller` compares the archive's declared package name with this app's and returns
+`WrongPackage`. Nothing is installed and nothing is unsafe, but the prompt is wrong and the download
+is wasted. Point `-PdefaultUpdateUrl` (or the 更新源 field) at this app's own face,
+`http://host:8089/byok` on the reference host, whenever the host also serves the shell.
+
 ---
 
 ## Full build, with the embedded node
