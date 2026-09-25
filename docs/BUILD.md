@@ -98,8 +98,14 @@ file: the app announces an update to that version, downloads that APK, verifies 
 that sidecar (both are genuine — of a different app), and only then refuses, because
 `UpdateInstaller` compares the archive's declared package name with this app's and returns
 `WrongPackage`. Nothing is installed and nothing is unsafe, but the prompt is wrong and the download
-is wasted. Point `-PdefaultUpdateUrl` (or the 更新源 field) at this app's own face,
-`http://host:8089/byok` on the reference host, whenever the host also serves the shell.
+is wasted.
+
+0.4.1 makes the app defend itself against exactly that, so a host no longer has to be configured
+around it: when the base is a **bare origin** — the derived default — `UpdateChecker` tries
+`<origin>/byok` first and falls back to the origin. A base that carries a path is still used
+verbatim, because a mirror at `…/mirror` is where its files are. The reference host serves this
+app's face at `/byok` on both ports for that reason. Point `-PdefaultUpdateUrl` at that face
+(`http://host:8089/byok`) if you would rather not rely on the preference.
 
 ---
 

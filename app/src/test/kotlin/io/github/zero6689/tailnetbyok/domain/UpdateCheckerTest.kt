@@ -74,21 +74,68 @@ class UpdateCheckerTest {
         version: String? = null,
         apk: ByteArray? = null,
         sidecar: String? = null,
+        /** Which base these paths hang off; `$base` unless a test is placing a face. */
+        at: String = base,
     ): Map<String, ByteArray> = buildMap {
-        version?.let { put("$base/${UpdateProtocol.VERSION_PATH}", it.toByteArray(Charsets.UTF_8)) }
-        apk?.let { put("$base/${UpdateProtocol.APK_PATH}", it) }
-        sidecar?.let { put("$base/${UpdateProtocol.SIDECAR_PATH}", it.toByteArray(Charsets.UTF_8)) }
+        version?.let { put("$at/${UpdateProtocol.VERSION_PATH}", it.toByteArray(Charsets.UTF_8)) }
+        apk?.let { put("$at/${UpdateProtocol.APK_PATH}", it) }
+        sidecar?.let { put("$at/${UpdateProtocol.SIDECAR_PATH}", it.toByteArray(Charsets.UTF_8)) }
     }
 
     private fun checkerFor(source: FakeSource) = UpdateChecker(fetch = source::fetch)
 
     @Test
-    fun `an up-to-date source costs one small request`() = runTest {
+    fun `an up-to-date source costs one answered request, after trying its byok face`() = runTest {
         val source = FakeSource(routes(version = "0.2.6\n"))
         val result = checkerFor(source).check(base, "0.2.6-debug")
 
         assertEquals(UpdateChecker.UpdateCheck.UpToDate("0.2.6-debug", "0.2.6"), result)
-        assertEquals(listOf("$base/${UpdateProtocol.VERSION_PATH}"), source.requested)
+        // The `/byok` candidate is tried first and 404s here, which is what a host
+        // with no separate face for this app looks like. One extra 404 is the price
+        // of not reading another app's version file at the root.
+        assertEquals(
+            listOf("$base/byok/${UpdateProtocol.VERSION_PATH}", "$base/${UpdateProtocol.VERSION_PATH}"),
+            source.requested,
+        )
+    }
+
+    // -- One host, two apps, the same three file names ------------------------
+
+    @Test
+    fun `the byok face wins over a host root that serves another app`() = runTest {
+        // The field case, 2026-09-25: the target origin is a DSH host, whose *shell*
+        // app keeps its own `dsh.apk.version` at the web root (1.59) while this app's
+        // face lives under /byok (0.4.1). Reading the root offered to install the
+        // shell's APK — the hash check passed, because it was a genuine release of
+        // something, and only the package-name check stopped it.
+        val source = FakeSource(
+            routes(version = "1.59\n") + routes(version = "0.4.1\n", at = "$base/byok"),
+        )
+        val result = checkerFor(source).checkVersionOnly(base, "0.4.0")
+
+        assertEquals(
+            UpdateChecker.VersionCheck.Newer(current = "0.4.0", advertised = "0.4.1"),
+            result,
+        )
+        assertEquals("$base/byok/${UpdateProtocol.VERSION_PATH}", source.requested.first())
+    }
+
+    @Test
+    fun `a base that already is the face is not probed twice`() = runTest {
+        val face = "$base/byok"
+        val source = FakeSource(
+            routes(version = "0.4.1\n", apk = apkBytes, sidecar = "$apkHash  dsh.apk\n", at = face),
+        )
+        checkerFor(source).check(face, "0.4.0")
+
+        assertEquals(
+            listOf(
+                "$face/${UpdateProtocol.VERSION_PATH}",
+                "$face/${UpdateProtocol.APK_PATH}",
+                "$face/${UpdateProtocol.SIDECAR_PATH}",
+            ),
+            source.requested,
+        )
     }
 
     // -- The check the app runs by itself -------------------------------------
@@ -106,7 +153,10 @@ class UpdateCheckerTest {
             UpdateChecker.VersionCheck.Newer(current = "0.2.8-debug", advertised = "0.2.9"),
             result,
         )
-        assertEquals(listOf("$base/${UpdateProtocol.VERSION_PATH}"), source.requested)
+        assertEquals(
+            listOf("$base/byok/${UpdateProtocol.VERSION_PATH}", "$base/${UpdateProtocol.VERSION_PATH}"),
+            source.requested,
+        )
     }
 
     @Test
@@ -158,6 +208,7 @@ class UpdateCheckerTest {
         assertEquals(apkBytes.toList(), result.bytes.toList())
         assertEquals(
             listOf(
+                "$base/byok/${UpdateProtocol.VERSION_PATH}",
                 "$base/${UpdateProtocol.VERSION_PATH}",
                 "$base/${UpdateProtocol.APK_PATH}",
                 "$base/${UpdateProtocol.SIDECAR_PATH}",
@@ -248,10 +299,15 @@ class UpdateCheckerTest {
 
         checker.check(base, "0.2.6")
 
-        // version, apk, sha256 — the package request carries the ceiling, and the
-        // two text sidecars stay small.
+        // The `/byok` probe, the version file it falls back to, the apk, the sha256 —
+        // the package request carries the ceiling, and every text response stays small.
         assertEquals(
-            listOf(UpdateProtocol.MAX_TEXT_BYTES, embedded, UpdateProtocol.MAX_TEXT_BYTES),
+            listOf(
+                UpdateProtocol.MAX_TEXT_BYTES,
+                UpdateProtocol.MAX_TEXT_BYTES,
+                embedded,
+                UpdateProtocol.MAX_TEXT_BYTES,
+            ),
             seen,
         )
         // And the ceiling is genuinely lower on that route, or the guard is theatre.

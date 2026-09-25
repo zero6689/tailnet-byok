@@ -82,21 +82,16 @@ class UpdateChecker(
      *
      * This is the check the app runs by itself at start-up, and the difference
      * from [check] is the whole point: nothing large is fetched, so a check the
-     * user never asked for costs one small text request. Telling them a newer
-     * version exists is the goal; spending their bandwidth on the chance that
-     * they want it is not.
+     * user never asked for costs one small text request (two when the source has no
+     * `/byok` face — see [resolveSource]). Telling them a newer version exists is the
+     * goal; spending their bandwidth on the chance that they want it is not.
      */
     suspend fun checkVersionOnly(baseUrl: String, currentVersion: String): VersionCheck {
         val base = baseUrl.trim().trimEnd('/')
         if (base.isEmpty()) return VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
 
-        val versionUrl = UpdateProtocol.endpoint(base, UpdateProtocol.VERSION_PATH)
-        val versionText = when (val fetched = fetchChecked(versionUrl, UpdateProtocol.MAX_TEXT_BYTES)) {
-            is Fetched.Ok -> fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
-            Fetched.TooLarge, Fetched.Failed -> return VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
-        }
-
-        val advertised = UpdateProtocol.parseAdvertisedVersion(versionText)
+        val source = resolveSource(base) ?: return VersionCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+        val advertised = UpdateProtocol.parseAdvertisedVersion(source.versionText)
             ?: return VersionCheck.Failed(UpdateFailure.VERSION_UNPARSABLE)
 
         return if (UpdateProtocol.isNewer(advertised, currentVersion)) {
@@ -104,6 +99,56 @@ class UpdateChecker(
         } else {
             VersionCheck.UpToDate(current = currentVersion, advertised = advertised)
         }
+    }
+
+    /** Where an update is read from: the base that answered, and what it said. */
+    private data class Source(val base: String, val versionText: String)
+
+    /**
+     * The version file to read, and the base it answered on.
+     *
+     * `<base>/byok` is tried before `<base>`, but **only when `<base>` is a bare
+     * origin** — which is the derived default (the target's origin), and the case
+     * that broke. The reason a preference is needed at all: one host can serve two
+     * apps' update triples under the same three file names, and the DSH *shell* app
+     * keeps its own at the web root, so a target origin that serves both answers
+     * `dsh.apk.version` with the shell's version. That is not hypothetical — it is how
+     * a tablet running the public build was offered an update to `1.59`, the shell's
+     * version, from a host whose face for *this* app is `/byok`.
+     *
+     * A base that carries a path is used **verbatim**, because that is what a custom
+     * source means: a mirror at `…/mirror` is where its files are, and appending a
+     * `/byok` of our own invention to somebody's chosen path would be guessing. The
+     * same applies to a base that already ends in `/byok`, so pointing the setting at
+     * the face explicitly costs nothing extra.
+     *
+     * A candidate that does not answer readably (404, transport failure, oversized)
+     * is skipped. The first one that answers *is* the source: a body that cannot be
+     * parsed is then reported as unparsable rather than quietly falling through to
+     * another source's version.
+     */
+    private suspend fun resolveSource(base: String): Source? {
+        val candidates = when {
+            base.endsWith("/byok") -> listOf(base)
+            isBareOrigin(base) -> listOf("$base/byok", base)
+            else -> listOf(base)
+        }
+        for (candidate in candidates) {
+            val fetched = fetchChecked(
+                UpdateProtocol.endpoint(candidate, UpdateProtocol.VERSION_PATH),
+                UpdateProtocol.MAX_TEXT_BYTES,
+            )
+            if (fetched is Fetched.Ok) {
+                return Source(candidate, fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES))
+            }
+        }
+        return null
+    }
+
+    /** `http://host:port`, with no path of its own: an origin and nothing more. */
+    private fun isBareOrigin(base: String): Boolean {
+        val afterScheme = base.substringAfter("://", missingDelimiterValue = "")
+        return afterScheme.isNotEmpty() && !afterScheme.contains('/')
     }
 
     /**
@@ -118,18 +163,13 @@ class UpdateChecker(
         val base = baseUrl.trim().trimEnd('/')
         if (base.isEmpty()) return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
 
-        val versionUrl = UpdateProtocol.endpoint(base, UpdateProtocol.VERSION_PATH)
-        val apkUrl = UpdateProtocol.endpoint(base, UpdateProtocol.APK_PATH)
-        val sidecarUrl = UpdateProtocol.endpoint(base, UpdateProtocol.SIDECAR_PATH)
+        val source = resolveSource(base) ?: return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
+        // The APK and its sidecar come from the base that answered, not from the
+        // configured one: they have to be the same source the version came from.
+        val apkUrl = UpdateProtocol.endpoint(source.base, UpdateProtocol.APK_PATH)
+        val sidecarUrl = UpdateProtocol.endpoint(source.base, UpdateProtocol.SIDECAR_PATH)
 
-        val versionText = when (val fetched = fetchChecked(versionUrl, UpdateProtocol.MAX_TEXT_BYTES)) {
-            is Fetched.Ok -> fetched.result.bodyText(UpdateProtocol.MAX_TEXT_BYTES)
-            // A cut-off version file is not a shorter version, and an oversized one
-            // is not a version at all; both are "nothing usable was served".
-            Fetched.TooLarge, Fetched.Failed -> return UpdateCheck.Failed(UpdateFailure.VERSION_UNREADABLE)
-        }
-
-        val advertised = UpdateProtocol.parseAdvertisedVersion(versionText)
+        val advertised = UpdateProtocol.parseAdvertisedVersion(source.versionText)
             ?: return UpdateCheck.Failed(UpdateFailure.VERSION_UNPARSABLE)
 
         if (!UpdateProtocol.isNewer(advertised, currentVersion)) {

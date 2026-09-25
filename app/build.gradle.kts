@@ -124,7 +124,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 20
+        versionCode = 21
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -271,7 +271,15 @@ android {
         //     default is now the public page and a deployment still overrides it.
         //   * nothing about it is private (it is the same page the README links), which
         //     is why it may have a default at all, unlike DEFAULT_TARGET.
-        versionName = "0.4.0"
+        // 0.4.1: the update source prefers this app's own face before the host root.
+        //   * `UpdateChecker.resolveSource` tries `<base>/byok` first when the base is
+        //     a bare origin, because the DSH *shell* app keeps its own update triple at
+        //     the web root under the same three file names. A tablet running the public
+        //     build was offered the shell's 1.59 from a host whose face for this app is
+        //     `/byok`; the package-name check refused the install, but the prompt was
+        //     wrong and 14 MB was downloaded for nothing.
+        //   * a base carrying a path is still used verbatim.
+        versionName = "0.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

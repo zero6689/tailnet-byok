@@ -13,6 +13,23 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
+## [0.4.1] — 2026-09-25
+
+### Fixed
+
+- **The update check read the wrong app's version file whenever the target host is itself a DSH
+  host.** The update source defaults to the target's origin, and the DSH *shell* app keeps **its own**
+  `dsh.apk.version` / `dsh.apk` / `dsh.apk.sha256` at that root — the same three names, a different
+  application. Seen on a tablet running 0.4.0: the app announced an update to **1.59**, the shell's
+  version, downloaded the shell's 14 MB APK, and verified its SHA-256 successfully, because it is a
+  genuine release of *something*. Only the package-name comparison in `UpdateInstaller` stopped it
+  from being installed, so nothing was harmed — but the prompt was wrong and 35 MB of somebody's
+  bandwidth went nowhere. `UpdateChecker` now tries `<base>/byok` before the root **when the base is a
+  bare origin**, which is exactly the derived default; a base that carries a path is still used
+  verbatim, because a mirror at `…/mirror` is where its files are and appending `/byok` to somebody's
+  chosen path would be guessing. The reference host serves this app's face at `/byok` on **both**
+  ports for that reason (`3080/byok` was added: the same bytes the apk-server has served on 8089).
+
 ## [0.4.0] — 2026-09-25
 
 Two things, and the first one is a behaviour fix that only shows up on a device nobody was
@@ -686,7 +703,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.1
 [0.4.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.0
 [0.3.9]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.3.9
 [0.2.9]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: only the latest release is kept"
