@@ -138,8 +138,11 @@ from, and "the user typed it" is not a reason to skip it.
 
 A build can point at its own provisioning page with
 `-PdefaultProvisioningUrl=https://…` (see [`BUILD.md`](BUILD.md)); the card then
-offers that page as a tappable link. The public build ships the property empty, so
-the card shows only the paste box.
+offers that page as a tappable link. The public build defaults that property to this
+project's own public page rather than leaving it empty: the card draws the link only
+for an `http(s)` value, so an empty default is not a neutral one — it is a first-run
+card with no way to reach the page, which reads as a missing feature rather than as a
+build without a default (fixed in 0.4.0). The card always shows the paste box as well.
 
 ## Why not a built-in address?
 

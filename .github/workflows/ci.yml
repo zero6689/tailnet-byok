@@ -345,7 +345,8 @@ jobs:
             echo "::error::no generated BuildConfig.java found"
             exit 1
           fi
-          for field in DEFAULT_TARGET DEFAULT_MODE DEFAULT_UPDATE_URL DEFAULT_PROVISIONING_URL; do
+          # Everything that names a machine, a host or an update origin must be empty.
+          for field in DEFAULT_TARGET DEFAULT_MODE DEFAULT_UPDATE_URL; do
             if ! grep -qE "$field = \"\";" "$cfg"; then
               echo "::error::$field is not empty in the default build:"
               grep -E "$field =" "$cfg"
@@ -353,7 +354,18 @@ jobs:
               exit 1
             fi
           done
-          echo "ok: the default build pre-fills nothing"
+          # ...and DEFAULT_PROVISIONING_URL is the opposite case: it is a public page,
+          # it may have a default, and it must have one. An empty value is not a
+          # neutrally-empty default here — SetupScreen only draws its provisioning
+          # button for an http(s) URL, so empty means a first-run card that offers no
+          # way to reach the page at all. That is what shipped in 0.3.9 and it read as
+          # a missing feature. Asserted, so it cannot go missing quietly again.
+          if ! grep -qE 'DEFAULT_PROVISIONING_URL = "https://'; then
+            echo "::error::DEFAULT_PROVISIONING_URL is not an https URL in the default build:"
+            grep -E "DEFAULT_PROVISIONING_URL =" "$cfg"
+            exit 1
+          fi
+          echo "ok: the default build pre-fills no address, and offers the provisioning page"
 
       # Not uploaded. A public repository's Actions artifacts are downloadable by
       # anyone, and an APK — even a debug one with no native bridge — is a binary

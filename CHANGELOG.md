@@ -13,7 +13,29 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
-## [Unreleased]
+## [0.4.0] — 2026-09-25
+
+Two things, and the first one is a behaviour fix that only shows up on a device nobody was
+testing on: **a public install had no way to reach the provisioning page**, while the
+maintainer's own build did. `DEFAULT_PROVISIONING_URL` was empty unless a build passed
+`-PdefaultProvisioningUrl`, and `SetupScreen` draws its "open the provisioning page" button
+only when the value is an `http(s)` URL — so on the tablet the first-run card simply had one
+fewer entry than on the phone, with nothing on screen to explain why. It is now defaulted to
+the public page and a deployment still overrides it.
+
+The rest is the toolchain work that had been sitting in `[Unreleased]`: `compileSdk 37`, AGP
+9.4.1, Gradle 9.6.0, Kotlin 2.2.10, and the documentation site's APK mirror.
+
+### Fixed
+
+- **The provisioning page could not be reached from a public install.** `DEFAULT_PROVISIONING_URL`
+  ships as `https://zero6689.github.io/tailnet-byok/provisioning.html` rather than empty, and
+  `ci.yml` now asserts *both* halves of the rule that used to be one assertion: the build carries no
+  address of anybody's (`DEFAULT_TARGET`, `DEFAULT_MODE`, `DEFAULT_UPDATE_URL` all empty) **and** it
+  does carry the public page. The old check demanded `DEFAULT_PROVISIONING_URL` be empty, which is
+  what made "the config page is missing" a build that passed CI. Found by reading the two APKs'
+  dex string tables side by side: the public asset had no `provisioning.html` literal at all, the
+  deployment build had it plus a pre-filled target.
 
 ### Changed
 
@@ -655,7 +677,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.3.9...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.0
 [0.3.9]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.3.9
 [0.2.9]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: only the latest release is kept"
 [0.2.8]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: only the latest release is kept"

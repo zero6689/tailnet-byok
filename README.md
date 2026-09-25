@@ -256,7 +256,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.3.9** (`versionCode` 19) — used daily on a phone, and it compiles.
+Version **0.4.0** (`versionCode` 20) — used daily on a phone, and it compiles.
 
 **Verified by an actual build**, not by inspection: **178 unit tests pass** (no failures, no
 skips), Lint reports **zero errors** (seven warnings), `assembleDebug` and

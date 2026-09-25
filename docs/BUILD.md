@@ -75,7 +75,7 @@ branded build can pre-fill the first screen so its users have nothing to type:
 | `defaultTarget` | `host`, `host:port`, or an absolute `http(s)://host:port/path` | nothing is pre-filled |
 | `defaultMode` | `embedded` or `system` | the app's own default (`embedded`) |
 | `defaultUpdateUrl` | a base URL serving `dsh.apk.version`, `dsh.apk`, `dsh.apk.sha256` | the target's own origin |
-| `defaultProvisioningUrl` | an `http(s)` page that draws a configuration link and its QR code | the first-run card offers no page (only the paste box and the fields below it) |
+| `defaultProvisioningUrl` | an `http(s)` page that draws a configuration link and its QR code | **not empty**: it defaults to the project's own public page. Empty was worse than it sounds — the first-run card draws its button only for an `http(s)` value, so an empty default is a card with no way to reach the page, which a user reads as a missing feature (0.4.0) |
 
 Two properties of this mechanism are worth knowing before you use it. It is a **default, not a
 policy**: the moment the user saves any setting, the stored value wins and the build property
@@ -84,6 +84,11 @@ malformed value degrades to "no default" instead of producing an app whose first
 broken address. The values are never committed — there is nothing in the repository to leak,
 which is the point of the mechanism being upstream and the value being downstream. See
 [`PROVISIONING.md`](PROVISIONING.md).
+
+`defaultProvisioningUrl` is the one that is not empty in the public build, because the value it
+falls back to is public (the page the README links). `defaultTarget`, `defaultMode` and
+`defaultUpdateUrl` must stay empty there, and `ci.yml` asserts both halves against the generated
+`BuildConfig.java` rather than against this file.
 
 ---
 

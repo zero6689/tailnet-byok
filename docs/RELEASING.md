@@ -46,10 +46,13 @@ Two things are published, and they are different files:
    is a permanent link. `site/provisioning.html` links exactly there; renaming the
    asset breaks the download button on the page, silently, for everyone.
 2. **The deployment build.** A private build with a target pre-filled
-   (`-PdefaultTarget=…`, `-PdefaultProvisioningUrl=…`, `-PdefaultUpdateUrl=…`) is for
+   (`-PdefaultTarget=…`, `-PdefaultUpdateUrl=…`) is for
    one server's own users. It is **never** the release asset: it names a real
-   machine, and the public build's defaults are empty on purpose, with CI asserting
-   that they stay empty.
+   machine, and the public build's address defaults are empty on purpose, with CI
+   asserting that they stay empty. `-PdefaultProvisioningUrl=…` is the exception in both
+   directions: the public build gives it a value (the project's own public page,
+   because a first-run card with no way to reach any page is a missing feature, not a
+   neutral default — 0.4.0), and a deployment overrides it with its own.
 3. **The mirror on the docs site.** `docs-pages.yml` copies the newest release asset
    to `site/dist/byok/tailnet-byok-arm64.apk` (plus a `.sha256`) every time it
    deploys, so `https://<site>/byok/tailnet-byok-arm64.apk` serves the same bytes

@@ -124,7 +124,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 19
+        versionCode = 20
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -262,7 +262,16 @@ android {
         //     exactly one place, so removing that row would leave no way into DSH's
         //     settings at all. Back to this app's settings is the Back gesture and the
         //     arrow above, both of which were already there.
-        versionName = "0.3.9"
+        // 0.4.0: the public build gets its "open the provisioning page" button back.
+        //   * `DEFAULT_PROVISIONING_URL` was empty unless a deployment passed
+        //     -PdefaultProvisioningUrl, and the first-run card draws that button only
+        //     when the value is an http(s) URL. The maintainer's own build passed it;
+        //     a public install did not — so the page was reachable on one device and
+        //     simply absent on another, with no way for the user to tell why. The
+        //     default is now the public page and a deployment still overrides it.
+        //   * nothing about it is private (it is the same page the README links), which
+        //     is why it may have a default at all, unlike DEFAULT_TARGET.
+        versionName = "0.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -289,11 +298,13 @@ android {
         // Build-time configuration defaults, for a branded or private build.
         //
         // The values are NEVER committed: they come from -P properties, and the
-        // defaults below are empty on purpose, because the public build promises
-        // that this app has no server of its own and no address baked in. A
-        // downstream build (a company's own shell, a household's own phone) can
-        // pass -PdefaultTarget=host:port -PdefaultMode=system and ship an app whose
-        // users have nothing to type. The mechanism is upstream; the value is not.
+        // address-shaped defaults below are empty on purpose, because the public build
+        // promises that this app has no server of its own and no address baked in. (The
+        // one exception is DEFAULT_PROVISIONING_URL, whose fallback is the project's own
+        // public page — see its own note further down.) A downstream build (a company's
+        // own shell, a household's own phone) can pass -PdefaultTarget=host:port
+        // -PdefaultMode=system and ship an app whose users have nothing to type. The
+        // mechanism is upstream; the value is not.
         //
         //   ./gradlew assembleDebug -PdefaultTarget=100.64.0.1:3080 -PdefaultMode=system
         //
@@ -308,15 +319,21 @@ android {
         buildConfigField("String", "DEFAULT_TARGET", "\"${gradlePropertyOrEmpty("defaultTarget")}\"")
         buildConfigField("String", "DEFAULT_MODE", "\"${gradlePropertyOrEmpty("defaultMode")}\"")
         buildConfigField("String", "DEFAULT_UPDATE_URL", "\"${gradlePropertyOrEmpty("defaultUpdateUrl")}\"")
-        // The docs page that draws a configuration link and its QR code. Empty in
-        // the public build: the *mechanism* ships, the value belongs to a
-        // deployment (see docs/PROVISIONING.md). When it is set, the first-run
-        // card offers it as a tappable link — that is the whole "out of the box"
-        // story, since the app itself has no camera and so cannot scan the code.
+        // The docs page that draws a configuration link and its QR code.
+        //
+        // Defaulted to the *public* page (0.4.0), because the alternative shipped a
+        // first-run card with no way to reach it: `SetupScreen` renders the button
+        // only for an http(s) value, so an empty default reads to a user as "the
+        // configuration page is gone" rather than as "this build has no default".
+        // A deployment that hosts its own page still wins by passing
+        // -PdefaultProvisioningUrl. Nothing private can leak through this one — it is
+        // the page the README already links — so unlike DEFAULT_TARGET it is allowed
+        // to have a value in a public build. `ci.yml` asserts both halves of that.
+        val publicProvisioningUrl = "https://zero6689.github.io/tailnet-byok/provisioning.html"
         buildConfigField(
             "String",
             "DEFAULT_PROVISIONING_URL",
-            "\"${gradlePropertyOrEmpty("defaultProvisioningUrl")}\"",
+            "\"${gradlePropertyOrEmpty("defaultProvisioningUrl").ifEmpty { publicProvisioningUrl }}\"",
         )
 
         // NOTE (2026-09-12 23:0x): a `resourceConfigurations += setOf("en", "zh")`
