@@ -15,6 +15,35 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+### Changed
+
+- **The phone screenshots now say which release each one came from.** The file names were the only place that
+  said it, and a reader sees the pictures without them — so the version a capture belongs to, and the two places
+  it still carries wording the app has since corrected (the 0.4.4 system-network note reading *"Android 13 or
+  newer"*, which 0.4.5 corrected to Android 8, and the 0.4.3 provisioning page naming `v0.4.3` as the newest
+  release) are written out under the table rather than cropped, painted over or guessed at.
+
+### Fixed
+
+- **`docs/images/dsh-screen.jpg` shipped its composer workspace chip unredacted.** The tablet captures
+  had that name covered; the phone one did not, so a public file read the local checkout's folder name,
+  and the README shows that file. The block now covers the whole chip. The earlier blob stays in history
+  (added in `6379c36`), which only a rewrite of the branch would remove.
+
+### Removed
+
+- **Nine screenshots that no longer belong in the tree**, so that nothing published contradicts the current
+  release. An app-info screen is the system's word for what is installed, which makes an old one a version
+  claim a reader will believe rather than a historical nicety — and two of them made that claim about
+  versions this project no longer ships: `app-info.jpg` (**0.3.9**, four releases back, already dropped from
+  the README) and `tablet-app-info.jpg` (**0.4.1**, still shown in the tablet section in the same breath as
+  the sentence saying the tablet runs 0.4.6). The other seven — `dsh-notice.jpg`,
+  `notification-permission.jpg`, `phone-043-settings-top.jpg`, `phone-043-settings-bottom.jpg`,
+  `phone-044-tailscale-card.jpg`, `provisioning-page.jpg`, `task-notifications.jpg` — were superseded
+  captures of screens the README now shows from a newer build, and no file in the repository, the docs site
+  or the workflows referenced them. With them gone, every file left in `docs/images/` is referenced by the
+  README.
+
 ## [0.4.6] — 2026-09-26
 
 ### Added
