@@ -345,7 +345,7 @@ skips), Lint reports **zero errors** (five warnings), and the release workflow b
 `arm64-v8a` asset; the gomobile bridge produces a 60.0 MiB `tailnet.aar`.
 
 The release ships **one ABI, not four**: an `arm64-v8a` APK of about **35 MiB** (35.1 MiB for the
-v0.4.1 asset, measured by downloading it), built with R8 off so that the code which ships is the
+v0.4.2 asset — 36,850,996 B, measured by downloading it), built with R8 off so that the code which ships is the
 code the tests cover. A workstation build of the same commit measures ~54 MiB, for two reasons: the
 release workflow puts the NDK on `ANDROID_NDK_HOME` so AGP strips the native library's debug tables
 (~9 MB of `.debug_*`, `.symtab` and `.strtab`), and the locally bound `libgojni.so` carries about
