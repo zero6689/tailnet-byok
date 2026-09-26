@@ -17,6 +17,15 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Changed
 
+- **The prerequisite was stated vaguely and the scope was left implicit.** The page now says what you
+  actually have to do: install Tailscale on **both** ends — the computer running DSH and the phone or
+  tablet — and sign both into the **same** tailnet; the address the app takes is the one your DSH
+  answers at inside that tailnet. The same paragraph says what this app is and is not: it does one
+  thing, it is the client — there is nothing to install into DSH, no mobile protocol of its own, no
+  tunnel service, no account, no relay. (Projects that take the other routes carry a gateway plugin
+  and a protocol of their own, or run the whole runtime on the phone; this one deliberately does
+  neither.) `README.md` and `site/index.html`.
+
 - **"Why this exists" argued about VPN architecture and buried the actual reason.** The section
   opened with "two unsatisfying options" and closed by calling the embedded `tsnet` node *why the
   project exists* — which answers a question nobody asked and misses the point. The point is
