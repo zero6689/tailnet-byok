@@ -17,6 +17,21 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Changed
 
+- **Tailscale is now named, linked and attributed everywhere the prerequisite is stated — including in the app
+  itself.** The README carries a two-row table (computer → <https://tailscale.com/download>; phone/tablet → the
+  official **Tailscale for Android** app, `com.tailscale.ipn`), and says where each comes from: **Google Play**
+  first, because that is where new Android versions land; the APK file itself only from Tailscale's own
+  package server (<https://pkgs.tailscale.com/stable/#android>), which does not self-update; and explicitly
+  that Tailscale's GitHub releases page is *not* the Android channel and lags behind it. The maintainer runs
+  **1.103.90** (© 2024 Tailscale Inc. — their app, not ours). Two numbers are stated separately and honestly:
+  Tailscale's own page says *Android 8 or later*, while **this app's supported floor is Android 13 or newer**,
+  because old devices ship old WebViews and that is exactly where the DSH interface breaks. In the app, the
+  first-run card (`intro_body`) and the system-network option (`provider_system_explanation`) now say the same
+  thing in both languages: install the official Tailscale app on this device *and* on the computer, sign both
+  into the same tailnet, and get it from **tailscale.com/download** — the two are used together, not
+  interchangeably. `README.md`, `site/index.html`, `app/src/main/res/values/strings.xml`,
+  `app/src/main/res/values-zh/strings.xml`.
+
 - **The prerequisite now says where to get Tailscale, and that the two are used together.** The README
   and the docs site link [tailscale.com/download](https://tailscale.com/download) at the point where the
   requirement is stated, say to install it on **both** ends (the computer running DSH and the phone or

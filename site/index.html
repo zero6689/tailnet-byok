@@ -55,6 +55,26 @@
   </section>
 
   <div class="callout">
+    <span class="label"><span class="i18n-en">You need Tailscale on both ends</span><span class="i18n-zh">两端都需要 Tailscale</span></span>
+    <p>
+      <span class="i18n-en">Computer running DSH: <a href="https://tailscale.com/download">tailscale.com/download</a>.
+      Phone / tablet: the official <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Tailscale
+      for Android</a> app (<code>com.tailscale.ipn</code>, the maintainer runs <strong>1.103.90</strong>) — take the
+      Play Store build, it is where new versions land first; the APK itself only comes from Tailscale's
+      <a href="https://pkgs.tailscale.com/stable/#android">package server</a>, and it does not update itself. Sign
+      both ends into the <strong>same</strong> tailnet. Tailscale's own page says <em>Android 8 or later</em>;
+      <strong>this app's supported floor is Android 13 or newer</strong> — older devices carry older WebViews, and
+      that is where the DSH interface is known to
+      break.</span><span class="i18n-zh">跑 DSH 的电脑：<a href="https://tailscale.com/download">tailscale.com/download</a>。
+      手机 / 平板：官方 <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Tailscale for Android</a>
+      （包名 <code>com.tailscale.ipn</code>，维护者用的是 <strong>1.103.90</strong>）—— 优先用 Play 商店版，新版本先到那里；
+      要 APK 文件只有官方的<a href="https://pkgs.tailscale.com/stable/#android">包服务器</a>，而且那个 APK 不会自动更新。
+      两端登录<strong>同一个</strong> tailnet。Tailscale 自己的页面写的是 <em>Android 8 以上</em>；
+      <strong>本 App 的支持下限是 Android 13 以上</strong> —— 设备越老 WebView 越老，DSH 界面就是在那种机器上出问题的。</span>
+    </p>
+  </div>
+
+  <div class="callout">
     <span class="label"><span class="i18n-en">What "BYOK" means here</span><span class="i18n-zh">这里的“BYOK”是什么意思</span></span>
     <p>
       <span class="i18n-en">The key is a <strong>Tailscale auth key</strong>, not an LLM API key. It is stored

@@ -18,7 +18,7 @@
 
     <!-- 首次运行的安全模型说明 -->
     <string name="intro_title">这个 App 会怎么处理你的密钥</string>
-    <string name="intro_body">你的认证密钥由 Android Keystore 加密保存：不会以明文落盘、不会写进日志，除了你自己配置的控制面（control plane）之外不会离开这台设备。本 App 没有自己的服务器、没有统计、不发起任何自己的网络请求。</string>
+    <string name="intro_body">你的认证密钥由 Android Keystore 加密保存：不会以明文落盘、不会写进日志，除了你自己配置的控制面（control plane）之外不会离开这台设备。本 App 没有自己的服务器、没有统计、不发起任何自己的网络请求。另外你还需要官方 Tailscale App：本机和跑 DSH 的电脑都要装，并登录同一个 tailnet —— 下载地址 tailscale.com/download。</string>
     <string name="intro_acknowledge">知道了</string>
 
     <string name="banner_dismiss">关闭</string>
@@ -56,7 +56,7 @@
     <string name="section_provider_subtitle">流量如何到达目标</string>
     <string name="provider_embedded_tsnet">内嵌 tailnet 节点</string>
     <string name="provider_system_network">系统网络（已有 VPN）</string>
-    <string name="provider_system_explanation">这种方式不使用你的认证密钥。连上官方 Tailscale App（或本来就在同一网络里），App 就直接用那条连接。</string>
+    <string name="provider_system_explanation">这种方式不使用你的认证密钥。请在本机和跑 DSH 的电脑上都装官方 Tailscale App，登录同一个 tailnet，App 就用那条连接。下载：tailscale.com/download（本 App 支持 Android 13 以上）。</string>
 
     <!-- 内嵌节点不可用的原因 -->
     <string name="provider_unavailable_not_compiled">这个构建里没有编入（需用 -PwithTsnet=true 重新构建）</string>

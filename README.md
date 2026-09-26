@@ -4,12 +4,23 @@
 on your desktop, you have to leave, and you would rather keep the session in your hand
 than sit and watch it. That is the one thing this app does: it is the client.
 
-**Install [Tailscale](https://tailscale.com/download) on both ends** — the computer
-running DSH and the phone or tablet — and sign both into the **same** tailnet. Your DSH
-then answers at an address inside that tailnet; paste it, sign in, and the app talks to
-that one service and nothing else. The two are used together: **Tailscale is the network,
-this app is the client**, and neither replaces the other. No account with us, no server of
-ours, no shared relay.
+**Install it on both ends** — it is used **together with** this app, not replaced by it —
+and sign both into the **same** tailnet. Your DSH then answers at an address inside that
+tailnet; paste it, sign in, and the app talks to that one service and nothing else.
+
+| End | What to install | Where to get it |
+|---|---|---|
+| The computer running DSH | Tailscale | <https://tailscale.com/download> |
+| The phone or tablet | the official **Tailscale for Android** app, `com.tailscale.ipn` | **Google Play** ([listing](https://play.google.com/store/apps/details?id=com.tailscale.ipn)) — or the APK itself from Tailscale's own package server: <https://pkgs.tailscale.com/stable/#android> |
+
+Take the Play Store build if you can: that is where new Android versions land first. The
+package server is the only official place that hands you a **file**, and that APK does not
+update itself. Tailscale's GitHub releases page is *not* the Android distribution channel
+and lags behind it. The maintainer runs **Tailscale for Android 1.103.90** (© 2024 Tailscale
+Inc., package `com.tailscale.ipn` — it is their app, not ours). Tailscale's own page says
+*Android 8 or later*; **this app's supported floor is Android 13 or newer** — older devices
+carry older WebViews, and that is where the DSH interface is known to break. No account with
+us, no server of ours, no shared relay.
 
 > **What this project does not provide:** a tailnet, a node, a server, a key, or a relay.
 > It is a client. The **[official Tailscale app](https://tailscale.com/download) is what

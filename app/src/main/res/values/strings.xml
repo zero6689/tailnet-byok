@@ -35,7 +35,7 @@
 
     <!-- First-run card: the security model, stated once. -->
     <string name="intro_title">What this app does with your key</string>
-    <string name="intro_body">Your auth key is stored encrypted by the Android Keystore and is never written to disk in plain text, never logged, and never leaves this device except to your own control plane. This app has no server, no analytics and no network calls of its own.</string>
+    <string name="intro_body">Your auth key is stored encrypted by the Android Keystore and is never written to disk in plain text, never logged, and never leaves this device except to your own control plane. This app has no server, no analytics and no network calls of its own. You also need the official Tailscale app: on this device and on the computer running DSH, signed into the same tailnet — download it at tailscale.com/download.</string>
     <string name="intro_acknowledge">Got it</string>
 
     <string name="banner_dismiss">Dismiss</string>
@@ -73,7 +73,7 @@
     <string name="section_provider_subtitle">How traffic reaches the target</string>
     <string name="provider_embedded_tsnet">Embedded tailnet node</string>
     <string name="provider_system_network">System network (existing VPN)</string>
-    <string name="provider_system_explanation">This method does not use your auth key. Connect the official Tailscale app (or be on the same network) and the app will use that connection.</string>
+    <string name="provider_system_explanation">This method does not use your auth key. Install the official Tailscale app on this device and on the computer running DSH, sign both into the same tailnet, and the app uses that connection. Download: tailscale.com/download (this app supports Android 13 or newer).</string>
 
     <!-- Why the embedded node is unavailable in this build -->
     <string name="provider_unavailable_not_compiled">not compiled into this build (rebuild with -PwithTsnet=true)</string>
