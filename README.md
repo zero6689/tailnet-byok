@@ -1,8 +1,18 @@
 # tailnet-byok
 
-**An Android app that carries its own Tailscale node.** You paste a pre-auth key
-and a target host; the app joins *your* tailnet, on *your* terms, and talks to
-that one service. No account with us, no server of ours, no shared relay.
+**An Android client for one service on your own tailnet.** You bring the network and
+the server: a tailnet of your own with a device on it — in the tested setup, the
+official Tailscale app signed in to your own account — and a DSH host reachable at an
+address inside that tailnet. Paste the target, sign in, and the app talks to that one
+service. No account with us, no server of ours, no shared relay.
+
+> **What this app does not provide:** a tailnet, a node, or a relay. It is a client.
+> The optional *embedded node* ([docs/TSNET.md](docs/TSNET.md)) dials from inside the
+> app using your own Tailscale auth key, and that mode is what "BYOK" in the name
+> refers to. The path this project is used on daily is the **system network**, where
+> the tunnel belongs to the official Tailscale app and no auth key is needed at all.
+> A previous version of this page called the app "an Android app that carries its own
+> Tailscale node", which read as if the node came from us; it does not.
 
 > Bring-your-own-key, taken literally: the key is a Tailscale auth key, it is
 > stored encrypted by the Android Keystore, and it never leaves your device
@@ -47,8 +57,13 @@ unsatisfying options:
 
 `tailnet-byok` takes a third path: it embeds a **userspace** Tailscale node with
 [`tsnet`](https://pkg.go.dev/tailscale.com/tsnet) and dials the target through
-it. The device's other traffic is untouched. No VPN permission is requested. The
-app opens one connection, to one destination, and nothing else.
+it. The device's other traffic is untouched, and the app itself requests no VPN
+permission — on the system-network path the tunnel belongs to the official app
+instead. The app opens one connection, to one destination, and nothing else.
+
+That third path is why the project exists, and it is **optional**: the same build
+also runs on the device's existing network, which is the mode used day to day and the
+one that needs no auth key. Nothing here is a service you sign up for.
 
 The closest thing in the field is
 [`GlassHaven/Haven`](https://github.com/GlassHaven/Haven) — `tsnet` bound through

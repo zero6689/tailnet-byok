@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 自带 Tailscale 节点的 Android 应用">
+<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 连你自己 tailnet 里那一个服务的 Android 客户端">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tailnet-byok — an Android app that carries its own Tailscale node</title>
+<title>tailnet-byok — an Android client for one service on your own tailnet</title>
 <!-- After <title>, so the title it saves is the English one. -->
 <script src="lang.js"></script>
-<meta name="description" content="An Android app that embeds a Tailscale node so you can paste your own auth key and reach one host inside your own tailnet. No account, no server, no VPN permission.">
+<meta name="description" content="An Android client for one service on your own tailnet. You bring the network and the server; the app talks to that one host. No account, no server of ours, no relay — and it does not provide a tailnet or a node.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -29,13 +29,17 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1><span class="i18n-en">An Android app that carries its own Tailscale node.</span><span class="i18n-zh">一个自带 Tailscale 节点的 Android 应用。</span></h1>
+    <h1><span class="i18n-en">An Android client for one service on your own tailnet.</span><span class="i18n-zh">连你自己 tailnet 里那一个服务的 Android 客户端。</span></h1>
     <p class="lead">
-      <span class="i18n-en">Paste a pre-auth key and a target host. The app joins <em>your</em> tailnet, on
-      <em>your</em> terms, and talks to that one service. No account with us, no server of
-      ours, no shared relay — and no VPN permission.</span><span class="i18n-zh">粘贴一个预认证密钥和一个目标主机。App 会加入<em>你的</em> tailnet，按<em>你的</em>
-      条件行事，只与那一个服务通信。不需要在我们这里注册账号，没有我们的服务器，
-      没有共享中继 —— 也不需要 VPN 权限。</span>
+      <span class="i18n-en">You bring the network and the server. Paste a target host, sign in, and the app
+      talks to that one service. No account with us, no server of ours, no shared relay — and the
+      app itself asks for no VPN permission. This app does not provide a tailnet, a node, or a
+      relay: the day-to-day path is the system network, where the tunnel belongs to the official
+      Tailscale app, and the optional embedded-node mode dials from inside the app with your own
+      Tailscale auth key.</span><span class="i18n-zh">网络和服务器都由你提供。粘贴目标主机、登录，App 就只与那一个服务通信。
+      不需要在我们这里注册账号，没有我们的服务器，没有共享中继 —— App 自身也不申请 VPN 权限。
+      本项目不提供 tailnet、不提供节点、也不做中继：日常使用的是系统网络模式，隧道由官方 Tailscale
+      应用提供；可选的「内嵌节点」模式才在 App 进程内拨号，用的是你自己的 Tailscale 认证密钥。</span>
     </p>
 
     <div class="cta">
@@ -97,11 +101,22 @@
   <p>
     <span class="i18n-en"><code>tailnet-byok</code> takes a third path: it embeds a <strong>userspace</strong>
     Tailscale node with <a href="https://pkg.go.dev/tailscale.com/tsnet">tsnet</a> and dials
-    the target through it. The device's other traffic is untouched. No VPN permission is
-    requested. The app opens one connection, to one destination, and nothing else.</span><span class="i18n-zh"><code>tailnet-byok</code> 走了第三条路：它用
+    the target through it. The device's other traffic is untouched, and the app itself asks
+    for no VPN permission — on the system-network path the tunnel belongs to the official
+    app instead. The app opens one connection, to one destination, and nothing else.</span><span class="i18n-zh"><code>tailnet-byok</code> 走了第三条路：它用
     <a href="https://pkg.go.dev/tailscale.com/tsnet">tsnet</a> 内嵌了一个<strong>用户态</strong>的
-    Tailscale 节点，并通过它拨号到目标。设备上的其它流量完全不受影响。不申请 VPN 权限。
+    Tailscale 节点，并通过它拨号到目标。设备上的其它流量完全不受影响，App 自身也不申请 VPN
+    权限 —— 走系统网络模式时，隧道由官方应用提供。
     这个 App 只打开一条连接、只连一个目的地，别的什么都不做。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">That third path is why the project exists and it is <strong>optional</strong>:
+    the same build also runs on the device's existing network, which is the mode used day to day
+    and the one that needs no auth key. Nothing here is a service you sign up for — the network
+    and the server are yours.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
+    同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>不需要</strong>任何认证密钥。
+    这里没有需要注册的服务 —— 网络和服务器都是你自己的。</span>
   </p>
 
   <p>

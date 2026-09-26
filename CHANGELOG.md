@@ -13,6 +13,22 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **The description of this project was wrong, and is now corrected.** The README, the docs
+  site's headline, its search/social description and the GitHub repository description all said
+  the app "carries its own Tailscale node", which reads as if the node — or the network — came
+  from this project. It does not: **you bring the tailnet and the server**, and the path the
+  maintainer actually uses is the **system network**, where the tunnel belongs to the official
+  Tailscale app and no auth key is needed at all. The embedded-node mode is real and still
+  documented ([docs/TSNET.md](docs/TSNET.md)) — it dials from inside the app with your own
+  Tailscale auth key, which is what "BYOK" in the name refers to — but it is a *mode in the
+  build*, not a service, and it is not how the project is used day to day. Corrected in
+  `README.md`, `site/index.html` (headline, lead, `<title>`, `data-title-zh` and the
+  `<meta name="description">`) and the repository description on GitHub.
+
 ## [0.4.1] — 2026-09-25
 
 ### Fixed
