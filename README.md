@@ -1,21 +1,18 @@
 # tailnet-byok
 
-**An Android client for one DSH server, reached over Tailscale.** The server is
-somebody's own machine, and **the node is theirs, not ours**. You bring a Tailscale
-account — you sign up yourself — and the official Tailscale app; whoever runs the
-server shares that node with you, or adds you to their tailnet, and hands you the
-address. Paste the address, sign in, and the app talks to that one service. No account
-with us, no server of ours, no shared relay.
+**An Android client for one DSH server, reached over Tailscale.** You sign in to
+Tailscale yourself and install the official Tailscale app; whoever runs the server
+gives you access and hands you the address. Paste the address, sign in, and the app
+talks to that one service. No account with us, no server of ours, no shared relay.
 
 > **What this project does not provide:** a tailnet, a node, a key, or a relay. It is a
-> client, and this README is about installing and using it against somebody else's
-> server. `tailnet-byok` also contains an optional *embedded node*
-> ([docs/TSNET.md](docs/TSNET.md)) that dials from inside the app with a Tailscale auth
-> key — that is what "BYOK" in the name refers to — but it needs a key from whoever
-> owns the tailnet, and the path this app is actually used on is the **system
-> network**, where the tunnel belongs to the official Tailscale app and no key is
-> needed at all. An earlier version of this page said the app "carries its own
-> Tailscale node", which read as if the node came from us; it does not.
+> client, and the **official Tailscale app is what puts the device on the tailnet**.
+> An earlier version of this page said the app "carries its own Tailscale node", which
+> read as if the node came from us; it does not. `tailnet-byok` does contain an optional
+> *embedded node* mode ([docs/TSNET.md](docs/TSNET.md)) that dials from inside the app
+> with a Tailscale auth key — that is what "BYOK" in the name refers to — and it needs a
+> key issued by whoever runs the tailnet it is joining; the path this app is used on is
+> the **system network**, where no key is involved at all.
 
 > Bring-your-own-key, taken literally: the key is a Tailscale auth key, it is
 > stored encrypted by the Android Keystore, and it never leaves your device

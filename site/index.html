@@ -6,7 +6,7 @@
 <title>tailnet-byok — an Android client for one DSH server, reached over Tailscale</title>
 <!-- After <title>, so the title it saves is the English one. -->
 <script src="lang.js"></script>
-<meta name="description" content="An Android client for one DSH server reached over Tailscale. The node is the server owner's, not ours: bring a Tailscale account and the official app, and they share that node with you. No account with us, no server of ours, no relay, no node of ours.">
+<meta name="description" content="An Android client for one DSH server reached over Tailscale. Sign in to Tailscale yourself and install the official app; whoever runs the server gives you access and the address. No account with us, no server of ours, no node, no key, no relay.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -31,14 +31,13 @@
   <section class="hero">
     <h1><span class="i18n-en">An Android client for one DSH server, reached over Tailscale.</span><span class="i18n-zh">连某台 DSH 服务器的 Android 客户端（走 Tailscale）。</span></h1>
     <p class="lead">
-      <span class="i18n-en">The server is somebody's own machine, and <strong>the node is theirs, not ours</strong>.
-      You bring a Tailscale account and the official Tailscale app; whoever runs the server shares that node
-      with you and hands you the address. Paste it, sign in, and the app talks to that one service. No
-      account with us, no server of ours, no shared relay — and this project provides no tailnet, no node
-      and no key.</span><span class="i18n-zh">服务器是别人的机器，<strong>节点是他们的，不是我们的</strong>。
-      你带自己的 Tailscale 账号和官方 Tailscale 应用；服务器主人把那个节点共享给你、并给你地址。
-      粘贴地址、登录，App 就只与那一个服务通信。不需要在我们这里注册账号，没有我们的服务器，
-      没有共享中继 —— 本项目不提供 tailnet、不提供节点、也不发密钥。</span>
+      <span class="i18n-en">You sign in to Tailscale yourself and install the <strong>official Tailscale app</strong> —
+      it is what puts the device on the tailnet. Whoever runs the server gives you access and hands you the
+      address; paste it, sign in, and the app talks to that one service. No account with us, no server of
+      ours, no shared relay — and this project provides no tailnet, no node, no key and no relay.</span><span class="i18n-zh">你自己登录 Tailscale 并安装 <strong>官方 Tailscale 应用</strong> ——
+      把设备带上 tailnet 的是它。服务器主人给你访问权和地址；粘贴地址、登录，App 就只与那一个服务通信。
+      不需要在我们这里注册账号，没有我们的服务器，没有共享中继 —— 本项目不提供 tailnet、不提供节点、
+      不发密钥、也不做中继。</span>
     </p>
 
     <div class="cta">
@@ -113,9 +112,9 @@
     <span class="i18n-en">That third path is why the project exists and it is <strong>optional</strong>:
     the same build also runs on the device's existing network, which is the mode used day to day and
     the one that needs no auth key at all. The embedded mode does need a key — one issued by whoever
-    owns the tailnet you are joining, which is not this project.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
+    runs the tailnet it is joining, which is not this project.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
     同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>完全不需要</strong>认证密钥。
-    内嵌节点模式则需要密钥 —— 由你要加入的那个 tailnet 的主人签发，而不是本项目。</span>
+    内嵌节点模式则需要密钥 —— 由它要加入的那个 tailnet 的运行者签发，而不是本项目。</span>
   </p>
 
   <p>
