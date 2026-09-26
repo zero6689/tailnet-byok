@@ -17,10 +17,13 @@ Take the Play Store build if you can: that is where new Android versions land fi
 package server is the only official place that hands you a **file**, and that APK does not
 update itself. Tailscale's GitHub releases page is *not* the Android distribution channel
 and lags behind it. The maintainer runs **Tailscale for Android 1.103.90** (© 2024 Tailscale
-Inc., package `com.tailscale.ipn` — it is their app, not ours). Tailscale's own page says
-*Android 8 or later*; **this app's supported floor is Android 13 or newer** — older devices
-carry older WebViews, and that is where the DSH interface is known to break. No account with
-us, no server of ours, no shared relay.
+Inc., package `com.tailscale.ipn` — it is their app, not ours).
+
+**Android version: 8 or later, which is what Tailscale itself requires** — and it is
+verified working on **Android 12** (HUAWEI AGS5-W00 tablet) and **Android 14** (HONOR
+ALT-AN00 phone). Old devices carry old WebViews, and the DSH interface is where that shows,
+so if the page looks wrong on an old phone, suspect the engine first. No account with us, no
+server of ours, no shared relay.
 
 > **What this project does not provide:** a tailnet, a node, a server, a key, or a relay.
 > It is a client. The **[official Tailscale app](https://tailscale.com/download) is what
@@ -335,7 +338,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.4.1** (`versionCode` 21) — used daily on a phone, and it compiles.
+Version **0.4.2** (`versionCode` 22) — used daily on a phone and a tablet, and it compiles.
 
 **Verified by an actual build**, not by inspection: **178 unit tests pass** (no failures, no
 skips), Lint reports **zero errors** (five warnings), and the release workflow builds and signs the
@@ -375,6 +378,39 @@ tests, so nothing has run on a device in CI (the app itself is used on a phone b
 user-facing string is extracted and the app ships an English and a Chinese translation, but no
 third locale; and nothing in this repository is a screenshot from a running app. See
 `docs/ARCHITECTURE.md → Known gaps`.
+
+### Known gaps
+
+- **It is a client and nothing else.** One target at a time, no LAN-only mode, no public relay, no
+  plugin inside DSH — and it cannot reach a DSH that your tailnet cannot already reach.
+- **The interface is DSH's own**, so how it renders is decided by the WebView it lands on. On old
+  engines (the tablet used here runs Chromium 92) that page needs compatibility help, and that help
+  belongs to the deployment, not to this APK — a client cannot fix a missing JS built-in, a class
+  static block, or a `vh`-sized overlay from the outside.
+- **The connection is only as steady as the tunnel.** Screen-off, Doze, or the official Tailscale app
+  being stopped can drop the socket; the page then offers a reconnect, and tapping it is on you.
+- **The update check is manual and refuses to guess.** No timer, no background check, and it installs
+  only bytes whose SHA-256 *and* declared package name both match.
+- **One ABI, one platform.** `arm64-v8a` only, Android 8 or later; there is no iOS client.
+- **The embedded node is optional and needs your own auth key.** It is not the day-to-day path, and it
+  is a mode in the build rather than a service.
+
+### What the deployment adds on the DSH side (none of it is in this APK)
+
+Getting DSH into a hand needed work on the *served page* as well, and it lives outside this repository:
+
+- **a door in front of DSH** on the tailnet, so the address the app is handed is not DSH's own port;
+- **early polyfills** for the JS built-ins old WebViews lack (`Object.hasOwn`, `findLast`,
+  `reportError`, `AbortSignal.throwIfAborted`, `at()`, …), injected into the page;
+- a **viewport-unit guard** that rewrites `vh` / `dvh` in the page's own stylesheets to a trusted pixel
+  height, because a layout viewport of 0 collapses cards and overlay menus to a slit;
+- an **engine diagnostics beacon** that reports the WebView engine, which built-ins are missing, and the
+  last console errors — that beacon is how the two problems above were found at all;
+- a **legacy-syntax downgrade** for class static blocks, which on an old parser aborts the whole bundle
+  before React ever mounts.
+
+Every one of these patches a *served page*, so each has to be re-applied after a `dsh web` upgrade, and
+none of it is upstream. That is the honest cost of supporting old devices.
 
 ### What building it taught us
 

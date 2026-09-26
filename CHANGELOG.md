@@ -15,6 +15,8 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-09-26
+
 ### Changed
 
 - **Tailscale is now named, linked and attributed everywhere the prerequisite is stated — including in the app
@@ -771,7 +773,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.2
 [0.4.1]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.1
 [0.4.0]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: 0.4.1 replaced it within the day"
 [0.3.9]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.3.9
