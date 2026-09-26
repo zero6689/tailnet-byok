@@ -17,6 +17,22 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Changed
 
+- **"Why this exists" argued about VPN architecture and buried the actual reason.** The section
+  opened with "two unsatisfying options" and closed by calling the embedded `tsnet` node *why the
+  project exists* — which answers a question nobody asked and misses the point. The point is
+  ordinary: a long job runs on your desktop and you have to leave, and what you want is not a
+  status mail or a log tail but **the same DSH session, still able to take the next instruction
+  from a phone on the way out the door**. That is stated first now. The everyday setup is named
+  for what it is — the **official Tailscale app** signs the device in, this app is only the DSH
+  client on top of it, no auth key involved — and the rest moved down into a *How it connects,
+  and why it asks for no VPN permission* subsection, where the embedded node is described as what
+  it is: a mode in the build, optional, and not the reason the project exists. Same edit in
+  `README.md` and `site/index.html`. The docs site's "shape borrowed from tailvisor and
+  netbirdio/android-client" line was also wrong and is fixed: tailvisor contains no Android code
+  at all and netbirdio/android-client *does* take the device-wide VPN slot, so neither is the
+  shape copied here — [`GlassHaven/Haven`](https://github.com/GlassHaven/Haven) is the closest,
+  and it is AGPL-3.0, so it is evidence rather than a source of code for this MIT project.
+
 - **The description of this project was wrong, and is now corrected.** The README, the docs
   site's headline, its search/social description and the GitHub repository description all said
   the app "carries its own Tailscale node", which reads as if the node — or the network — came

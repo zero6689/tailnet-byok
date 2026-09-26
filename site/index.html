@@ -61,18 +61,47 @@
   <h2 id="why"><span class="i18n-en">Why this exists</span><span class="i18n-zh">为什么会有这个项目</span><a class="anchor" href="#why">#</a></h2>
 
   <p>
-    <span class="i18n-en">Reaching a service on your own tailnet from a phone normally means one of two
-    unsatisfying options.</span><span class="i18n-zh">在手机上访问自己 tailnet 里的某个服务，通常只有两个都不太令人满意的选择。</span>
+    <span class="i18n-en">A long job is running on my desktop — a build, a render, an agent session. I have to
+    leave. What I do not want is to be tied to the chair until it finishes, and what I do not want to lose is the
+    session itself: not a status mail, not a log tail, but the same DSH conversation, still able to take the next
+    instruction from a phone on the way out the door.</span><span class="i18n-zh">电脑上有个长任务在跑 —— 编译、渲染，或者一个 agent 会话，而我要出门了。
+    我不想被按在椅子上等它跑完，更不想丢掉会话本身：不是收一封状态邮件、不是 tail 一段日志，
+    而是<strong>同一个 DSH 会话</strong>，在出门路上还能用手机接着下一条指令。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">That is the whole point of this project: <strong>your DSH server keeps running on your
+    own machine, your own tailnet puts the two on the same private network, and this app is the client that reaches
+    it.</strong> Leave the desk, keep the session — phone or tablet, same server, same session.</span><span class="i18n-zh">这就是本项目存在的全部理由：<strong>你的 DSH 服务器继续跑在你自己那台机器上，你自己的 tailnet
+    把两边放进同一个私有网络，而这个 App 就是连过去的那一端。</strong>离开工位，会话还在手上 —— 手机或平板、同一台服务器、同一个会话。</span>
+  </p>
+
+  <h3 id="how-it-connects"><span class="i18n-en">How it connects, and why it asks for no VPN permission</span><span class="i18n-zh">它怎么连，以及为什么不申请 VPN 权限</span><a class="anchor" href="#how-it-connects">#</a></h3>
+
+  <p>
+    <span class="i18n-en">The everyday setup is two apps: the <strong>official Tailscale app</strong> signs the
+    device into your tailnet, and <code>tailnet-byok</code> is only the DSH client on top of it. The app opens one
+    connection, to one destination, and nothing else — no auth key, no VPN slot of its own.</span><span class="i18n-zh">日常就是两个 App：<strong>官方 Tailscale 应用</strong>把设备登录进你的 tailnet，
+    <code>tailnet-byok</code> 只是叠在它上面的 DSH 客户端。这个 App 只打开一条连接、只连一个目的地，别的什么都不做 ——
+    不需要认证密钥，也不占自己的 VPN 槽位。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">The other two ways to get a phone onto a tailnet in order to reach one service are both
+    unsatisfying — which is why this build also carries an optional third.</span><span class="i18n-zh">另外两条「把手机弄进 tailnet，只为访问一个服务」的路都不太令人满意 ——
+    所以这个构建还带了一个可选的第三条。</span>
   </p>
 
   <div class="grid">
     <div class="card">
-      <h3><span class="i18n-en">The official Tailscale app</span><span class="i18n-zh">官方的 Tailscale App</span></h3>
+      <h3><span class="i18n-en">Have the official app do the provisioning</span><span class="i18n-zh">让官方应用完成入网</span></h3>
       <p class="small">
-        <span class="i18n-en">It works, and for most people it is the right answer. But it takes the device-wide
+        <span class="i18n-en">It works, and for most people it is the right answer — the official app is also what
+        this project's own everyday mode runs on. But it takes the device-wide
         VPN slot, changes DNS for every app on the phone, and — decisively — <strong>no
         other app can hand it an auth key</strong>. There is no API, intent or content
-        provider for that.</span><span class="i18n-zh">它确实能用，对大多数人来说也是正确答案。但它占用了设备级的 VPN 槽位，会改动手机上
+        provider for that.</span><span class="i18n-zh">它确实能用，对大多数人来说也是正确答案 —— 而且本项目的日常模式本身就跑在官方应用之上。
+        但它占用了设备级的 VPN 槽位，会改动手机上
         每个 App 的 DNS，而且最关键的是：<strong>没有别的 App 能把手里的认证密钥交给它</strong>。
         没有为此提供 API、intent 或 content provider。</span>
       </p>
@@ -98,11 +127,12 @@
   </div>
 
   <p>
-    <span class="i18n-en"><code>tailnet-byok</code> takes a third path: it embeds a <strong>userspace</strong>
+    <span class="i18n-en"><code>tailnet-byok</code> therefore also carries a third option, as a <strong>mode in the
+    build rather than a service</strong>: it embeds a <strong>userspace</strong>
     Tailscale node with <a href="https://pkg.go.dev/tailscale.com/tsnet">tsnet</a> and dials
     the target through it. The device's other traffic is untouched, and the app itself asks
     for no VPN permission — on the system-network path the tunnel belongs to the official
-    app instead. The app opens one connection, to one destination, and nothing else.</span><span class="i18n-zh"><code>tailnet-byok</code> 走了第三条路：它用
+    app instead. The app opens one connection, to one destination, and nothing else.</span><span class="i18n-zh"><code>tailnet-byok</code> 所以还带了第三条路，而且它是 <strong>构建里的一个模式、不是一项服务</strong>：它用
     <a href="https://pkg.go.dev/tailscale.com/tsnet">tsnet</a> 内嵌了一个<strong>用户态</strong>的
     Tailscale 节点，并通过它拨号到目标。设备上的其它流量完全不受影响，App 自身也不申请 VPN
     权限 —— 走系统网络模式时，隧道由官方应用提供。
@@ -110,24 +140,33 @@
   </p>
 
   <p>
-    <span class="i18n-en">That third path is why the project exists and it is <strong>optional</strong>:
+    <span class="i18n-en">That third option is <strong>optional</strong>:
     the same build also runs on the device's existing network, which is the mode used day to day and
     the one that needs no auth key at all. The embedded mode instead needs a Tailscale auth key
-    from the tailnet it joins.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
+    from the tailnet it joins.</span><span class="i18n-zh">这「第三条路」是<strong>可选</strong>的：
     同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>完全不需要</strong>认证密钥。
     内嵌节点模式改用一把来自它所加入的 tailnet 的 Tailscale 认证密钥。</span>
   </p>
 
   <p>
-    <span class="i18n-en">The shape is borrowed from two projects that proved it works:
-    <a href="https://github.com/tailscale/tailvisor">tailvisor</a> (tsnet without a system
-    VPN) and
-    <a href="https://github.com/netbirdio/android-client">netbirdio/android-client</a>
-    (a gomobile-bound tunnel inside a Kotlin app), applied to the single-destination case.</span><span class="i18n-zh">这个形态借鉴了两个已经证明它可行的项目：
-    <a href="https://github.com/tailscale/tailvisor">tailvisor</a>（不带系统
-    VPN 的 tsnet）和
-    <a href="https://github.com/netbirdio/android-client">netbirdio/android-client</a>
-    （Kotlin App 里由 gomobile 绑定的隧道），并把它们用在「单一目的地」这一场景上。</span>
+    <span class="i18n-en">For the record, on the same shape elsewhere: the closest is
+    <a href="https://github.com/GlassHaven/Haven">Haven</a> — <code>tsnet</code> bound through gomobile into a
+    Kotlin app, userspace netstack, no <code>VpnService</code> consent — applied there to a general tunnel and
+    here to the single-destination case. Haven is AGPL-3.0, so it is worth reading as evidence that this shape
+    works, and it is not a source of code for an MIT project. Two designs that look like the same shape are not:
+    <a href="https://github.com/tailscale/tailvisor">tailvisor</a> runs macOS and Linux guest VMs on Apple Silicon
+    (Swift, <code>-buildmode=c-archive</code>) and contains no Android code at all, and
+    <a href="https://github.com/netbirdio/android-client">netbirdio/android-client</a> <em>does</em> take the
+    device-wide VPN slot — its <code>:tool</code> module declares a <code>VPNService</code> and holds
+    <code>BIND_VPN_SERVICE</code> — exactly the trade this project declines to make.</span><span class="i18n-zh">顺带把同类项目说清楚：最接近的是
+    <a href="https://github.com/GlassHaven/Haven">Haven</a> —— 把 <code>tsnet</code> 经 gomobile 绑进 Kotlin App，
+    用户态 netstack，不要 <code>VpnService</code> 授权；它做的是通用隧道，本项目做的是「单一目的地」这一种。
+    Haven 是 AGPL-3.0，所以它值得作为「这个形态确实成立」的证据来读，但它不是 MIT 项目的代码来源。
+    另有两个看着形状相同、其实不同：<a href="https://github.com/tailscale/tailvisor">tailvisor</a> 是在 Apple Silicon
+    上跑 macOS 和 Linux 客户机 VM（Swift、<code>-buildmode=c-archive</code>），完全没有 Android 代码；
+    <a href="https://github.com/netbirdio/android-client">netbirdio/android-client</a> <em>确实</em>占用设备级 VPN 槽位 ——
+    它的 <code>:tool</code> 模块声明了 <code>VPNService</code> 并持有 <code>BIND_VPN_SERVICE</code> ——
+    正是本项目选择不去做的那笔交易。</span>
   </p>
 
   <h2 id="what-it-does"><span class="i18n-en">What it does</span><span class="i18n-zh">它能做什么</span><a class="anchor" href="#what-it-does">#</a></h2>

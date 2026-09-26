@@ -43,29 +43,47 @@ here talks to a server of ours.
 
 ## Why this exists
 
-Reaching a service on your own tailnet from a phone normally means one of two
-unsatisfying options:
+A long job is running on my desktop — a build, a render, an agent session. I have to
+leave. What I do not want is to be tied to the chair until it finishes, and what I do
+not want to lose is the session itself: not a status mail, not a log tail, but the same
+DSH conversation, still able to take the next instruction from a phone on the way out
+the door.
 
-1. **Install the official Tailscale app.** It works, and for most people it is
-   the right answer. But it takes the device-wide VPN slot, changes DNS for every
-   app on the phone, and — decisively — *no other app can hand it an auth key*.
-   There is no API, intent or content provider for that. If your goal is "an app
-   that provisions a device onto my tailnet from inside the app", this route
-   cannot do it.
+That is the whole point of this project: **your DSH server keeps running on your own
+machine, your own tailnet puts the two on the same private network, and this app is the
+client that reaches it.** Leave the desk, keep the session. Phone or tablet, same
+server, same session.
+
+Everything below in this section is about *how* that connection is made.
+
+### How it connects, and why it asks for no VPN permission
+
+The everyday setup is two apps: the **official Tailscale app** signs the device into your
+tailnet, and `tailnet-byok` is only the DSH client on top of it. The app opens one
+connection, to one destination, and nothing else — no auth key, no VPN slot of its own.
+
+The other two ways to get a phone onto a tailnet in order to reach one service are both
+unsatisfying, which is why the build also carries an optional third:
+
+1. **Have the official app do the provisioning.** It works, and for most people it
+   is the right answer — the official app is also what this project's own everyday
+   mode runs on. But *no other app can hand it an auth key*: there is no API,
+   intent or content provider for that. If your goal is "an app that puts a device
+   on my tailnet from inside the app", this route cannot do it.
 2. **Ship your own VPN service.** That means `BIND_VPN_SERVICE`, a foreground
    service, split-tunnel policy, and a permanent notification — a lot of
    surface, and a lot of ways to get it wrong, to open one socket to one host.
 
-`tailnet-byok` takes a third path: it embeds a **userspace** Tailscale node with
+`tailnet-byok` therefore also carries a third option, as a **mode in the build rather
+than a service**: it embeds a **userspace** Tailscale node with
 [`tsnet`](https://pkg.go.dev/tailscale.com/tsnet) and dials the target through
 it. The device's other traffic is untouched, and the app itself requests no VPN
 permission — on the system-network path the tunnel belongs to the official app
 instead. The app opens one connection, to one destination, and nothing else.
 
-That third path is why the project exists, and it is **optional**: the same build
-also runs on the device's existing network, which is the mode used day to day and the
-one that needs no auth key. Nothing here is a service you sign up for, and the node
-you reach belongs to whoever runs the server.
+That third option is **optional**: the same build also runs on the device's existing
+network, which is the mode used day to day and the one that needs no auth key. Nothing
+here is a service you sign up for, and no node of it is ours.
 
 The closest thing in the field is
 [`GlassHaven/Haven`](https://github.com/GlassHaven/Haven) — `tsnet` bound through
@@ -79,7 +97,7 @@ runs macOS and Linux guest VMs on Apple Silicon (Swift, `-buildmode=c-archive`) 
 contains no Android code at all, and
 [`netbirdio/android-client`](https://github.com/netbirdio/android-client) *does* take
 the device-wide VPN slot — its `:tool` module declares a `VPNService` and holds
-`BIND_VPN_SERVICE` — which is precisely what this project exists to avoid.
+`BIND_VPN_SERVICE` — exactly the trade this project declines to make.
 
 ---
 
