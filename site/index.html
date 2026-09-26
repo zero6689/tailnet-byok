@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 连某台 DSH 服务器的 Android 客户端（走 Tailscale）">
+<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 连你自己那台 DSH 服务器的 Android 客户端（走 Tailscale）">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tailnet-byok — an Android client for one DSH server, reached over Tailscale</title>
+<title>tailnet-byok — an Android client for your own DSH server, reached over Tailscale</title>
 <!-- After <title>, so the title it saves is the English one. -->
 <script src="lang.js"></script>
-<meta name="description" content="An Android client for one DSH server reached over Tailscale. Sign in to Tailscale yourself and install the official app; whoever runs the server gives you access and the address. No account with us, no server of ours, no node, no key, no relay.">
+<meta name="description" content="An Android client for your own DSH server, reached over Tailscale. You need a tailnet of your own (official Tailscale app signed in) and your own reachable DSH server; then the app talks to that one host. No account with us, no server of ours, no node, no relay.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -29,15 +29,16 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1><span class="i18n-en">An Android client for one DSH server, reached over Tailscale.</span><span class="i18n-zh">连某台 DSH 服务器的 Android 客户端（走 Tailscale）。</span></h1>
+    <h1><span class="i18n-en">An Android client for your own DSH server, reached over Tailscale.</span><span class="i18n-zh">连你自己那台 DSH 服务器的 Android 客户端（走 Tailscale）。</span></h1>
     <p class="lead">
-      <span class="i18n-en">You sign in to Tailscale yourself and install the <strong>official Tailscale app</strong> —
-      it is what puts the device on the tailnet. Whoever runs the server gives you access and hands you the
-      address; paste it, sign in, and the app talks to that one service. No account with us, no server of
-      ours, no shared relay — and this project provides no tailnet, no node, no key and no relay.</span><span class="i18n-zh">你自己登录 Tailscale 并安装 <strong>官方 Tailscale 应用</strong> ——
-      把设备带上 tailnet 的是它。服务器主人给你访问权和地址；粘贴地址、登录，App 就只与那一个服务通信。
+      <span class="i18n-en">You need two things first: a tailnet of your own — signed in with the
+      <strong>official Tailscale app</strong> — and <strong>your own</strong> DSH server, reachable from that
+      tailnet. Then paste the address, sign in, and the app talks to that one service. No account with us,
+      no server of ours, no shared relay — and this project provides no tailnet, no node, no server and no
+      relay.</span><span class="i18n-zh">先要两样东西：你自己的 tailnet（用<strong>官方 Tailscale 应用</strong>登录）
+      + <strong>你自己</strong>那台能从该 tailnet 访问到的 DSH 服务器。然后粘贴地址、登录，App 就只与那一个服务通信。
       不需要在我们这里注册账号，没有我们的服务器，没有共享中继 —— 本项目不提供 tailnet、不提供节点、
-      不发密钥、也不做中继。</span>
+      不提供服务器、也不做中继。</span>
     </p>
 
     <div class="cta">
@@ -111,10 +112,10 @@
   <p>
     <span class="i18n-en">That third path is why the project exists and it is <strong>optional</strong>:
     the same build also runs on the device's existing network, which is the mode used day to day and
-    the one that needs no auth key at all. The embedded mode does need a key — one issued by whoever
-    runs the tailnet it is joining, which is not this project.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
+    the one that needs no auth key at all. The embedded mode instead needs a Tailscale auth key
+    from the tailnet it joins.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
     同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>完全不需要</strong>认证密钥。
-    内嵌节点模式则需要密钥 —— 由它要加入的那个 tailnet 的运行者签发，而不是本项目。</span>
+    内嵌节点模式改用一把来自它所加入的 tailnet 的 Tailscale 认证密钥。</span>
   </p>
 
   <p>

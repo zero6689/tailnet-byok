@@ -1,18 +1,19 @@
 # tailnet-byok
 
-**An Android client for one DSH server, reached over Tailscale.** You sign in to
-Tailscale yourself and install the official Tailscale app; whoever runs the server
-gives you access and hands you the address. Paste the address, sign in, and the app
-talks to that one service. No account with us, no server of ours, no shared relay.
+**An Android client for your own DSH server, reached over Tailscale.** You need two
+things first: a tailnet of your own — signed in with the official Tailscale app — and
+**your own** DSH server, reachable from that tailnet. Then paste the address, sign in,
+and the app talks to that one service. No account with us, no server of ours, no shared
+relay.
 
-> **What this project does not provide:** a tailnet, a node, a key, or a relay. It is a
-> client, and the **official Tailscale app is what puts the device on the tailnet**.
-> An earlier version of this page said the app "carries its own Tailscale node", which
-> read as if the node came from us; it does not. `tailnet-byok` does contain an optional
-> *embedded node* mode ([docs/TSNET.md](docs/TSNET.md)) that dials from inside the app
-> with a Tailscale auth key — that is what "BYOK" in the name refers to — and it needs a
-> key issued by whoever runs the tailnet it is joining; the path this app is used on is
-> the **system network**, where no key is involved at all.
+> **What this project does not provide:** a tailnet, a node, a server, a key, or a relay.
+> It is a client, and the **official Tailscale app is what puts the device on the
+> tailnet**. An earlier version of this page said the app "carries its own Tailscale
+> node", which read as if the node came from us; it does not. `tailnet-byok` does contain
+> an optional *embedded node* mode ([docs/TSNET.md](docs/TSNET.md)) that dials from
+> inside the app with **your own** Tailscale auth key — that is what "BYOK" in the name
+> refers to — while the path the maintainer tests with is the system network and the
+> official app.
 
 > Bring-your-own-key, taken literally: the key is a Tailscale auth key, it is
 > stored encrypted by the Android Keystore, and it never leaves your device
