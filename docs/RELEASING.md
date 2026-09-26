@@ -152,7 +152,7 @@ configuration, the deployment build has a target baked in). The gap is wider tha
 target accounts for — for v0.3.9 the published asset was 43.8 MiB while the deployment build of
 the same commit measured 54.2 MiB, because the locally bound `libgojni.so` carried about 11 MB
 more DWARF than the library the workflow builds from `scripts/build-bridge.mjs`. Take the number
-from the published asset, never from a local build. (v0.4.2 is 35.1 MiB: the workflow sets
+from the published asset, never from a local build. (v0.4.3 is 35.1 MiB: the workflow sets
 `ANDROID_NDK_HOME`, so AGP strips the native library's `.debug_*`, `.symtab` and `.strtab` — about
 9 MB, with the code sections and the dynamic symbols unchanged. A local build keeps them.)
 
