@@ -193,6 +193,14 @@ fun SetupScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // The prerequisite that is not in this app at all. It stays at the top
+            // until a target is set, because "install Tailscale on both ends" is the
+            // step people skip — and a hint buried in the connection-method section
+            // is a hint nobody reads.
+            if (state.config.hostInput.isBlank()) {
+                item { PrereqCard() }
+            }
+
             // "How do I connect at all" is the first thing a new user needs, so it
             // comes before everything else — but only while there is no target.
             //
@@ -444,6 +452,27 @@ private fun FirstRunCard(
             )
             TextButton(onClick = { uriHandler.openUri(provisioningUrl) }) {
                 Text(stringResource(R.string.firstrun_open_provisioning))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrereqCard() {
+    val uriHandler = LocalUriHandler.current
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Info, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.prereq_title), fontWeight = FontWeight.SemiBold)
+            }
+            Text(
+                stringResource(R.string.prereq_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(onClick = { uriHandler.openUri("https://tailscale.com/download") }) {
+                Text(stringResource(R.string.prereq_action))
             }
         }
     }

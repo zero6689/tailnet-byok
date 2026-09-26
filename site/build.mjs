@@ -15,7 +15,7 @@
  *   2. **Structural checks.** Each page must link the shared stylesheet, declare
  *      a title, and carry a viewport meta, because a page that silently loses its
  *      styling looks like a broken deploy rather than a typo.
- *   3. **Stamping.** `{{VERSION}}`, `{{BUILD_SHA}}` and `{{BUILD_DATE}}` are
+ *   3. **Stamping.** `{{VERSION}}`, `{{APK_VERSION}}`, `{{BUILD_SHA}}` and `{{BUILD_DATE}}` are
  *      substituted so a reader can tell which commit they are looking at, which
  *      matters when the docs describe a build they have not installed.
  *
@@ -209,6 +209,11 @@ function main() {
   const repoSlug = process.env.GITHUB_REPOSITORY || 'zero6689/tailnet-byok';
   const context = {
     version: readVersion(),
+    // The version the *buttons* serve, which is the newest published release, not
+    // this checkout. `docs-pages.yml` knows it (it mirrors that release 40 lines
+    // later) and passes it in; a local build falls back to the checkout's own
+    // version, which is right whenever the two agree.
+    apkVersion: process.env.APK_VERSION || readVersion(),
     sha,
     shortSha: sha === 'local' ? 'local' : sha.slice(0, 7),
     date: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC',
@@ -223,6 +228,7 @@ function main() {
     const source = readFileSync(join(SITE_DIR, name), 'utf8');
     const stamped = source
       .replaceAll('{{VERSION}}', context.version)
+      .replaceAll('{{APK_VERSION}}', context.apkVersion)
       .replaceAll('{{BUILD_SHA}}', context.shortSha)
       .replaceAll('{{BUILD_SHA_FULL}}', context.sha)
       .replaceAll('{{BUILD_DATE}}', context.date)

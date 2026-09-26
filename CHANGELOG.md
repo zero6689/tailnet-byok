@@ -15,6 +15,28 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-09-26
+
+### Added
+
+- **A Tailscale card at the top of the settings list** (shown until a target is set): *First: Tailscale, on both
+  ends* — install it on this device **and** on the computer running DSH, sign both into the same tailnet, and
+  only then point this app at your server, with a button that opens
+  <https://tailscale.com/download>. What 0.4.2 added lived in the first-run card (shown once, then acknowledged
+  away) and under the system-network option (inside a section, below the fold) — which is exactly where nobody
+  looks, as the devices showed. This one is at the top and unmissable, in both languages.
+- **The provisioning page says it too**, above the download buttons, including where each end gets Tailscale
+  (computer: tailscale.com/download; Android: Google Play `com.tailscale.ipn`, or the APK from Tailscale's own
+  package server).
+
+### Fixed
+
+- **`provisioning.html` named the wrong release.** It hard-coded `v0.4.1` while the mirror it links to served
+  `0.4.2`, and then told the reader that the buttons might therefore be a version behind — a page calling its own
+  download stale. The version is now stamped at deploy time from the newest *published* release
+  (`{{APK_VERSION}}`, supplied by `docs-pages.yml` from `gh release view`), so the page cannot name a release
+  other than the one it serves. Hand-editing that number at each release is over.
+
 ## [0.4.2] — 2026-09-26
 
 ### Changed
@@ -773,7 +795,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.3
 [0.4.2]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.2
 [0.4.1]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.1
 [0.4.0]: https://github.com/zero6689/tailnet-byok/releases "withdrawn: 0.4.1 replaced it within the day"

@@ -57,6 +57,26 @@
 
   <h2 id="install"><span class="i18n-en">Get the app first</span><span class="i18n-zh">先装上应用</span><a class="anchor" href="#install">#</a></h2>
 
+  <div class="callout">
+    <span class="label"><span class="i18n-en">Before the APK: Tailscale, on both ends</span><span class="i18n-zh">装 APK 之前：两端都要有 Tailscale</span></span>
+    <p>
+      <span class="i18n-en">This app is the <strong>client</strong>; the <strong>network</strong> is Tailscale, and
+      it has to be installed on <strong>both</strong> ends — the computer that runs DSH and the phone or tablet —
+      signed into the <strong>same</strong> tailnet. The computer's copy comes from
+      <a href="https://tailscale.com/download">tailscale.com/download</a>; the Android app is on
+      <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google Play</a>
+      (<code>com.tailscale.ipn</code>), or as a file from Tailscale's own
+      <a href="https://pkgs.tailscale.com/stable/#android">package server</a>. Neither replaces the other: without
+      Tailscale on both ends, the link below has nowhere to go.</span><span class="i18n-zh">这个应用是<strong>客户端</strong>，
+      网络那半是 Tailscale，而且<strong>两端都要装</strong> —— 跑 DSH 的电脑，和手机或平板 —— 并登录<strong>同一个</strong>
+      tailnet。电脑端去 <a href="https://tailscale.com/download">tailscale.com/download</a> 下载；安卓端在
+      <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google Play</a>（包名
+      <code>com.tailscale.ipn</code>），要文件的话只有官方的
+      <a href="https://pkgs.tailscale.com/stable/#android">包服务器</a>。两者谁也替代不了谁：两端没有 Tailscale，
+      下面这条链接就没有地方可去。</span>
+    </p>
+  </div>
+
   <div class="card">
     <p>
       <span class="i18n-en">Everything below only means something to this app, so the hand-off is two things: the
@@ -85,18 +105,14 @@
     </p>
     <p class="small muted">
       <span class="i18n-en">The newest published release is
-      <strong id="apk-version">v0.4.1</strong> — about
+      <strong id="apk-version">v{{APK_VERSION}}</strong> — about
       <strong id="apk-size">35&nbsp;MB</strong>, arm64 — one file for everybody, with
       nobody's address baked into it. If both links crawl, whoever runs the server can hand the same file over
-      directly.</span><span class="i18n-zh">最新发布的版本是
-      <strong id="apk-version-zh">v0.4.1</strong>，约
+      directly. This page is rebuilt on every release, so the version above is the one the buttons serve.</span><span class="i18n-zh">最新发布的版本是
+      <strong id="apk-version-zh">v{{APK_VERSION}}</strong>，约
       <strong id="apk-size-zh">35&nbsp;MB</strong>，arm64 —— 所有人同一个文件，里面没有预置任何人的地址。
-      如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。</span>
-      <span class="i18n-en">This page was built from the repository at <strong>v{{VERSION}}</strong>; if that
-      differs from the version above, the button is the older one. Updated by hand at each release; see
-      <code>docs/RELEASING.md</code>.</span><span class="i18n-zh">本页构建自仓库的
-      <strong>v{{VERSION}}</strong>；如果它与上面那个版本号不一致，说明按钮给的是较旧的那一版。这两个数字每次发版
-      手工更新，见 <code>docs/RELEASING.md</code>。</span>
+      如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。本页每次发版都会重建，
+      所以上面这个版本号就是按钮给的那一份。</span>
     </p>
     <p class="small muted">
       <span class="i18n-en">Android asks once whether installs from this source are allowed. The app requests no

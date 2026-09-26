@@ -16,6 +16,12 @@
     <string name="app_name">DSH BYOK</string>
     <string name="screen_title">DSH BYOK</string>
 
+    <!-- 这个前提条件不在本 App 里。在填好目标之前它一直挂在设置列表最上面 ——
+         因为这一步最容易被跳过。 -->
+    <string name="prereq_title">先准备：两端都要装 Tailscale</string>
+    <string name="prereq_body">这个应用是客户端，网络那半是官方 Tailscale App。请在本机和跑 DSH 的电脑上都装好、登录同一个 tailnet，然后再把本应用指向你的服务器。安卓端在 Google Play；电脑端在 tailscale.com/download。</string>
+    <string name="prereq_action">去下载 Tailscale</string>
+
     <!-- 首次运行的安全模型说明 -->
     <string name="intro_title">这个 App 会怎么处理你的密钥</string>
     <string name="intro_body">你的认证密钥由 Android Keystore 加密保存：不会以明文落盘、不会写进日志，除了你自己配置的控制面（control plane）之外不会离开这台设备。本 App 没有自己的服务器、没有统计、不发起任何自己的网络请求。另外你还需要官方 Tailscale App：本机和跑 DSH 的电脑都要装，并登录同一个 tailnet —— 下载地址 tailscale.com/download。</string>

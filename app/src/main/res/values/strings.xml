@@ -33,6 +33,12 @@
     <!-- App bar. Same brand as `app_name`, so the two can never drift apart. -->
     <string name="screen_title">DSH BYOK</string>
 
+    <!-- The prerequisite that lives outside this app. Stays at the top of the
+         settings list until a target is set, because this is the step people skip. -->
+    <string name="prereq_title">First: Tailscale, on both ends</string>
+    <string name="prereq_body">This app is the client; the official Tailscale app is the network. Install it on this device and on the computer running DSH, sign both into the same tailnet, and only then point this app at your server. Android: Google Play. Computer: tailscale.com/download.</string>
+    <string name="prereq_action">Get Tailscale</string>
+
     <!-- First-run card: the security model, stated once. -->
     <string name="intro_title">What this app does with your key</string>
     <string name="intro_body">Your auth key is stored encrypted by the Android Keystore and is never written to disk in plain text, never logged, and never leaves this device except to your own control plane. This app has no server, no analytics and no network calls of its own. You also need the official Tailscale app: on this device and on the computer running DSH, signed into the same tailnet — download it at tailscale.com/download.</string>

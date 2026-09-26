@@ -59,7 +59,16 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node site/build.mjs
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # `provisioning.html` names the release its download buttons serve. That is
+          # the newest *published* release, which is not necessarily this checkout --
+          # so it is read here rather than taken from `versionName`, which is how that
+          # page came to tell readers the mirror was a version behind.
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+          echo "latest published release: ${tag:-none}"
+          APK_VERSION="${tag#v}" node site/build.mjs
 
       - name: Verify the build produced the expected pages
         run: |
