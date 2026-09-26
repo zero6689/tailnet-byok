@@ -124,7 +124,7 @@ android {
         applicationId = "io.github.zero6689.tailnetbyok"
         minSdk = resolvedMinSdk
         targetSdk = resolvedTargetSdk
-        versionCode = 23
+        versionCode = 24
         // Bumped from 0.1.0 on 2026-09-13. The delivery filename and the app's
         // own version had drifted apart (a file called v0.2.1 installed an app
         // reporting 0.1.0-debug), which left no way to tell from the phone which
@@ -279,7 +279,7 @@ android {
         //     `/byok`; the package-name check refused the install, but the prompt was
         //     wrong and 14 MB was downloaded for nothing.
         //   * a base carrying a path is still used verbatim.
-        versionName = "0.4.3"
+        versionName = "0.4.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

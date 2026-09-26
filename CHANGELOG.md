@@ -15,6 +15,27 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-09-26
+
+### Added
+
+- **A second button under the Tailscale card: the package server, which is the APK itself.** Google Play and
+  `tailscale.com` do not load on every network, and the one official place that hands out a *file* instead of a
+  page is `pkgs.tailscale.com` — so the card now offers
+  `tailscale-android-universal-1.102.4.apk` (universal, 100.6 MB) on its own line under the same card, in both
+  languages, and its body says what that file is: the *stable* track, and it does not update itself.
+- **A step-by-step first run**, in `README.md` and on the docs site: Tailscale on both ends → a configuration in
+  (link, QR code, or a typed host) → connection method → an auth key only for the embedded node → connection
+  test → *Open the DSH UI* → the manual update check → diagnostics at the bottom of the same screen.
+
+### Changed
+
+- **The screens section now shows 0.4.3.** The phone row is the real setup screen (top and bottom: the Tailscale
+  card, the three ways in, the manual update check, diagnostics) plus the provisioning page with its Tailscale
+  block; the tablet row gained the finish notice on a tablet's own shade.
+- The docs site names the package-server APK too, so the fallback for a blocked Play Store is one tap from the
+  page as well as from the app.
+
 ## [0.4.3] — 2026-09-26
 
 ### Added
@@ -795,7 +816,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.4
 [0.4.3]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.3
 [0.4.2]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.2
 [0.4.1]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.1

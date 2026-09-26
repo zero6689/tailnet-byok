@@ -474,6 +474,16 @@ private fun PrereqCard() {
             TextButton(onClick = { uriHandler.openUri("https://tailscale.com/download") }) {
                 Text(stringResource(R.string.prereq_action))
             }
+            // Second line, for the networks where the first one simply never loads:
+            // this is the file itself, on Tailscale's own package server, so it needs
+            // no page to render and no Play Store to be reachable.
+            TextButton(
+                onClick = {
+                    uriHandler.openUri("https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk")
+                },
+            ) {
+                Text(stringResource(R.string.prereq_action_alt))
+            }
         }
     }
 }

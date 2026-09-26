@@ -190,17 +190,37 @@ And when it fails, it says which part:
 
 ## Screens
 
-These are from a real device running v0.3.9 (Android, arm64), not mockups. The one
-screenshot that showed a tailnet address — the provisioning page's target field, the
-link it generates, and the QR code that encodes that link — is redacted: that address
-belongs to whoever runs the server, not to this project.
+Phone screenshots are from v0.4.3, the tablet ones from v0.4.1 (plus one notification from v0.4.3),
+and all of them are from real devices rather than mockups. Screenshots that showed a tailnet
+address — the provisioning page's target field, the link it generates, and the QR code that encodes
+it — are redacted: that address belongs to whoever runs the server, not to this project.
 
 | | | |
 |---|---|---|
-| ![Installed: DSH BYOK 0.3.9](docs/images/app-info.jpg) | ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![The provisioning page](docs/images/provisioning-page.jpg) |
-| **Installed** — `DSH BYOK` 0.3.9 | **The DSH UI**, in the WebView, through the loopback proxy | **The provisioning page** that turns a target into a link or a code (address redacted) |
-| ![DSH's first-run notice](docs/images/dsh-notice.jpg) | ![The notification permission prompt](docs/images/notification-permission.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
-| **First run** — the target's own notice, shown by the app | **Notification permission** — asked once, and the finish notice needs it | **The finish notice** pops up; above it, the watch that precedes it |
+| ![The setup screen, top: the Tailscale prerequisite](docs/images/phone-043-settings-top.jpg) | ![The setup screen, bottom: update check and diagnostics](docs/images/phone-043-settings-bottom.jpg) | ![The provisioning page](docs/images/phone-043-provisioning.jpg) |
+| **First thing on screen** — the Tailscale prerequisite and the three ways in, before anything else | **Down the same screen** — the manual update check, and diagnostics last | **The provisioning page** that turns a target into a link or a code (address redacted) |
+| ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![DSH's first-run notice](docs/images/dsh-notice.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
+| **The DSH UI**, in the WebView, through the loopback proxy | **First run** — the target's own notice, shown by the app | **The finish notice** pops up; above it, the watch that precedes it |
+
+## First run, step by step
+
+1. **Tailscale, on both ends.** Install the official Tailscale app on the phone or tablet *and* on
+   the computer that runs DSH, and sign both into the same tailnet. The first card on the setup
+   screen links to it (and to Tailscale's package server for the APK, for networks where Google Play
+   and `tailscale.com` will not load).
+2. **Get a configuration in.** On the computer, the provisioning page turns a target into a
+   `dshbyok://setup` link and a QR code. Scan it, paste it, or type the host by hand — the app shows
+   what a link would change and waits for a tap before applying anything.
+3. **Pick a connection method.** *Embedded tailnet node* dials from inside the app with your own
+   Tailscale auth key ("BYOK"); *System network* uses the tunnel the official app already
+   established, and needs no key. Either works; the second is the everyday one.
+4. **Run the connection test.** Six named steps, each with a duration, stopping at the first hard
+   failure — so a failure says *which* part broke, not just "failed".
+5. **Open the DSH UI.** The target's own interface, in the app, through a loopback-only proxy.
+6. **Updates are manual, on purpose.** *Check for updates* runs when you tap it, and installs only
+   bytes whose SHA-256 and declared package name both match.
+7. **Diagnostics sit at the bottom.** Provider, node state, redacted target, last update result, and
+   the node's recent log lines — short enough to paste into a bug report.
 
 The setup screen is one scrollable screen, in this order: target → connection
 method → credential → node → test. That order is the dependency order, so the
@@ -218,8 +238,8 @@ a machine path has no business in a public repository.
 |---|---|---|
 | ![DSH BYOK 0.4.1 installed on a tablet](docs/images/tablet-app-info.jpg) | ![The app's permission screen on a tablet](docs/images/tablet-permissions.jpg) | ![DSH's settings panel at tablet width](docs/images/tablet-dsh-settings.jpg) |
 | **Installed** — `DSH BYOK` 0.4.1 on the tablet | **Permissions** — camera for a setup QR, install-unknown-apps for the updater | **DSH's settings**, tabbed, at tablet width |
-| ![The DSH UI on a tablet](docs/images/tablet-dsh-composer.jpg) | ![DSH's first-run notice on a tablet](docs/images/tablet-first-run-notice.jpg) | |
-| **The DSH UI** on the tablet (workspace name redacted) | **First run** on the tablet, over the session list | |
+| ![The DSH UI on a tablet](docs/images/tablet-dsh-composer.jpg) | ![DSH's first-run notice on a tablet](docs/images/tablet-first-run-notice.jpg) | ![The task-finished notification on a tablet](docs/images/tablet-notify.jpg) |
+| **The DSH UI** on the tablet (workspace name redacted) | **First run** on the tablet, over the session list | **The finish notice** on the tablet's own shade (v0.4.3) — and above it, the watch that precedes it |
 
 From there, *Open the DSH UI* swaps in `WebScreen.kt`: a WebView onto the
 target's own interface, reached through the loopback proxy described above.

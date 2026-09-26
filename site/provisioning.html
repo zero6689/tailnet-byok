@@ -65,15 +65,27 @@
       signed into the <strong>same</strong> tailnet. The computer's copy comes from
       <a href="https://tailscale.com/download">tailscale.com/download</a>; the Android app is on
       <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google Play</a>
-      (<code>com.tailscale.ipn</code>), or as a file from Tailscale's own
-      <a href="https://pkgs.tailscale.com/stable/#android">package server</a>. Neither replaces the other: without
-      Tailscale on both ends, the link below has nowhere to go.</span><span class="i18n-zh">这个应用是<strong>客户端</strong>，
+      (<code>com.tailscale.ipn</code>). Neither replaces the other: without Tailscale on both ends, the link below
+      has nowhere to go.</span><span class="i18n-zh">这个应用是<strong>客户端</strong>，
       网络那半是 Tailscale，而且<strong>两端都要装</strong> —— 跑 DSH 的电脑，和手机或平板 —— 并登录<strong>同一个</strong>
       tailnet。电脑端去 <a href="https://tailscale.com/download">tailscale.com/download</a> 下载；安卓端在
       <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google Play</a>（包名
-      <code>com.tailscale.ipn</code>），要文件的话只有官方的
-      <a href="https://pkgs.tailscale.com/stable/#android">包服务器</a>。两者谁也替代不了谁：两端没有 Tailscale，
-      下面这条链接就没有地方可去。</span>
+      <code>com.tailscale.ipn</code>）。两者谁也替代不了谁：两端没有 Tailscale，下面这条链接就没有地方可去。</span>
+    </p>
+    <p>
+      <span class="i18n-en"><strong>Tailscale's package server — the file itself.</strong> Google Play and
+      <code>tailscale.com</code> do not load everywhere (mainland networks especially), and the package server is
+      the official place that hands out the <strong>APK file</strong> instead of a page:
+      <a href="https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk">tailscale-android-universal-1.102.4.apk</a>
+      — universal build, <strong>100.6&nbsp;MB</strong>, straight from Tailscale. Two things to know: it is the
+      <em>stable</em> track (Play ships newer — the maintainer runs 1.103.90 from Play), and it
+      <strong>does not update itself</strong>, so install a newer one by hand when you want it. The English page it
+      comes from is <a href="https://pkgs.tailscale.com/stable/#android">pkgs.tailscale.com/stable/#android</a>.</span><span class="i18n-zh"><strong>Tailscale 包服务器 —— 直接给文件。</strong>Google Play 和
+      <code>tailscale.com</code> 不是哪儿都能打开（国内网络尤其），而包服务器是官方唯一<strong>直接给 APK 文件</strong>、
+      不需要你先打开一个网页的地方：<a href="https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk">tailscale-android-universal-1.102.4.apk</a>
+      —— 通用包，<strong>100.6&nbsp;MB</strong>，来自 Tailscale 自己。两点要知道：它是 <em>stable</em> 通道
+      （Play 上的更新，维护者用的就是 Play 的 1.103.90），而且它<strong>不会自动更新</strong>，想要新版本得自己再装一次。
+      它来自的那个英文页面是 <a href="https://pkgs.tailscale.com/stable/#android">pkgs.tailscale.com/stable/#android</a>。</span>
     </p>
   </div>
 
