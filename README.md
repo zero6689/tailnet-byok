@@ -4,20 +4,24 @@
 on your desktop, you have to leave, and you would rather keep the session in your hand
 than sit and watch it. That is the one thing this app does: it is the client.
 
-**Install Tailscale on both ends** — the computer running DSH and the phone or tablet —
-and sign both into the **same** tailnet. Your DSH then answers at an address inside that
-tailnet; paste it, sign in, and the app talks to that one service and nothing else. No
-account with us, no server of ours, no shared relay.
+**Install [Tailscale](https://tailscale.com/download) on both ends** — the computer
+running DSH and the phone or tablet — and sign both into the **same** tailnet. Your DSH
+then answers at an address inside that tailnet; paste it, sign in, and the app talks to
+that one service and nothing else. The two are used together: **Tailscale is the network,
+this app is the client**, and neither replaces the other. No account with us, no server of
+ours, no shared relay.
 
 > **What this project does not provide:** a tailnet, a node, a server, a key, or a relay.
-> It is a client, and the **official Tailscale app is what puts the device on the
-> tailnet**. An earlier version of this page said the app "carries its own Tailscale
-> node", which read as if the node came from us; it does not. `tailnet-byok` does contain
-> an optional *embedded node* mode ([docs/TSNET.md](docs/TSNET.md)) that dials from
-> inside the app with **your own** Tailscale auth key — that is what "BYOK" in the name
-> refers to — while the path the maintainer tests with is the system network and the
-> official app. **That is the whole scope:** one job, done plainly — there is nothing to
-> install into DSH, no mobile protocol of its own, no tunnel service, no account, no relay.
+> It is a client. The **[official Tailscale app](https://tailscale.com/download) is what
+> puts the device on the tailnet** — install it on both ends, signed into the same tailnet;
+> it is used **together with** this app, not replaced by it. An earlier version of this page
+> said the app "carries its own Tailscale node", which read as if the node came from us; it
+> does not. `tailnet-byok` does contain an optional *embedded node* mode
+> ([docs/TSNET.md](docs/TSNET.md)) that dials from inside the app with **your own** Tailscale
+> auth key — that is what "BYOK" in the name refers to — while the path the maintainer tests
+> with is the system network and the official app. **That is the whole scope:** one job, done
+> plainly — there is nothing to install into DSH, no mobile protocol of its own, no tunnel
+> service, no account, no relay.
 
 > Bring-your-own-key, taken literally: the key is a Tailscale auth key, it is
 > stored encrypted by the Android Keystore, and it never leaves your device

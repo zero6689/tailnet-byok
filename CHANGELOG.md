@@ -17,6 +17,12 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Changed
 
+- **The prerequisite now says where to get Tailscale, and that the two are used together.** The README
+  and the docs site link [tailscale.com/download](https://tailscale.com/download) at the point where the
+  requirement is stated, say to install it on **both** ends (the computer running DSH and the phone or
+  tablet) and sign both into the same tailnet, and add the sentence that was missing: **Tailscale is the
+  network, this app is the client, and neither replaces the other.** `README.md` and `site/index.html`.
+
 - **The prerequisite was stated vaguely and the scope was left implicit.** The page now says what you
   actually have to do: install Tailscale on **both** ends — the computer running DSH and the phone or
   tablet — and sign both into the **same** tailnet; the address the app takes is the one your DSH
