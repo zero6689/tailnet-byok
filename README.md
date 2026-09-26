@@ -190,18 +190,18 @@ And when it fails, it says which part:
 
 ## Screens
 
-Phone screenshots are from v0.4.4 — the Tailscale card gained a third line, and the Android floor in the
-system-network note was corrected to 8, in v0.4.5 — the tablet ones from v0.4.1 (plus one notification from
-v0.4.3), and all of them are from real devices rather than mockups. Screenshots that showed a tailnet
-address — the provisioning page's target field, the link it generates, and the QR code that encodes
-it — are redacted: that address belongs to whoever runs the server, not to this project.
+Both devices now run **0.4.6** (`versionCode` 26) — Android's own app-info screen is the first one below,
+because it is the system's word for what is installed rather than the app's. The captures around it come
+from the 0.4.x line as it grew, and all of them are from real devices rather than mockups. Screenshots that
+showed a tailnet address — the provisioning page's target field, the link it generates, and the QR code that
+encodes it — are redacted: that address belongs to whoever runs the server, not to this project.
 
 | | | |
 |---|---|---|
-| ![The Tailscale card on the setup screen](docs/images/phone-044-tailscale-card.jpg) | ![Connection methods, handing the config to another device, and the test](docs/images/phone-044-methods-and-test.jpg) | ![Opening the DSH UI, the update check, and diagnostics](docs/images/phone-044-update-and-diagnostics.jpg) |
-| **First thing on screen** — the Tailscale card, with the package-server APK on its own line | **Connection method**, the hand-off to another device, and the **connection test** | The **DSH UI** button, the manual **update check**, and **diagnostics** last |
-| ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![The provisioning page](docs/images/phone-043-provisioning.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
-| **The DSH UI**, in the WebView, through the loopback proxy | **The provisioning page** that turns a target into a link or a code (address redacted) | **The finish notice** pops up; above it, the watch that precedes it |
+| ![Android's app-info screen: DSH BYOK 0.4.6](docs/images/android-app-info-046.jpg) | ![The Tailscale cards on the setup screen](docs/images/phone-046-tailscale-sources.jpg) | ![Connection methods, handing the config to another device, and the test](docs/images/phone-044-methods-and-test.jpg) |
+| **Android's own screen** — *Settings → Apps → DSH BYOK*, version **0.4.6**, installed by an installer | **First thing in the app** — the prerequisite card and **Tailscale 下载来源**, with the package-server APKs | **Connection method**, the hand-off to another device, and the **connection test** |
+| ![Opening the DSH UI, the update check, and diagnostics](docs/images/phone-044-update-and-diagnostics.jpg) | ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![The provisioning page](docs/images/phone-043-provisioning.jpg) |
+| The **DSH UI** button, the manual **update check**, and **diagnostics** last | **The DSH UI**, in the WebView, through the loopback proxy | **The provisioning page** that turns a target into a link or a code (address redacted) |
 
 ## First run, step by step
 
@@ -227,20 +227,21 @@ The setup screen is one scrollable screen, in this order: target → connection
 method → credential → node → test. That order is the dependency order, so the
 result of the test sits directly under the fields it describes.
 
-### On a tablet (0.4.1)
+### On a tablet
 
 The same app on an Android tablet (HUAWEI AGS5-W00, Android 12), which is the other
 half of the point: the DSH UI is the same page at a wider width, and the app around it
-behaves the same. Two of these show that page, and the block over the composer's
-workspace chip is a redaction — the name under it is the local checkout's folder, and
-a machine path has no business in a public repository.
+behaves the same. The tablet runs the **same release as the phone — 0.4.6** — and Android's
+own app-info screen above is the proof of it; the captures here are from the 0.4.x line as
+it grew. The block over the composer's workspace chip is a redaction — the name under it is
+the local checkout's folder, and a machine path has no business in a public repository.
 
 | | | |
 |---|---|---|
-| ![DSH BYOK 0.4.1 installed on a tablet](docs/images/tablet-app-info.jpg) | ![The app's permission screen on a tablet](docs/images/tablet-permissions.jpg) | ![DSH's settings panel at tablet width](docs/images/tablet-dsh-settings.jpg) |
-| **Installed** — `DSH BYOK` 0.4.1 on the tablet | **Permissions** — camera for a setup QR, install-unknown-apps for the updater | **DSH's settings**, tabbed, at tablet width |
-| ![The DSH UI on a tablet](docs/images/tablet-dsh-composer.jpg) | ![DSH's first-run notice on a tablet](docs/images/tablet-first-run-notice.jpg) | ![The task-finished notification on a tablet](docs/images/tablet-notify.jpg) |
-| **The DSH UI** on the tablet (workspace name redacted) | **First run** on the tablet, over the session list | **The finish notice** on the tablet's own shade (v0.4.3) — and above it, the watch that precedes it |
+| ![The app's permission screen on a tablet](docs/images/tablet-permissions.jpg) | ![DSH's settings panel at tablet width](docs/images/tablet-dsh-settings.jpg) | ![The DSH UI on a tablet](docs/images/tablet-dsh-composer.jpg) |
+| **Permissions** — camera for a setup QR, install-unknown-apps for the updater | **DSH's settings**, tabbed, at tablet width | **The DSH UI** on the tablet (workspace name redacted) |
+| ![DSH's first-run notice on a tablet](docs/images/tablet-first-run-notice.jpg) | ![The task-finished notification on a tablet](docs/images/tablet-notify.jpg) | ![DSH BYOK 0.4.1 installed on a tablet](docs/images/tablet-app-info.jpg) |
+| **First run** on the tablet, over the session list | **The finish notice** on the tablet's own shade — and above it, the watch that precedes it | **Installed** — kept for the history: this is what the tablet looked like on 0.4.1 |
 
 From there, *Open the DSH UI* swaps in `WebScreen.kt`: a WebView onto the
 target's own interface, reached through the loopback proxy described above.
@@ -359,7 +360,7 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.4.3** (`versionCode` 23) — used daily on a phone and a tablet, and it compiles.
+Version **0.4.6** (`versionCode` 26) — running on a phone *and* a tablet, and it compiles.
 
 **Verified by an actual build**, not by inspection: **178 unit tests pass** (no failures, no
 skips), Lint reports **zero errors** (five warnings), and the release workflow builds and signs the
