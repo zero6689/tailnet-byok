@@ -28,7 +28,11 @@ oversight, and it is worth knowing when you read a security entry below.
   and why it asks for no VPN permission* subsection, where the embedded node is described as what
   it is: a mode in the build, optional, and not the reason the project exists. The one-line pitch at the
   top of the README and the hero of the docs site now open with the same situation, so the first thing a
-  visitor reads is the use case rather than a list of prerequisites. Same edit in
+  visitor reads is the use case rather than a list of prerequisites. The section then says what actually
+  lands in your hand — reply in the *same* session, answer the questions and tool approvals DSH asks,
+  watch a long job stream while you are elsewhere, phone or tablet on one target — because until now the
+  capability list was written from the app's plumbing outward and never named the thing a reader came for.
+  Same edit in
   `README.md` and `site/index.html`. The docs site's "shape borrowed from tailvisor and
   netbirdio/android-client" line was also wrong and is fixed: tailvisor contains no Android code
   at all and netbirdio/android-client *does* take the device-wide VPN slot, so neither is the

@@ -56,6 +56,16 @@ machine, your own tailnet puts the two on the same private network, and this app
 client that reaches it.** Leave the desk, keep the session. Phone or tablet, same
 server, same session.
 
+What that looks like in practice:
+
+- **Reply in the same session** — the conversation on the phone is the one the desktop is
+  running, not a copy, a summary or a read-only view.
+- **Answer what DSH asks** — its questions and tool approvals arrive in your hand, so a job
+  does not sit stalled until you are back at the desk to tap something.
+- **Watch a long job finish** — output streams while you are elsewhere, background tasks
+  included, so "is it done yet" stops requiring a chair.
+- **Phone or tablet, one target** — both point at the same server and see the same thing.
+
 Everything below in this section is about *how* that connection is made.
 
 ### How it connects, and why it asks for no VPN permission
