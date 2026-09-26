@@ -199,6 +199,7 @@ fun SetupScreen(
             // is a hint nobody reads.
             if (state.config.hostInput.isBlank()) {
                 item { PrereqCard() }
+                item { TailscaleSourcesCard() }
             }
 
             // "How do I connect at all" is the first thing a new user needs, so it
@@ -471,28 +472,60 @@ private fun PrereqCard() {
                 stringResource(R.string.prereq_body),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            TextButton(onClick = { uriHandler.openUri("https://tailscale.com/download") }) {
-                Text(stringResource(R.string.prereq_action))
+            // The links themselves live in the card below this one, so that every way to
+            // get Tailscale is in a single place instead of two.
+        }
+    }
+}
+
+/**
+ * Every way to get Tailscale itself, in one card: the official site, both package-server
+ * tracks, and the source repository. It exists because the honest first step of this app
+ * is installing somebody else's app, and on some networks half of these links are the
+ * only ones that open.
+ */
+@Composable
+private fun TailscaleSourcesCard() {
+    val uriHandler = LocalUriHandler.current
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Info, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.sources_title), fontWeight = FontWeight.SemiBold)
             }
-            // Second line, for the networks where the first one simply never loads:
-            // this is the file itself, on Tailscale's own package server, so it needs
-            // no page to render and no Play Store to be reachable.
+            Text(
+                stringResource(R.string.sources_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            TextButton(onClick = { uriHandler.openUri("https://tailscale.com/download") }) {
+                Text(stringResource(R.string.sources_official))
+            }
+            // The stable track: what a release build of Tailscale means.
             TextButton(
                 onClick = {
                     uriHandler.openUri("https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk")
                 },
             ) {
-                Text(stringResource(R.string.prereq_action_alt))
+                Text(stringResource(R.string.sources_stable))
             }
-            // And the same page in Chinese, for the reading rather than the file: it is
-            // a translation of Tailscale's own package-server page, plus which build to
-            // take. Third line, same alignment as the two above it.
+            // The unstable track: preview builds, same requirements, newer and less proven.
+            TextButton(
+                onClick = {
+                    uriHandler.openUri("https://pkgs.tailscale.com/unstable/tailscale-android-universal-1.103.309.apk")
+                },
+            ) {
+                Text(stringResource(R.string.sources_unstable))
+            }
+            TextButton(onClick = { uriHandler.openUri("https://github.com/tailscale/tailscale-android") }) {
+                Text(stringResource(R.string.sources_github))
+            }
             TextButton(
                 onClick = {
                     uriHandler.openUri("https://zero6689.github.io/tailnet-byok/tailscale-android.html")
                 },
             ) {
-                Text(stringResource(R.string.prereq_action_guide))
+                Text(stringResource(R.string.sources_guide))
             }
         }
     }

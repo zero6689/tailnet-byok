@@ -41,6 +41,17 @@
     <string name="prereq_action_alt">Tailscale package server (APK)</string>
     <string name="prereq_action_guide">Package server, explained (Chinese)</string>
 
+    <!-- Every place Tailscale can be had, in one card, for the networks where the good
+         pages do not load. Titles say which channel each link is, because "stable" and
+         "unstable" are the difference between a supported build and a preview. -->
+    <string name="sources_title">Where to get Tailscale</string>
+    <string name="sources_subtitle">The network half — Play first, these for when it will not load</string>
+    <string name="sources_official">Official site (tailscale.com/download)</string>
+    <string name="sources_stable">Stable APK — package server, about 100 MB</string>
+    <string name="sources_unstable">Unstable APK — package server, preview builds</string>
+    <string name="sources_github">Official source on GitHub</string>
+    <string name="sources_guide">Package server, explained (Chinese)</string>
+
     <!-- First-run card: the security model, stated once. -->
     <string name="intro_title">What this app does with your key</string>
     <string name="intro_body">Your auth key is stored encrypted by the Android Keystore and is never written to disk in plain text, never logged, and never leaves this device except to your own control plane. This app has no server, no analytics and no network calls of its own. You also need the official Tailscale app: on this device and on the computer running DSH, signed into the same tailnet — download it at tailscale.com/download.</string>

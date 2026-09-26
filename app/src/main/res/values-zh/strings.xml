@@ -24,6 +24,16 @@
     <string name="prereq_action_alt">Tailscale 包服务器（直接下 APK）</string>
     <string name="prereq_action_guide">包服务器说明（中文）</string>
 
+    <!-- Tailscale 的所有获取渠道，集中一张卡；官网/Play 打不开时用。标题写明是哪条通道，
+         因为 stable 与 unstable 的区别就是"受支持的版本"与"预览版"。 -->
+    <string name="sources_title">Tailscale 下载来源</string>
+    <string name="sources_subtitle">网络那一半 —— Play 优先，下面这些是打不开时的备选</string>
+    <string name="sources_official">官网（tailscale.com/download）</string>
+    <string name="sources_stable">稳定版 APK —— 包服务器，约 100 MB</string>
+    <string name="sources_unstable">不稳定版 APK —— 包服务器，预览构建</string>
+    <string name="sources_github">官方源码（GitHub）</string>
+    <string name="sources_guide">包服务器说明（中文）</string>
+
     <!-- 首次运行的安全模型说明 -->
     <string name="intro_title">这个 App 会怎么处理你的密钥</string>
     <string name="intro_body">你的认证密钥由 Android Keystore 加密保存：不会以明文落盘、不会写进日志，除了你自己配置的控制面（control plane）之外不会离开这台设备。本 App 没有自己的服务器、没有统计、不发起任何自己的网络请求。另外你还需要官方 Tailscale App：本机和跑 DSH 的电脑都要装，并登录同一个 tailnet —— 下载地址 tailscale.com/download。</string>

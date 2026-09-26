@@ -15,6 +15,23 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.6] — 2026-09-26
+
+### Added
+
+- **One card that holds every way to get Tailscale**, right under the prerequisite card on the setup screen:
+  the official site, the **stable** package-server APK, the **unstable** (preview) package-server APK, the
+  official source repository on GitHub, and the Chinese explanation page. The prerequisite card keeps the
+  wording and gives up its buttons, so the links live in exactly one place.
+- **The Chinese page covers both tracks and the source repository**: a table of stable / unstable / source,
+  with each file named, sized, linked, and the difference stated (released versus preview; both need Android 8,
+  neither updates itself).
+
+### Changed
+
+- The README's phone screenshots say which release each row came from (0.4.4 captures; 0.4.5 added the third
+  line to the same card, 0.4.6 moved the links into their own card).
+
 ## [0.4.5] — 2026-09-26
 
 ### Added
@@ -840,7 +857,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.6...HEAD
+[0.4.6]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.6
 [0.4.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.5
 [0.4.4]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.4
 [0.4.3]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.3
