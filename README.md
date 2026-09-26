@@ -1,6 +1,8 @@
 # tailnet-byok
 
-**An Android client for your own DSH server, reached over Tailscale.** You need two
+**An Android client for your own DSH server, reached over Tailscale.** A long job runs
+on your desktop, you have to leave, and you would rather keep the session in your hand
+than sit and watch it. You need two
 things first: a tailnet of your own — signed in with the official Tailscale app — and
 **your own** DSH server, reachable from that tailnet. Then paste the address, sign in,
 and the app talks to that one service. No account with us, no server of ours, no shared
