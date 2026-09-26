@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 连你自己 tailnet 里那一个服务的 Android 客户端">
+<html lang="en" data-lang="en" data-title-zh="tailnet-byok —— 连某台 DSH 服务器的 Android 客户端（走 Tailscale）">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tailnet-byok — an Android client for one service on your own tailnet</title>
+<title>tailnet-byok — an Android client for one DSH server, reached over Tailscale</title>
 <!-- After <title>, so the title it saves is the English one. -->
 <script src="lang.js"></script>
-<meta name="description" content="An Android client for one service on your own tailnet. You bring the network and the server; the app talks to that one host. No account, no server of ours, no relay — and it does not provide a tailnet or a node.">
+<meta name="description" content="An Android client for one DSH server reached over Tailscale. The node is the server owner's, not ours: bring a Tailscale account and the official app, and they share that node with you. No account with us, no server of ours, no relay, no node of ours.">
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -29,17 +29,16 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1><span class="i18n-en">An Android client for one service on your own tailnet.</span><span class="i18n-zh">连你自己 tailnet 里那一个服务的 Android 客户端。</span></h1>
+    <h1><span class="i18n-en">An Android client for one DSH server, reached over Tailscale.</span><span class="i18n-zh">连某台 DSH 服务器的 Android 客户端（走 Tailscale）。</span></h1>
     <p class="lead">
-      <span class="i18n-en">You bring the network and the server. Paste a target host, sign in, and the app
-      talks to that one service. No account with us, no server of ours, no shared relay — and the
-      app itself asks for no VPN permission. This app does not provide a tailnet, a node, or a
-      relay: the day-to-day path is the system network, where the tunnel belongs to the official
-      Tailscale app, and the optional embedded-node mode dials from inside the app with your own
-      Tailscale auth key.</span><span class="i18n-zh">网络和服务器都由你提供。粘贴目标主机、登录，App 就只与那一个服务通信。
-      不需要在我们这里注册账号，没有我们的服务器，没有共享中继 —— App 自身也不申请 VPN 权限。
-      本项目不提供 tailnet、不提供节点、也不做中继：日常使用的是系统网络模式，隧道由官方 Tailscale
-      应用提供；可选的「内嵌节点」模式才在 App 进程内拨号，用的是你自己的 Tailscale 认证密钥。</span>
+      <span class="i18n-en">The server is somebody's own machine, and <strong>the node is theirs, not ours</strong>.
+      You bring a Tailscale account and the official Tailscale app; whoever runs the server shares that node
+      with you and hands you the address. Paste it, sign in, and the app talks to that one service. No
+      account with us, no server of ours, no shared relay — and this project provides no tailnet, no node
+      and no key.</span><span class="i18n-zh">服务器是别人的机器，<strong>节点是他们的，不是我们的</strong>。
+      你带自己的 Tailscale 账号和官方 Tailscale 应用；服务器主人把那个节点共享给你、并给你地址。
+      粘贴地址、登录，App 就只与那一个服务通信。不需要在我们这里注册账号，没有我们的服务器，
+      没有共享中继 —— 本项目不提供 tailnet、不提供节点、也不发密钥。</span>
     </p>
 
     <div class="cta">
@@ -112,11 +111,11 @@
 
   <p>
     <span class="i18n-en">That third path is why the project exists and it is <strong>optional</strong>:
-    the same build also runs on the device's existing network, which is the mode used day to day
-    and the one that needs no auth key. Nothing here is a service you sign up for — the network
-    and the server are yours.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
-    同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>不需要</strong>任何认证密钥。
-    这里没有需要注册的服务 —— 网络和服务器都是你自己的。</span>
+    the same build also runs on the device's existing network, which is the mode used day to day and
+    the one that needs no auth key at all. The embedded mode does need a key — one issued by whoever
+    owns the tailnet you are joining, which is not this project.</span><span class="i18n-zh">这「第三条路」是本项目存在的理由，但它是<strong>可选</strong>的：
+    同一个安装包也能直接走设备现有网络，那才是日常使用的模式，而且<strong>完全不需要</strong>认证密钥。
+    内嵌节点模式则需要密钥 —— 由你要加入的那个 tailnet 的主人签发，而不是本项目。</span>
   </p>
 
   <p>

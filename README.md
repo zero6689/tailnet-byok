@@ -1,17 +1,20 @@
 # tailnet-byok
 
-**An Android client for one service on your own tailnet.** You bring the network and
-the server: a tailnet of your own with a device on it — in the tested setup, the
-official Tailscale app signed in to your own account — and a DSH host reachable at an
-address inside that tailnet. Paste the target, sign in, and the app talks to that one
-service. No account with us, no server of ours, no shared relay.
+**An Android client for one DSH server, reached over Tailscale.** The server is
+somebody's own machine, and **the node is theirs, not ours**. You bring a Tailscale
+account — you sign up yourself — and the official Tailscale app; whoever runs the
+server shares that node with you, or adds you to their tailnet, and hands you the
+address. Paste the address, sign in, and the app talks to that one service. No account
+with us, no server of ours, no shared relay.
 
-> **What this app does not provide:** a tailnet, a node, or a relay. It is a client.
-> The optional *embedded node* ([docs/TSNET.md](docs/TSNET.md)) dials from inside the
-> app using your own Tailscale auth key, and that mode is what "BYOK" in the name
-> refers to. The path this project is used on daily is the **system network**, where
-> the tunnel belongs to the official Tailscale app and no auth key is needed at all.
-> A previous version of this page called the app "an Android app that carries its own
+> **What this project does not provide:** a tailnet, a node, a key, or a relay. It is a
+> client, and this README is about installing and using it against somebody else's
+> server. `tailnet-byok` also contains an optional *embedded node*
+> ([docs/TSNET.md](docs/TSNET.md)) that dials from inside the app with a Tailscale auth
+> key — that is what "BYOK" in the name refers to — but it needs a key from whoever
+> owns the tailnet, and the path this app is actually used on is the **system
+> network**, where the tunnel belongs to the official Tailscale app and no key is
+> needed at all. An earlier version of this page said the app "carries its own
 > Tailscale node", which read as if the node came from us; it does not.
 
 > Bring-your-own-key, taken literally: the key is a Tailscale auth key, it is
@@ -63,7 +66,8 @@ instead. The app opens one connection, to one destination, and nothing else.
 
 That third path is why the project exists, and it is **optional**: the same build
 also runs on the device's existing network, which is the mode used day to day and the
-one that needs no auth key. Nothing here is a service you sign up for.
+one that needs no auth key. Nothing here is a service you sign up for, and the node
+you reach belongs to whoever runs the server.
 
 The closest thing in the field is
 [`GlassHaven/Haven`](https://github.com/GlassHaven/Haven) — `tsnet` bound through
