@@ -39,6 +39,7 @@
     <string name="prereq_body">This app is the client; the official Tailscale app is the network. Install it on this device and on the computer running DSH, sign both into the same tailnet, and only then point this app at your server. Computer: tailscale.com/download. Android: Google Play — or, where Play and tailscale.com will not load, the APK straight from Tailscale\'s own package server (about 100 MB, and it does not update itself).</string>
     <string name="prereq_action">Get Tailscale</string>
     <string name="prereq_action_alt">Tailscale package server (APK)</string>
+    <string name="prereq_action_guide">Package server, explained (Chinese)</string>
 
     <!-- First-run card: the security model, stated once. -->
     <string name="intro_title">What this app does with your key</string>
@@ -80,7 +81,7 @@
     <string name="section_provider_subtitle">How traffic reaches the target</string>
     <string name="provider_embedded_tsnet">Embedded tailnet node</string>
     <string name="provider_system_network">System network (existing VPN)</string>
-    <string name="provider_system_explanation">This method does not use your auth key. Install the official Tailscale app on this device and on the computer running DSH, sign both into the same tailnet, and the app uses that connection. Download: tailscale.com/download (this app supports Android 13 or newer).</string>
+    <string name="provider_system_explanation">This method does not use your auth key. Install the official Tailscale app on this device and on the computer running DSH, sign both into the same tailnet, and the app uses that connection. Download: tailscale.com/download (Android 8 or newer — if that page will not load, the Tailscale card above links the APK directly).</string>
 
     <!-- Why the embedded node is unavailable in this build -->
     <string name="provider_unavailable_not_compiled">not compiled into this build (rebuild with -PwithTsnet=true)</string>

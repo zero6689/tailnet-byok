@@ -190,17 +190,18 @@ And when it fails, it says which part:
 
 ## Screens
 
-Phone screenshots are from v0.4.3, the tablet ones from v0.4.1 (plus one notification from v0.4.3),
-and all of them are from real devices rather than mockups. Screenshots that showed a tailnet
+Phone screenshots are from v0.4.4 — the Tailscale card gained a third line, and the Android floor in the
+system-network note was corrected to 8, in v0.4.5 — the tablet ones from v0.4.1 (plus one notification from
+v0.4.3), and all of them are from real devices rather than mockups. Screenshots that showed a tailnet
 address — the provisioning page's target field, the link it generates, and the QR code that encodes
 it — are redacted: that address belongs to whoever runs the server, not to this project.
 
 | | | |
 |---|---|---|
-| ![The setup screen, top: the Tailscale prerequisite](docs/images/phone-043-settings-top.jpg) | ![The setup screen, bottom: update check and diagnostics](docs/images/phone-043-settings-bottom.jpg) | ![The provisioning page](docs/images/phone-043-provisioning.jpg) |
-| **First thing on screen** — the Tailscale prerequisite and the three ways in, before anything else | **Down the same screen** — the manual update check, and diagnostics last | **The provisioning page** that turns a target into a link or a code (address redacted) |
-| ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![DSH's first-run notice](docs/images/dsh-notice.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
-| **The DSH UI**, in the WebView, through the loopback proxy | **First run** — the target's own notice, shown by the app | **The finish notice** pops up; above it, the watch that precedes it |
+| ![The Tailscale card on the setup screen](docs/images/phone-044-tailscale-card.jpg) | ![Connection methods, handing the config to another device, and the test](docs/images/phone-044-methods-and-test.jpg) | ![Opening the DSH UI, the update check, and diagnostics](docs/images/phone-044-update-and-diagnostics.jpg) |
+| **First thing on screen** — the Tailscale card, with the package-server APK on its own line | **Connection method**, the hand-off to another device, and the **connection test** | The **DSH UI** button, the manual **update check**, and **diagnostics** last |
+| ![The DSH UI in the WebView](docs/images/dsh-screen.jpg) | ![The provisioning page](docs/images/phone-043-provisioning.jpg) | ![The task-finished notices](docs/images/task-notifications.jpg) |
+| **The DSH UI**, in the WebView, through the loopback proxy | **The provisioning page** that turns a target into a link or a code (address redacted) | **The finish notice** pops up; above it, the watch that precedes it |
 
 ## First run, step by step
 

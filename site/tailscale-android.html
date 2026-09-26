@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en" data-title-zh="Tailscale 安卓版 —— 包服务器（中文说明）">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tailscale for Android — the package server, in Chinese</title>
+<meta name="description" content="Tailscale's package server page for Android, explained in Chinese: the universal APK, its requirements, and why Google Play is the better route when it loads.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="styles.css">
+<!-- After <title>, so the title it saves is the English one. -->
+<script src="lang.js"></script>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>tailnet-byok</a>
+    <nav class="site">
+      <a href="index.html"><span class="i18n-en">Overview</span><span class="i18n-zh">总览</span></a>
+      <a href="guide.html"><span class="i18n-en">Build &amp; use</span><span class="i18n-zh">构建与使用</span></a>
+      <a href="provisioning.html"><span class="i18n-en">Provisioning</span><span class="i18n-zh">配置链接</span></a>
+      <a href="tailscale-android.html" aria-current="page"><span class="i18n-en">Tailscale for Android</span><span class="i18n-zh">Tailscale 安卓版</span></a>
+      <a href="security.html"><span class="i18n-en">Security</span><span class="i18n-zh">安全</span></a>
+      <a href="architecture.html"><span class="i18n-en">Architecture</span><span class="i18n-zh">架构</span></a>
+      <button class="lang" type="button" id="lang-toggle" hidden>中文</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1><span class="i18n-en">Tailscale for Android, from the package server</span><span class="i18n-zh">Tailscale 安卓版：从官方包服务器安装</span></h1>
+
+  <p class="lead">
+    <span class="i18n-en">Google Play and <code>tailscale.com</code> do not load on every network. Tailscale's
+    package server is the one official place that hands out a <strong>file</strong> instead of a page — and that
+    page is in English only, so this is the same information in Chinese, with the file linked directly.</span><span class="i18n-zh">Google Play 和 <code>tailscale.com</code> 不是哪儿都能打开。Tailscale 的包服务器是官方唯一
+    <strong>直接给文件</strong>、不需要你先打开网页的地方 —— 而那个页面只有英文，所以这里把同一份信息换成中文，
+    并把文件直接链出来。</span>
+  </p>
+
+  <div class="callout">
+    <span class="label"><span class="i18n-en">The file itself</span><span class="i18n-zh">文件本体</span></span>
+    <p>
+      <span class="i18n-en"><a href="https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk"><code>tailscale-android-universal-1.102.4.apk</code></a>
+      — the <em>universal</em> Android package: one file that covers most Android devices and CPU architectures,
+      which is why it is larger than the Play Store download. <strong>100.6 MB</strong>, published by Tailscale
+      on <a href="https://pkgs.tailscale.com/stable/#android">pkgs.tailscale.com</a>.</span><span class="i18n-zh"><a href="https://pkgs.tailscale.com/stable/tailscale-android-universal-1.102.4.apk"><code>tailscale-android-universal-1.102.4.apk</code></a>
+      —— <em>通用</em>安卓包：一个文件覆盖大多数安卓设备和 CPU 架构，所以它比 Play 商店那份大。
+      <strong>100.6 MB</strong>，由 Tailscale 发布在
+      <a href="https://pkgs.tailscale.com/stable/#android">pkgs.tailscale.com</a>。</span>
+    </p>
+    <p>
+      <span class="i18n-en">Checksum: append <code>.sha256</code> to the file's URL to get it, exactly as the page
+      says. Older versions are behind that page's version selector (<em>View older version</em>), and Tailscale's
+      own release notes are in their
+      <a href="https://tailscale.com/changelog">changelog</a>.</span><span class="i18n-zh">校验值：在文件地址后面加上
+      <code>.sha256</code> 就能取到 —— 这是原页面自己写的办法。旧版本在那一页的版本选择器里（<em>View older
+      version</em>），Tailscale 自己的更新记录在它的
+      <a href="https://tailscale.com/changelog">changelog</a>。</span>
+    </p>
+  </div>
+
+  <h2 id="what-the-page-says"><span class="i18n-en">What Tailscale's page says, in Chinese</span><span class="i18n-zh">原页面写了什么（中文）</span><a class="anchor" href="#what-the-page-says">#</a></h2>
+
+  <ul>
+    <li><span class="i18n-en"><strong>Requires Android 8 or newer.</strong></span><span class="i18n-zh"><strong>要求 Android 8 或更高。</strong></span></li>
+    <li><span class="i18n-en"><strong>This APK does not install updates automatically.</strong> You install a newer
+    one by hand when you want it.</span><span class="i18n-zh"><strong>这个 APK 不会自动更新。</strong>想要新版本，
+    要自己手动再装一次。</span></li>
+    <li><span class="i18n-en"><strong>Using the Google Play version is recommended</strong> — that is the channel
+    new versions reach first (the maintainer here runs 1.103.90 from Play, while the stable track this file comes
+    from is 1.102.4).</span><span class="i18n-zh"><strong>官方推荐用 Google Play 版本</strong> —— 新版本先到那里
+    （本项目维护者用的是 Play 上的 1.103.90，而这个文件所属的 stable 通道是 1.102.4）。</span></li>
+    <li><span class="i18n-en"><strong>Use of the package server is governed by Tailscale's Terms of Service</strong>;
+    by installing from it you accept them. <em>Tailscale</em> is a trademark of Tailscale Inc. This project is not
+    affiliated with Tailscale Inc. and does not redistribute their file — the link above points at their
+    server.</span><span class="i18n-zh"><strong>使用包服务器受 Tailscale 的服务条款约束</strong>，从它那里安装即表示
+    你接受该条款。<em>Tailscale</em> 是 Tailscale Inc. 的商标。本项目与 Tailscale Inc. 没有隶属关系，也不转分发
+    他们的文件 —— 上面那条链接指向的是他们自己的服务器。</span></li>
+  </ul>
+
+  <h2 id="which-one"><span class="i18n-en">Which one to install</span><span class="i18n-zh">该装哪一个</span><a class="anchor" href="#which-one">#</a></h2>
+
+  <p>
+    <span class="i18n-en">If <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google
+    Play</a> opens for you: use it — newer versions, and it updates itself. If it does not, and
+    <code>tailscale.com</code> does not either, take the file above. Either way you end up with the same app,
+    package <code>com.tailscale.ipn</code>; only the version and the update habit differ.</span><span class="i18n-zh">如果你那里 <a href="https://play.google.com/store/apps/details?id=com.tailscale.ipn">Google Play</a>
+    能打开：就用它 —— 版本更新、而且会自己更新。打不开，且 <code>tailscale.com</code> 也打不开，就用上面那个文件。
+    两条路的包名都是 <code>com.tailscale.ipn</code>，装出来是同一个应用，区别只在版本号和以后怎么更新。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">This app, <code>tailnet-byok</code>, is a separate application: it is the client for your
+    own DSH server, and it is used <em>together with</em> Tailscale rather than instead of it. Install Tailscale on
+    both ends — the phone or tablet, and the computer running DSH — and sign both into the same
+    tailnet.</span><span class="i18n-zh">本项目 <code>tailnet-byok</code> 是另一个应用：它是你自己那台 DSH 服务器的
+    客户端，是<em>和</em> Tailscale 搭配使用，而不是替代它。两端都要装 Tailscale —— 手机或平板，以及跑 DSH 的
+    电脑 —— 并登录同一个 tailnet。</span>
+  </p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p class="small muted">
+      <span class="i18n-en"><a href="https://pkgs.tailscale.com/stable/#android">The original English page</a> ·
+      <a href="provisioning.html">Provisioning</a> · <a href="index.html">Overview</a></span><span class="i18n-zh"><a href="https://pkgs.tailscale.com/stable/#android">原英文页面</a> ·
+      <a href="provisioning.html">配置链接</a> · <a href="index.html">总览</a></span>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

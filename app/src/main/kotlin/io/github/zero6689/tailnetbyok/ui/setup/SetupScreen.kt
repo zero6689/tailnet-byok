@@ -484,6 +484,16 @@ private fun PrereqCard() {
             ) {
                 Text(stringResource(R.string.prereq_action_alt))
             }
+            // And the same page in Chinese, for the reading rather than the file: it is
+            // a translation of Tailscale's own package-server page, plus which build to
+            // take. Third line, same alignment as the two above it.
+            TextButton(
+                onClick = {
+                    uriHandler.openUri("https://zero6689.github.io/tailnet-byok/tailscale-android.html")
+                },
+            ) {
+                Text(stringResource(R.string.prereq_action_guide))
+            }
         }
     }
 }

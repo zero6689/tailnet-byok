@@ -15,6 +15,30 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.5] — 2026-09-26
+
+### Added
+
+- **A Chinese translation of Tailscale's package-server page**, since that page is English-only and it is the
+  fallback exactly when the good pages will not load: `site/tailscale-android.html` — the file and its size, the
+  requirement (Android 8 or newer), the checksum trick (`<file>.sha256`), where older versions live, the
+  Terms-of-Service and trademark notice, and which build to take (Play when it loads, this file when it does
+  not). Linked from the docs home page and from the provisioning page.
+- **A third line on the Tailscale card**, same alignment as the other two: *Package server, explained (Chinese)*,
+  which opens that page. The card now reads: go to Tailscale → or take the APK directly → or read the same thing
+  in Chinese first.
+
+### Fixed
+
+- **The system-network note still said "this app supports Android 13 or newer"** — a claim from 0.4.2 that the
+  README and the docs site had already corrected to Tailscale's own floor of **Android 8**, and the app had not.
+  It now says Android 8 or newer, and points at the card above for the APK when `tailscale.com` will not load.
+
+### Changed
+
+- **The phone screenshots are 0.4.4**, and they are the ones that show the real setup screen: the Tailscale card,
+  the connection method and the test, then the DSH UI button, the update check and diagnostics.
+
 ## [0.4.4] — 2026-09-26
 
 ### Added
@@ -816,7 +840,8 @@ Resolved versions, for the record: Go 1.27.1, `tailscale.com` v1.102.4, NDK r26d
 AGP 8.7.3, Kotlin 2.1.0, Gradle 8.11.1.
 
 
-[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/zero6689/tailnet-byok/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.5
 [0.4.4]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.4
 [0.4.3]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.3
 [0.4.2]: https://github.com/zero6689/tailnet-byok/releases/tag/v0.4.2

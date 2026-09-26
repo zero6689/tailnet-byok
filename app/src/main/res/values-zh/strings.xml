@@ -22,6 +22,7 @@
     <string name="prereq_body">这个应用是客户端，网络那半是官方 Tailscale App。请在本机和跑 DSH 的电脑上都装好、登录同一个 tailnet，然后再把本应用指向你的服务器。电脑端：tailscale.com/download。安卓端：Google Play —— 如果 Play 和官网都打不开，就用下面第二个按钮，从 Tailscale 官方包服务器直接下 APK（约 100 MB，不会自动更新）。</string>
     <string name="prereq_action">去下载 Tailscale</string>
     <string name="prereq_action_alt">Tailscale 包服务器（直接下 APK）</string>
+    <string name="prereq_action_guide">包服务器说明（中文）</string>
 
     <!-- 首次运行的安全模型说明 -->
     <string name="intro_title">这个 App 会怎么处理你的密钥</string>
@@ -63,7 +64,7 @@
     <string name="section_provider_subtitle">流量如何到达目标</string>
     <string name="provider_embedded_tsnet">内嵌 tailnet 节点</string>
     <string name="provider_system_network">系统网络（已有 VPN）</string>
-    <string name="provider_system_explanation">这种方式不使用你的认证密钥。请在本机和跑 DSH 的电脑上都装官方 Tailscale App，登录同一个 tailnet，App 就用那条连接。下载：tailscale.com/download（本 App 支持 Android 13 以上）。</string>
+    <string name="provider_system_explanation">这种方式不使用你的认证密钥。请在本机和跑 DSH 的电脑上都装官方 Tailscale App，登录同一个 tailnet，App 就用那条连接。下载：tailscale.com/download（Android 8 以上 —— 官网打不开的话，上面那张 Tailscale 卡片里有 APK 直链）。</string>
 
     <!-- 内嵌节点不可用的原因 -->
     <string name="provider_unavailable_not_compiled">这个构建里没有编入（需用 -PwithTsnet=true 重新构建）</string>
