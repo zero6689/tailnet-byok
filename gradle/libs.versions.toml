@@ -49,7 +49,7 @@ okhttp = "4.12.0"
 # used, which is what keeps the whole decision table unit-testable on the JVM.
 # 3.5.3 is the last release of the 3.5 line and is a stable, widely vendored
 # revision rather than a moving target.
-zxing = "3.5.3"
+zxing = "3.5.4"
 
 # The camera. CameraX rather than the deprecated `android.hardware.Camera`: it
 # owns the lifecycle, the preview rotation and the frame pipeline, which is the
