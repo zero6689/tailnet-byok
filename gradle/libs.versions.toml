@@ -34,7 +34,7 @@ buildTools = "37.0.0"
 coreKtx = "1.19.0"
 lifecycle = "2.8.7"
 activityCompose = "1.9.3"
-composeBom = "2024.12.01"
+composeBom = "2026.09.00"
 datastore = "1.1.1"
 
 # --- Kotlin libraries ------------------------------------------------------
