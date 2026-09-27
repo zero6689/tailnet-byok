@@ -12,7 +12,7 @@ agp = "9.4.1"
 # AGP 9's new DSL is incompatible with it (`android.newDsl=true` by default).
 # The Compose and serialization compiler plugins are still applied, because
 # built-in Kotlin does not replace them.
-kotlin = "2.2.10"
+kotlin = "2.4.20"
 
 # --- SDK levels ------------------------------------------------------------
 # 37 = Play-compliant in 2026, and the floor androidx.core 1.19.0 declares in
@@ -38,8 +38,8 @@ composeBom = "2024.12.01"
 datastore = "1.1.1"
 
 # --- Kotlin libraries ------------------------------------------------------
-coroutines = "1.9.0"
-serialization = "1.7.3"
+coroutines = "1.11.0"
+serialization = "1.11.0"
 
 # --- Third party -----------------------------------------------------------
 okhttp = "4.12.0"
