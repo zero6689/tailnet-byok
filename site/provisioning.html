@@ -115,11 +115,11 @@
       <span class="i18n-en">Both download buttons serve <strong>the same bytes</strong> — the mirror is this site's
       own copy of the release asset, published under <code>byok/</code> because GitHub's release storage is slow or
       unreachable from some networks while this page's own host is fine — the two files come from
-      different places, which is why there are two buttons). It is refreshed automatically whenever a release is published, and the
+      different places, which is why there are two buttons). It is refreshed with this site, and the
       <code>sha256</code> link next to it is the checksum of exactly those bytes — compare it before installing if
       you got the file from anywhere else.</span><span class="i18n-zh">两个下载按钮给的是<strong>同一份字节</strong> ——
       镜像就是本页所在站点自己保存的那份发布资产，放在 <code>byok/</code> 下。两份文件来自不同的主机：GitHub 的发布存储
-      在部分地区很慢甚至打不开，而本页所在的主机正常，这就是有两个按钮的原因。它会在每次发布新版本时自动刷新，
+      在部分地区很慢甚至打不开，而本页所在的主机正常，这就是有两个按钮的原因。它随本站一起刷新，
       旁边的 <code>sha256</code> 链接就是这份字节的校验值 —— 如果你是从别处拿到的文件，装之前先对一下。</span>
     </p>
     <p class="small muted">
@@ -127,12 +127,12 @@
       <strong id="apk-version">v{{APK_VERSION}}</strong> — about
       <strong id="apk-size">44&nbsp;MB</strong>, arm64 — one file for everybody, with
       nobody's address baked into it. If both links crawl, whoever runs the server can hand the same file over
-      directly. This page is rebuilt on every release, so the version above is the one the buttons serve. The
+      directly. This page is rebuilt with the site, and the version above is the one the buttons serve. The
       0.4.7 asset is about 9 MB larger than 0.4.6's: AGP could not strip its native library in that build, so it
       carries debug tables the previous one did not. It installs the same way.</span><span class="i18n-zh">最新发布的版本是
       <strong id="apk-version-zh">v{{APK_VERSION}}</strong>，约
       <strong id="apk-size-zh">44&nbsp;MB</strong>，arm64 —— 所有人同一个文件，里面没有预置任何人的地址。
-      如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。本页每次发版都会重建，
+      如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。本页随站点一起重建，
       所以上面这个版本号就是按钮给的那一份。0.4.7 的安装包比 0.4.6 大约 9 MB：那次构建里 AGP 没能剥离原生库，
       所以它带着上一版没有的调试表。安装方式一样。</span>
     </p>

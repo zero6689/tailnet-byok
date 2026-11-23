@@ -68,7 +68,22 @@ Two things are published, and they are different files:
    The workflow therefore also runs on `release: published`: a mirror that keeps
    serving the *previous* release after a new one is published is worse than no
    mirror, and nothing else would refresh it when a release changes no file under
-   `site/`.
+   `site/`. **Except that this repository's own releases do not fire it.** A release
+   created by `release.yml` is created with the repository's `GITHUB_TOKEN`, and
+   GitHub does not start a workflow run from an event that token caused — so
+   `release: published` never fires, and the mirror keeps the previous asset until
+   somebody runs the site workflow. After tagging, run it:
+
+   ```bash
+   gh workflow run docs-pages.yml --repo zero6689/tailnet-byok
+   gh run list -w 'Docs site' --limit 1        # wait for success
+   ```
+
+   or push any change under `site/`, `README.md` or `docs/`, which the workflow does
+   watch. Then check that the page's version string and the mirror's `sha256` match
+   the release: 0.4.7 is where this was found — the release published, and the
+   provisioning page went on saying v0.4.6 until the site was rebuilt by hand.
+
    Nothing about the mirror is rebuilt or re-signed — it is the release asset, byte
    for byte. That is checked rather than assumed: the deployed file was downloaded
    whole and hashed (2026-09-25: 45,921,396 B, `70d7cd1d…6706f` — the release
