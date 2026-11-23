@@ -15,6 +15,16 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The emulator smoke job failed on every run, and the log blamed a timeout.** The runner image moved to
+  `ubuntu-26.04`, where `/dev/kvm` exists but is root-only: the emulator action's probe reported "hardware
+  acceleration is not available", passed `-accel off`, and this emulator refuses software CPU emulation
+  outright (`Software CPU emulation (-accel off) is not supported`). The emulator died, `adb` never saw a
+  device, and the job failed ten minutes later as `Timeout waiting for emulator to boot` — a message that
+  points at the runner rather than at a permission. CI now enables the KVM group (`99-kvm4all.rules`) before
+  launching, and asks for hardware acceleration explicitly so that a future probe failure is loud.
+
 ## [0.4.7] — 2026-11-23
 
 ### Added

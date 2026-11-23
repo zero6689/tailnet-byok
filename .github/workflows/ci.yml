@@ -404,6 +404,24 @@ jobs:
       - name: Assemble the debug APK (no native bridge)
         run: ./gradlew --no-daemon assembleDebug
 
+      - name: Enable KVM for the emulator
+        # The emulator needs a hardware CPU accelerator. GitHub's Ubuntu runners do
+        # have /dev/kvm, but it is root-only by default, so the emulator action's
+        # probe concludes "hardware acceleration is not available", passes
+        # `-accel off`, and current emulator builds refuse that outright:
+        #   ERROR | Software CPU emulation (-accel off) is not supported.
+        # The emulator dies, adb never sees a device, and ten minutes later the job
+        # fails as "Timeout waiting for emulator to boot" — which reads like a flaky
+        # runner rather than a missing group permission. That is exactly what
+        # 0.4.7's CI runs were, twice, after the image moved to ubuntu-26.04.
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
       - name: Install it on a clean emulator, launch it, and watch it live
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -411,6 +429,9 @@ jobs:
           arch: x86_64
           target: default
           disable-animations: true
+          # Explicit, so a future probe that cannot see /dev/kvm fails instead of
+          # quietly switching to an emulation mode this emulator no longer has.
+          disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             # One line on purpose: this action hands each line to a separate
