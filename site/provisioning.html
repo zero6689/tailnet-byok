@@ -125,13 +125,16 @@
     <p class="small muted">
       <span class="i18n-en">The newest published release is
       <strong id="apk-version">v{{APK_VERSION}}</strong> — about
-      <strong id="apk-size">35&nbsp;MB</strong>, arm64 — one file for everybody, with
+      <strong id="apk-size">44&nbsp;MB</strong>, arm64 — one file for everybody, with
       nobody's address baked into it. If both links crawl, whoever runs the server can hand the same file over
-      directly. This page is rebuilt on every release, so the version above is the one the buttons serve.</span><span class="i18n-zh">最新发布的版本是
+      directly. This page is rebuilt on every release, so the version above is the one the buttons serve. The
+      0.4.7 asset is about 9 MB larger than 0.4.6's: AGP could not strip its native library in that build, so it
+      carries debug tables the previous one did not. It installs the same way.</span><span class="i18n-zh">最新发布的版本是
       <strong id="apk-version-zh">v{{APK_VERSION}}</strong>，约
-      <strong id="apk-size-zh">35&nbsp;MB</strong>，arm64 —— 所有人同一个文件，里面没有预置任何人的地址。
+      <strong id="apk-size-zh">44&nbsp;MB</strong>，arm64 —— 所有人同一个文件，里面没有预置任何人的地址。
       如果两条链接都慢得离谱，服务器主人可以直接把同一个文件交给你。本页每次发版都会重建，
-      所以上面这个版本号就是按钮给的那一份。</span>
+      所以上面这个版本号就是按钮给的那一份。0.4.7 的安装包比 0.4.6 大约 9 MB：那次构建里 AGP 没能剥离原生库，
+      所以它带着上一版没有的调试表。安装方式一样。</span>
     </p>
     <p class="small muted">
       <span class="i18n-en">Android asks once whether installs from this source are allowed. The app requests no

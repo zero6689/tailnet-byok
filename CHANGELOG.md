@@ -28,6 +28,12 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Changed
 
+- **The 0.4.7 download is 43.8 MiB, and the documentation says so instead of the old 35 MiB.** That build's AGP
+  reported `Unable to strip the following libraries … libgojni.so`, so the APK carries the native library's debug
+  and static symbol tables that 0.4.6's asset did not (~9 MB). The download is bigger; the app is not. README,
+  `docs/ARCHITECTURE.md`, `docs/RELEASING.md` and the site's architecture and provisioning pages now give the
+  measured number for the artefact that is actually being served, and the strip failure is recorded as a
+  pipeline problem rather than rounded away.
 - **The docs site now says what this release does, and stops saying things that stopped being true.** Two rows
   are new — the target's own page rendered in a WebView, and saving a file from that page into the phone's
   Downloads — and the status sections were re-read against the release: the bridge "has not been built on every

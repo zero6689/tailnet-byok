@@ -321,8 +321,11 @@ docs/                          the same material as Markdown, for GitHub browsin
       <tr>
         <td><span class="i18n-en">Only <code>arm64</code> is built</span><span class="i18n-zh">只构建 <code>arm64</code></span></td>
         <td><span class="i18n-en">The release ships <code>arm64-v8a</code> and its size was measured by downloading
-            the asset (35.1 MiB); a four-ABI build is 164.1 MiB, which is the whole argument for shipping one. Other
-            ABIs are not built at all, so their behaviour is untested rather than merely unmeasured.</span><span class="i18n-zh">Release 只发 <code>arm64-v8a</code>，体积是下载资产后量出来的（35.1 MiB）；
+            the asset — 43.8 MiB for 0.4.7, 35.1 MiB for 0.4.6, the difference being a strip that did not happen in
+            the 0.4.7 build (AGP logged <code>Unable to strip … libgojni.so</code>). A four-ABI build is 164.1 MiB,
+            which is the whole argument for shipping one. Other ABIs are not built at all, so their behaviour is
+            untested rather than merely unmeasured.</span><span class="i18n-zh">Release 只发 <code>arm64-v8a</code>，体积是下载资产后量出来的 —— 0.4.7 是 43.8 MiB，
+            0.4.6 是 35.1 MiB，差值来自 0.4.7 那次没做成的 strip（AGP 日志写着 <code>Unable to strip … libgojni.so</code>）。
             四 ABI 构建是 164.1 MiB —— 这就是只发一个的理由。其它 ABI 根本不会构建，所以它们不是「体积没测」，
             而是行为没有测过。</span></td>
       </tr>

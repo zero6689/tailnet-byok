@@ -392,20 +392,26 @@ Version **0.4.7** (`versionCode` 27) — running on a phone *and* a tablet, and 
 skips), Lint reports **zero errors** (ten warnings), and the release workflow builds and signs the
 `arm64-v8a` asset; the gomobile bridge produces a 60.0 MiB `tailnet.aar`.
 
-The release ships **one ABI, not four**: an `arm64-v8a` APK of about **35 MiB** (35.1 MiB for the
-v0.4.6 asset — 36,874,060 B, measured by downloading it), built with R8 off so that the code which ships is the
-code the tests cover. A workstation build of the same commit measures ~54 MiB, for two reasons: the
-release workflow puts the NDK on `ANDROID_NDK_HOME` so AGP strips the native library's debug tables
-(~9 MB of `.debug_*`, `.symtab` and `.strtab`), and the locally bound `libgojni.so` carries about
-11 MB more DWARF to begin with. Stripping removes debug and static symbol tables only: `.text`,
-`.rodata` and `.gopclntab` come out the same size and the dynamic symbol table is identical, all 28
-`Java_io_github_*` entry points included. Four ABIs of `libgojni.so` are 162.4 MiB on their own,
-which is the whole argument for shipping one.
+The release ships **one ABI, not four**: an `arm64-v8a` APK, built with R8 off so that the code
+which ships is the code the tests cover. The 0.4.7 asset is **43.8 MiB (45,934,412 B, measured by
+downloading it)** — larger than 0.4.6's 35.1 MiB (36,874,060 B) because AGP could not strip it:
+that run's log says `Unable to strip the following libraries … libgojni.so`, so the ~9 MB of
+`.debug_*`, `.symtab` and `.strtab` the 0.4.6 asset did not carry went out in this one. The
+download is bigger; the app is not. Fixing that is a change to the release pipeline, not to this
+version, and it is written down here rather than rounded away.
+
+A workstation build of the same commit measures ~54 MiB, for two reasons: when the strip lands,
+AGP removes the native library's debug tables (~9 MB), and the locally bound `libgojni.so` carries
+about 11 MB more DWARF to begin with. Stripping removes debug and static symbol tables only:
+`.text`, `.rodata` and `.gopclntab` come out the same size and the dynamic symbol table is
+identical, all 28 `Java_io_github_*` entry points included. Four ABIs of `libgojni.so` are
+162.4 MiB on their own, which is the whole argument for shipping one.
 
 | Artifact | Size |
 |---|---|
 | `tailnet.aar` | 60.0 MiB |
-| Release APK, `arm64-v8a` only — the asset the release serves, R8 off | 35.1 MiB |
+| Release APK, `arm64-v8a` only — the asset 0.4.7 serves, R8 off, **not stripped** | 43.8 MiB |
+| Release APK, `arm64-v8a` only — the asset 0.4.6 served, R8 off, stripped | 35.1 MiB |
 | Release APK, `arm64-v8a` only, built on this workstation, R8 off | 54.2 MiB |
 | Release APK, four ABIs, R8 on | 164.1 MiB |
 

@@ -154,7 +154,11 @@ the same commit measured 54.2 MiB, because the locally bound `libgojni.so` carri
 more DWARF than the library the workflow builds from `scripts/build-bridge.mjs`. Take the number
 from the published asset, never from a local build. (v0.4.6 is 35.1 MiB: the workflow sets
 `ANDROID_NDK_HOME`, so AGP strips the native library's `.debug_*`, `.symtab` and `.strtab` — about
-9 MB, with the code sections and the dynamic symbols unchanged. A local build keeps them.)
+9 MB, with the code sections and the dynamic symbols unchanged. A local build keeps them. v0.4.7 is
+why that is worth checking rather than assuming: its asset is 43.8 MiB, because that run's AGP
+reported `Unable to strip the following libraries … libgojni.so` and shipped the library whole. The
+workflow's *intent* to strip is not evidence that it stripped; the `Unable to strip` line in the
+build log is.)
 
 `README.md` is the other hand-maintained place a version number lives, and it is the one a
 stranger reads first: its `## Status` line names the version and `versionCode`, and its size
