@@ -78,6 +78,7 @@ import io.github.zero6689.tailnetbyok.core.log.SafeLog
 import kotlinx.coroutines.delay
 import io.github.zero6689.tailnetbyok.domain.FileUploadRequest
 import io.github.zero6689.tailnetbyok.domain.UpdateInstaller
+import java.security.SecureRandom
 
 /**
  * The target's own web interface, in a WebView.
@@ -121,6 +122,13 @@ fun WebScreen(
     val load = remember { mutableStateOf<LoadState>(LoadState.Loading) }
     val webView = remember { mutableStateOf<WebView?>(null) }
     val pendingFileChooser = remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    // The page's save bridge (see WebFileSaver): one token for the lifetime of
+    // this screen, handed to the top document of this app's own origin on every
+    // page load. The base URL is captured as a plain value because the client
+    // below outlives a recomposition.
+    val baseUrl = url
+    val saveToken = remember { newSaveToken() }
+    val fileSaver = remember(context, saveToken) { WebFileSaver(context, saveToken) }
     // The staged photo target for the request in flight, when that request offered
     // the camera. Held as a file *and* its URI: the file is what has to be cleaned
     // up when the user picks a document instead of taking a photo.
@@ -230,14 +238,17 @@ fun WebScreen(
                 load.value = LoadState.Loading
             }
 
-            override fun onPageFinished(view: WebView?, url: String?) {
+            override fun onPageFinished(view: WebView?, pageUrl: String?) {
                 // A failed page still "finishes". The failure is the more useful
                 // thing to keep on screen, so it wins.
                 if (load.value is LoadState.Loading) load.value = LoadState.Ready
                 // The page is the same page the shell renders, so the shell's own
                 // page-level touches belong here too — see tunePage. Idempotent, and
                 // re-run on every navigation because a reload replaces the document.
-                view?.let { tunePage(it) }
+                view?.let { view ->
+                    injectSaveToken(view, pageUrl, baseUrl, saveToken)
+                    tunePage(view)
+                }
             }
 
             override fun onReceivedError(
@@ -369,6 +380,10 @@ fun WebScreen(
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        // Save-only bridge for the page's own "download to phone"
+                        // control. It can create one file under Downloads and append
+                        // bytes; the token gate below keeps foreign frames out.
+                        installSaveBridge(fileSaver)
                         // Explicit setter calls rather than the `webViewClient =`
                         // property form: those synthetic properties come from
                         // `getWebViewClient()`/`getWebChromeClient()`, which only
@@ -549,6 +564,51 @@ private sealed interface LoadState {
  * the `[data-slot=…]` anchors it relied on are written down in
  * `_ops/docs/dsh-mobile.md`, should a wrapper ever need to move that footer again.
  */
+// A fresh 128-bit token for the save-only bridge (see WebFileSaver). Not a
+// secret that protects data — the bridge cannot read anything — it exists so a
+// foreign frame sharing this WebView cannot create or append files in the
+// user's Downloads.
+private fun newSaveToken(): String {
+    val bytes = ByteArray(16)
+    SecureRandom().nextBytes(bytes)
+    return bytes.joinToString(separator = "") { byte -> "%02x".format(byte) }
+}
+
+// Hand the bridge token to the top document, and only when that document
+// belongs to this screen's own origin. A foreign page — or a link the user
+// followed out of the app — never receives it, so `dshSaveFile.start()`
+// rejects every call made from there.
+private fun injectSaveToken(view: WebView, pageUrl: String?, baseUrl: String, token: String) {
+    if (pageUrl == null || !sameOrigin(pageUrl, baseUrl)) return
+    view.evaluateJavascript("window.__DSH_SAVE_TOKEN='$token'", null)
+}
+
+// Scheme + host + effective port, the way an origin is compared everywhere
+// else. A malformed address matches nothing.
+private fun sameOrigin(left: String, right: String): Boolean {
+    val a = runCatching { Uri.parse(left) }.getOrNull() ?: return false
+    val b = runCatching { Uri.parse(right) }.getOrNull() ?: return false
+    return a.scheme.equals(b.scheme, ignoreCase = true) &&
+        a.host.equals(b.host, ignoreCase = true) &&
+        effectivePort(a) == effectivePort(b)
+}
+
+private fun effectivePort(uri: Uri): Int = when {
+    uri.port != -1 -> uri.port
+    uri.scheme.equals("https", ignoreCase = true) -> 443
+    else -> 80
+}
+
+// Install the page's save-only bridge (see WebFileSaver). The parameter is typed
+// on purpose: `remember` returns its own type variable, so passing the remembered
+// value inline reaches lint as `T` and the call is reported as registering an
+// interface with no @JavascriptInterface methods — every method here is annotated,
+// so that is a false positive, and a named parameter is what stops lint from
+// guessing. Suppressing the check instead would also hide a real one later.
+private fun WebView.installSaveBridge(saver: WebFileSaver) {
+    addJavascriptInterface(saver, "dshSaveFile")
+}
+
 private fun tunePage(view: WebView) {
     view.evaluateJavascript(
         "(function(){" +

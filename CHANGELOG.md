@@ -15,8 +15,26 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ## [Unreleased]
 
+## [0.4.7] — 2026-11-23
+
+### Added
+
+- **Download to phone from the DSH page.** The document preview's `下载到手机` control saves the original
+  file — image, Word, PDF — into `Downloads/DeepSeek Harness`. The page hands the bytes to a save-only
+  WebView bridge (`dshSaveFile`), so a file the app already fetched with its own session is written without
+  leaving the app or re-authenticating anywhere. The bridge can create one file and append bytes; it cannot
+  read, list, delete or overwrite, and it has no path in its protocol. Every call carries a token that only
+  the top document of this app's own origin receives, so a foreign frame cannot drive it.
+
 ### Changed
 
+- **The docs site now says what this release does, and stops saying things that stopped being true.** Two rows
+  are new — the target's own page rendered in a WebView, and saving a file from that page into the phone's
+  Downloads — and the status sections were re-read against the release: the bridge "has not been built on every
+  platform", UI strings "are not extracted", and the per-ABI footprint "is unmeasured" had all been overtaken
+  (the AAR is built by CI, the app ships English and Chinese, the `arm64` asset was downloaded and measured).
+  What is left in "not done" is what is still true: no instrumented tests, the page's rendering belongs to the
+  WebView it lands on, one ABI, one platform, and a connection only as steady as the tunnel.
 - **The phone screenshots now say which release each one came from.** The file names were the only place that
   said it, and a reader sees the pictures without them — so the version a capture belongs to, and the two places
   it still carries wording the app has since corrected (the 0.4.4 system-network note reading *"Android 13 or
@@ -25,6 +43,11 @@ oversight, and it is worth knowing when you read a security entry below.
 
 ### Fixed
 
+- **Lint read the save bridge as an interface with no `@JavascriptInterface` methods**, which would have failed
+  CI on a call that is correct. `remember` returns its own type variable, so the value handed to
+  `addJavascriptInterface` reached lint as `T` and the annotation check had nothing to look at. The bridge is now
+  installed by a helper whose parameter is typed `WebFileSaver`, so the check resolves the class it is actually
+  registering; suppressing the rule would have hidden the next real one.
 - **`docs/images/dsh-screen.jpg` shipped its composer workspace chip unredacted.** The tablet captures
   had that name covered; the phone one did not, so a public file read the local checkout's folder name,
   and the README shows that file. The block now covers the whole chip. The earlier blob stays in history

@@ -150,6 +150,14 @@ the device-wide VPN slot — its `:tool` module declares a `VPNService` and hold
   into your tailnet is created in Go and Android's HTTP stack has no route to it. The
   listener is loopback-only, requires a random per-session token, and its session cookie
   is cleared when you leave the screen.
+- **Files on the phone** — a picture the page shows is read at full size in place, and a
+  file the page offers to download — a PDF, a Word document, a video — saves into the
+  phone's own `Downloads/DeepSeek Harness` instead of being handed to a browser that
+  cannot reach your tailnet. The page passes the bytes it already fetched with its own
+  session to a save-only bridge: it can create one new file and append bytes, and it
+  cannot read, list, delete, open or overwrite anything. No storage permission is
+  requested — Android 10 and later writes through MediaStore, 8 and 9 use the app's own
+  Downloads folder.
 - **Updates, verified or refused** — *Check for updates* reads `dsh.apk.version` from the
   update source (by default the target's origin, and configurable), downloads `dsh.apk` when
   that is newer, and installs it only when the bytes match `dsh.apk.sha256` and the archive
@@ -378,10 +386,10 @@ that its Tailscale node makes, and the requests you ask it to make. Full text:
 
 ## Status
 
-Version **0.4.6** (`versionCode` 26) — running on a phone *and* a tablet, and it compiles.
+Version **0.4.7** (`versionCode` 27) — running on a phone *and* a tablet, and it compiles.
 
-**Verified by an actual build**, not by inspection: **178 unit tests pass** (no failures, no
-skips), Lint reports **zero errors** (five warnings), and the release workflow builds and signs the
+**Verified by an actual build**, not by inspection: **180 unit tests pass** (no failures, no
+skips), Lint reports **zero errors** (ten warnings), and the release workflow builds and signs the
 `arm64-v8a` asset; the gomobile bridge produces a 60.0 MiB `tailnet.aar`.
 
 The release ships **one ABI, not four**: an `arm64-v8a` APK of about **35 MiB** (35.1 MiB for the

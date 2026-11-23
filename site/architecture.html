@@ -312,17 +312,19 @@ docs/                          the same material as Markdown, for GitHub browsin
             verified by hand, not by CI.</span><span class="i18n-zh">任何需要真机的东西 —— Keystore 行为、原生桥接层 —— 都是手工验证，不是 CI 验证。</span></td>
       </tr>
       <tr>
-        <td><span class="i18n-en">UI strings are not extracted</span><span class="i18n-zh">UI 字符串没有抽取出来</span></td>
-        <td><span class="i18n-en">The app cannot be translated without moving copy out of the Compose sources into
-            resources. This is a deliberate trade: each warning currently sits next to the
-            condition that triggers it.</span><span class="i18n-zh">不把文案从 Compose 源码搬进资源文件，就无法翻译这个 App。这是有意的取舍：
-            目前每条警告就挨着触发它的那个条件。</span></td>
+        <td><span class="i18n-en">Two locales, not three</span><span class="i18n-zh">两种语言，不是三种</span></td>
+        <td><span class="i18n-en">Every user-facing string is extracted and the app ships an English and a Chinese
+            translation. There is no third locale, and adding one also means translating the page in the WebView —
+            which is DSH's own, not this app's.</span><span class="i18n-zh">所有面向用户的字符串都已抽出，App 带英文与中文两套翻译。没有第三种语言，而且加一种
+            还得连 WebView 里那一页一起翻译 —— 那是 DSH 自己的页面，不是这个 App 的。</span></td>
       </tr>
       <tr>
-        <td><span class="i18n-en">Per-ABI AAR size is unmeasured</span><span class="i18n-zh">各 ABI 的 AAR 体积没有测量</span></td>
-        <td><span class="i18n-en">An embedded <code>tsnet</code> node adds a Go runtime. It is not small, and
-            <code>abiFilters</code> is not configured.</span><span class="i18n-zh">一个内嵌的 <code>tsnet</code> 节点会带上 Go 运行时。它不小，而
-            <code>abiFilters</code> 没有配置。</span></td>
+        <td><span class="i18n-en">Only <code>arm64</code> is built</span><span class="i18n-zh">只构建 <code>arm64</code></span></td>
+        <td><span class="i18n-en">The release ships <code>arm64-v8a</code> and its size was measured by downloading
+            the asset (35.1 MiB); a four-ABI build is 164.1 MiB, which is the whole argument for shipping one. Other
+            ABIs are not built at all, so their behaviour is untested rather than merely unmeasured.</span><span class="i18n-zh">Release 只发 <code>arm64-v8a</code>，体积是下载资产后量出来的（35.1 MiB）；
+            四 ABI 构建是 164.1 MiB —— 这就是只发一个的理由。其它 ABI 根本不会构建，所以它们不是「体积没测」，
+            而是行为没有测过。</span></td>
       </tr>
       <tr>
         <td><span class="i18n-en">No reproducible-build guarantee</span><span class="i18n-zh">没有可复现构建的保证</span></td>

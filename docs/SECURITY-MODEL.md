@@ -115,15 +115,9 @@ target the user configured, over the route the page itself is using, carrying th
 cookie and nothing else — it is not a channel to anywhere else, and it is the reason no server of
 ours and no push service is involved.
 
-Not declared, and why:
-
-| Permission | Reason |
-|---|---|
-| `BIND_VPN_SERVICE` | The embedded node dials one destination inside its own process. It never intercepts device-wide traffic, so it must not take the VPN slot — which would also break any other VPN the user runs. |
-| `QUERY_ALL_PACKAGES` | Nothing needs to enumerate other apps. |
-`FOREGROUND_SERVICE` (with the `dataSync` type Android 14 requires to be named) is the newest, and it
-reverses an earlier decision in this document. The app used to have no foreground service at all: the
-session watch lived in the process, while the DSH screen was open, and died with it. That was honest
+`FOREGROUND_SERVICE` (with the `dataSync` type Android 14 requires to be named) is the newest of the declared
+permissions, and it reverses an earlier decision in this document. The app used to have no foreground service at
+all: the session watch lived in the process, while the DSH screen was open, and died with it. That was honest
 but it did not work — Android 12+ **freezes** a backgrounded process (it does not kill it, it stops its
 timers), so a task that finished while the user was in another app was never noticed, and the "your
 task finished" notification never arrived. Measured, not theorised: that is exactly what the first real
@@ -152,9 +146,8 @@ What is still *not* covered, and will not be without another decision: watching 
 **closed**. That would mean holding the route (and the cookie) open with no screen, which is the exact
 capability this app's design keeps short-lived. Someone who wants that is asking for the route to
 outlive the screen, and it should be an explicit choice rather than a side effect.
-| Location, storage, contacts, phone | Unused. A future export must go through the Storage Access Framework, which grants exactly one file. |
 
-`CAMERA` is the newest of the five and the one worth being most precise about,
+`CAMERA` is the newest of the six and the one worth being most precise about,
 because a camera is the permission users are right to be suspicious of. It is
 requested at runtime, from the scanner screen, and asked for the first time only
 when the user taps "Scan a QR code" — never at launch, never in the background.
@@ -172,6 +165,15 @@ reads a code from a picture chosen through the system photo picker, which needs 
 permission at all and grants exactly one file — the same door the DSH screen's
 upload path uses. So the app is fully configurable with the camera permanently
 denied, which is the property that makes requesting it defensible.
+
+Not declared, and why:
+
+| Permission | Reason |
+|---|---|
+| `BIND_VPN_SERVICE` | The embedded node dials one destination inside its own process. It never intercepts device-wide traffic, so it must not take the VPN slot — which would also break any other VPN the user runs. |
+| `QUERY_ALL_PACKAGES` | Nothing needs to enumerate other apps. |
+| `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` | Not requested even though the app writes files. On Android 10 and later a saved file is inserted straight into the MediaStore Downloads collection, which needs no permission at all; on 8 and 9 it goes into the app's own Downloads directory. Nothing reads shared storage, and the save bridge's protocol has no path in it. |
+| Location, contacts, phone | Unused. |
 
 ## No IPC surface
 
@@ -202,6 +204,19 @@ refusal reasons, the same address-policy verdict, the same explicit Apply. It
 cannot apply anything by itself, and it cannot read a credential, because a link
 that carries one is refused whole. See `docs/PROVISIONING.md` for the feature as
 a workflow.
+
+The page in the WebView has one interface into the app, and it is not an Android one:
+`addJavascriptInterface` exposes `WebFileSaver` as `dshSaveFile`, which is how "download to phone"
+works. It is exposed to every frame the WebView renders, so every call carries a 128-bit token that
+`injectSaveToken` hands — after comparing scheme, host and effective port — only to the top document
+of this app's own origin; a foreign page, or a link followed out of the app, has no token and gets
+`err:forbidden`. What the bridge can do is deliberately narrow: `start` creates one file in the
+MediaStore Downloads collection (or, below API 29, in the app's own Downloads directory), `chunk`
+appends base64 bytes, `finish` publishes it, `abort` deletes the unfinished one. It cannot read, list,
+delete, open or overwrite an existing file; its protocol carries a display name rather than a path,
+and that name is sanitized (separators and control characters replaced, a leading dot stripped) before
+MediaStore resolves it. It lives only as long as the DSH screen. Nothing about it is reachable from
+another app: it is not an exported component, a binder or a content provider.
 
 ## On not setting `FLAG_SECURE`
 

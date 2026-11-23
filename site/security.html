@@ -256,6 +256,15 @@
             needs no permission.</span><span class="i18n-zh">只由扫码页在运行时申请，且只用来把一个二维码变成文字：画面在 App 内解码，不保存也不发送任何图片；
             拒绝也没有代价 —— 同一个页面可以用你选的图片识别，那条路不需要任何权限。</span></td>
       </tr>
+      <tr>
+        <td><code>FOREGROUND_SERVICE</code><br><code>FOREGROUND_SERVICE_DATA_SYNC</code></td>
+        <td><span class="i18n-en">Raised only while the DSH screen is open, and only so a task you started can be
+            noticed finishing while the app is off screen — Android freezes a backgrounded app, which used to stop
+            that check silently. It cannot outlive the screen, it has no binder, no other app can start it, and the
+            notification it requires is on a silent low-importance channel.</span><span class="i18n-zh">只在「DSH 界面」打开期间启动，目的只有一个：你启动的任务在 App 退到后台时跑完，
+            也能被发现 —— Android 会冻结后台 App，以前这让检查静默失效。它不能比页面活得更久，没有 binder，别的 App 也启动不了，
+            它要求的那条通知在静音、低优先级的通道上。</span></td>
+      </tr>
     </tbody>
   </table>
   </div>
@@ -282,29 +291,24 @@
         <td><span class="i18n-en">Nothing here needs to enumerate other apps.</span><span class="i18n-zh">这里没有任何东西需要枚举其它 App。</span></td>
       </tr>
       <tr>
-        <td><code>CAMERA</code></td>
-        <td><span class="i18n-en">Requested at runtime by the scanner screen, and only to turn one QR code
-            into text. Declining costs nothing: the same screen reads a code from a picture you pick.</span><span class="i18n-zh">只由扫码页在运行时申请，且只用来把一个二维码变成文字。拒绝也没有代价：同一个页面可以用你选的图片识别。</span></td>
+        <td><code>READ_EXTERNAL_STORAGE</code><br><code>WRITE_EXTERNAL_STORAGE</code></td>
+        <td><span class="i18n-en">Not requested even though the app writes files, and that is the point of saying it here.
+            On Android 10 and later a saved file is inserted straight into the MediaStore Downloads collection,
+            which needs no permission at all; on 8 and 9 it goes into the app's own Downloads directory. Nothing
+            reads shared storage, the bridge has no path in its protocol, and there is no file browser in the
+            app.</span><span class="i18n-zh">即使 App 会写文件，这两项也不申请 —— 这一点值得在这里说清楚。Android 10 及以上，保存的文件直接插进
+            MediaStore 的 Downloads 集合，完全不需要权限；8、9 上写进 App 自己的 Downloads 目录。App 不读取共享存储，
+            保存桥的协议里没有任何路径，App 里也没有文件浏览器。</span></td>
       </tr>
       <tr>
-        <td><code>FOREGROUND_SERVICE</code><br><code>FOREGROUND_SERVICE_DATA_SYNC</code></td>
-        <td><span class="i18n-en">Raised only while the DSH screen is open, and only so a task you started can be
-            noticed finishing while the app is off screen — Android freezes a backgrounded app, which used to stop
-            the check silently. It cannot outlive the screen, it has no binder and cannot be started by another app,
-            and the notification it requires is on a silent low-importance channel.</span><span class="i18n-zh">只在「DSH 界面」打开期间启动，目的只有一个：你启动的任务在 App 退到后台时跑完，
-            也能被发现——Android 会冻结后台 App，以前这让检查静默失效。它不能比页面活得更久，没有 binder，别的 App 也启动不了，
-            它要求的那条通知在静音、低优先级的通道上。</span></td>
-      </tr>
-      <tr>
-        <td><span class="i18n-en">Location, storage, contacts, phone</span><span class="i18n-zh">位置、存储、联系人、电话</span></td>
-        <td><span class="i18n-en">None of it is used. Exports, if added, go through the Storage Access Framework,
-            which grants exactly one file.</span><span class="i18n-zh">这些一个都没用到。将来若加入导出功能，会走 Storage Access Framework，它只授权一个文件。</span></td>
+        <td><span class="i18n-en">Location, contacts, phone</span><span class="i18n-zh">位置、联系人、电话</span></td>
+        <td><span class="i18n-en">None of it is used.</span><span class="i18n-zh">这些一个都没用到。</span></td>
       </tr>
     </tbody>
   </table>
   </div>
 
-  <h2 id="ipc-surface"><span class="i18n-en">There is no IPC surface</span><span class="i18n-zh">不存在 IPC 攻击面</span><a class="anchor" href="#ipc-surface">#</a></h2>
+  <h2 id="ipc-surface"><span class="i18n-en">No IPC surface, and one in-page bridge</span><span class="i18n-zh">不存在 IPC 攻击面，只有一个页面内的桥</span><a class="anchor" href="#ipc-surface">#</a></h2>
 
   <p>
     <span class="i18n-en">The app declares exactly one exported component: its launcher activity. No exported
@@ -313,6 +317,22 @@
     way to secure an attack surface is to not have one.</span><span class="i18n-zh">App 只声明了一个导出组件：它的启动 Activity。不存在任何导出的 service、receiver 或
     content provider，所以别的 App 没有任何东西可以绑定、查询或发送 intent。这是一个有意的结构选择
     —— 保护攻击面最便宜的办法，就是根本不存在攻击面。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">One interface does exist, and it is not an Android one: the page in the WebView can call a
+    save-only bridge (<code>dshSaveFile</code>) so a file it already fetched with its own session can be written to
+    the phone. <code>addJavascriptInterface</code> exposes that to every frame the WebView renders, so every call
+    carries a token that only the top document of this app's own origin receives — a foreign page, or a link
+    followed out of the app, has no token and is refused. The bridge can create one new file and append bytes; it
+    cannot read, list, delete, open or overwrite anything, its protocol carries no path (a sanitized display name,
+    resolved by MediaStore), and it does not outlive the DSH screen. Nothing about it is reachable from another
+    app.</span><span class="i18n-zh">确实存在一个接口，但它不是 Android 的：WebView 里的页面可以调用一个只写的桥（<code>dshSaveFile</code>），
+    把页面自己会话已经取到的文件写进手机。<code>addJavascriptInterface</code> 会把它暴露给这个 WebView 渲染的每一帧，
+    所以每次调用都要带一个令牌，只有本 App 自有 origin 的顶层文档能拿到 —— 外部页面、或者从 App 里点出去跟随的链接
+    都没有令牌，会被拒绝。这个桥只能新建一个文件并追加字节；它不能读、不能列、不能删、不能打开、也不能覆盖任何东西，
+    协议里没有任何路径（只有一个经过净化的显示名，由 MediaStore 解析），它的生命周期也不超过「DSH 界面」。
+    别的 App 无论如何都碰不到它。</span>
   </p>
 
   <h3 id="flag-secure"><span class="i18n-en">On not setting FLAG_SECURE</span><span class="i18n-zh">关于不设置 FLAG_SECURE</span><a class="anchor" href="#flag-secure">#</a></h3>

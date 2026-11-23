@@ -270,6 +270,29 @@ node scripts/build-bridge.mjs             # gomobile bind -> app/libs/tailnet.aa
     因为被跳过的步骤说明不了任何问题。</span>
   </p>
 
+  <h3 id="step-4-ui"><span class="i18n-en">4. Open the DSH UI</span><span class="i18n-zh">4. 打开 DSH 界面</span><a class="anchor" href="#step-4-ui">#</a></h3>
+
+  <p>
+    <span class="i18n-en">Once the test passes, <em>Open the DSH UI</em> shows the target's own page inside the app.
+    It goes through a loopback-only proxy that takes a random per-session token, because the socket into your
+    tailnet is created in Go and Android's HTTP stack has no route to it; the session cookie is cleared when you
+    leave the screen.</span><span class="i18n-zh">测试通过后，点<em>打开 DSH 界面</em>，目标自己的那一页就在 App 里打开。它走一个只监听本机、
+    只接受随机会话令牌的代理 —— 进入你 tailnet 的 socket 由 Go 建立，Android 的 HTTP 栈到不了那里；
+    离开这个页面时，会话 cookie 会被清掉。</span>
+  </p>
+
+  <p>
+    <span class="i18n-en">From that page, a file it offers to download — a picture, a PDF, a Word document, a video
+    — saves into the phone's own <code>Downloads/DeepSeek Harness</code> (Android 10 and later; 8 and 9 use the
+    app's Downloads folder), and images are shown at full size in place. The buttons are the page's own, because
+    the page is DSH's; what this app adds is the save path, so a file the session already fetched is written
+    without leaving the app or signing in anywhere again. It is write-only: one new file, bytes appended, and no
+    way to read, list, delete or overwrite.</span><span class="i18n-zh">在这一页上，它提供下载的东西 —— 照片、PDF、Word 文档、视频 —— 直接存进手机自己的
+    <code>Downloads/DeepSeek Harness</code>（Android 10 及以上；8、9 用 App 自己的 Downloads 目录），图片则按原尺寸就地显示。
+    那些按钮属于页面本身，因为页面是 DSH 的；这个 App 补的是保存这一段，所以会话已经取到的文件可以直接写下来，
+    不用离开 App，也不用在别处再登录一次。它是只写的：新建一个文件、追加字节，没有任何读取、列举、删除或覆盖的途径。</span>
+  </p>
+
   <h3 id="self-hosted"><span class="i18n-en">Using headscale instead of Tailscale</span><span class="i18n-zh">用 headscale 代替 Tailscale</span><a class="anchor" href="#self-hosted">#</a></h3>
 
   <p>
